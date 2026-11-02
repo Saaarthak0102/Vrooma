@@ -60,7 +60,7 @@ export function SiteHeader() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 w-full pt-3 pb-2 px-3 sm:px-6">
+      <header className="sticky top-0 z-40 w-full pt-3 pb-2" style={{ paddingInline: "var(--gutter)" }}>
         <Container className="p-0">
           <div className="flex h-14 items-center justify-between px-4 sm:px-6">
             {/* Left: Brand mark + Vrooma wordmark */}

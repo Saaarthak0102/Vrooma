@@ -117,6 +117,7 @@ export function HeroScene({ data }: HeroSceneProps) {
     gsap.set(rows, { opacity: 0, x: -40, filter: "blur(8px)" });
     gsap.set(confChips, { scale: 0.6, opacity: 0 });
 
+    gsap.set(screenPrice, { opacity: 0, y: 12 });
     gsap.set(screenSlots, { opacity: 0, y: 12 });
     gsap.set(screenUsed, { opacity: 0, y: 12 });
     gsap.set(screenService, { opacity: 0, y: 12 });
@@ -163,7 +164,7 @@ export function HeroScene({ data }: HeroSceneProps) {
       .to(
         phone,
         {
-          x: "24vw",
+          x: "9vw",
           scale: 1.06,
           rotate: 0,
           ease: "power2.inOut",
@@ -232,10 +233,10 @@ export function HeroScene({ data }: HeroSceneProps) {
       .to(screenUsed, { opacity: 0, y: -12, duration: 0.05 }, 0.815)
       .to(screenService, { opacity: 1, y: 0, duration: 0.06 }, 0.825);
 
-    // 0.94-1.00: Translate up 6vh and hand off to WhyVrooma
+    // 0.94-1.00: Translate up 0vh and hand off to WhyVrooma (maintain safe-top headroom)
     tl.to(
       [phone, h2Group, ".hero-accordion-container", confChips],
-      { y: "-6vh", opacity: 0.25, ease: "power2.inOut", duration: 0.06 },
+      { y: "0vh", opacity: 0.25, ease: "power2.inOut", duration: 0.06 },
       0.94
     );
   };
@@ -254,10 +255,10 @@ export function HeroScene({ data }: HeroSceneProps) {
 
       {/* Layer 0: Load State (H1, Car cutout, CTA text, Floater chips) */}
       <div data-layer className="hidden lg:block z-20 pointer-events-none">
-        <div className="relative h-full w-full max-w-7xl mx-auto px-8 pt-10">
+        <div className="stage-inner">
           {/* H1 Headline across top */}
-          <div id="hero-h1-group" className="max-w-4xl pointer-events-auto">
-            <h1 className="text-4xl sm:text-5xl lg:text-[4.2rem] font-medium tracking-tight text-ink leading-[1.05]">
+          <div id="hero-h1-group" data-layout="hero:h1" data-layout-kind="text" className="absolute top-2 left-0 max-w-4xl pointer-events-auto">
+            <h1 className="text-3xl sm:text-4xl lg:text-[clamp(2.3rem,4svh,3.6rem)] font-medium tracking-tight text-ink leading-[1.05]">
               <Words text="Vrooma: your next car," />{" "}
               <span className="inline-block relative">
                 <Accent tone="mute">booked in minutes</Accent>
@@ -281,23 +282,29 @@ export function HeroScene({ data }: HeroSceneProps) {
           {/* Hero Subline + CTAs above car on right */}
           <div
             id="hero-body-group"
-            className="absolute top-[28vh] left-[42vw] max-w-md pointer-events-auto space-y-5"
+            data-layout="hero:body"
+            data-layout-kind="text"
+            className="absolute top-[clamp(185px,23svh,220px)] left-[52%] max-w-[380px] pointer-events-auto space-y-3.5"
           >
-            <p className="text-base sm:text-lg text-ink-soft leading-relaxed font-normal">
+            <p className="text-xs sm:text-sm text-ink-soft leading-relaxed font-normal">
               Real on-road prices, EMI and test-drive slots for Brand X in Lucknow. A named consultant replies within 5 minutes.
             </p>
             <div className="flex items-center gap-3">
-              <PillButton asChild variant="primary" showArrow className="h-11 px-7 text-xs">
+              <PillButton asChild variant="primary" showArrow className="h-10 px-6 text-xs">
                 <Link href="/book/test-drive">Book a test drive</Link>
               </PillButton>
-              <PillButton asChild variant="secondary" className="h-11 px-6 text-xs">
+              <PillButton asChild variant="secondary" className="h-10 px-5 text-xs">
                 <Link href="/cars">Browse cars</Link>
               </PillButton>
             </div>
           </div>
 
           {/* Floater Chip (a): Next Free Slot */}
-          <div className="hero-floater-chip absolute top-[44vh] left-[34vw] z-30 pointer-events-auto">
+          <div
+            data-layout="hero:chip-slot"
+            data-layout-kind="chip"
+            className="hero-floater-chip absolute top-[clamp(295px,38svh,335px)] left-[52%] z-30 pointer-events-auto"
+          >
             <Floater duration={3.8} deltaY={-8}>
               <div className="glass-card px-4 py-2.5 rounded-pill flex items-center gap-2.5 shadow-card border border-white/80">
                 <div className="h-7 w-7 rounded-full bg-accent/15 text-accent-ink flex items-center justify-center">
@@ -318,9 +325,13 @@ export function HeroScene({ data }: HeroSceneProps) {
           </div>
 
           {/* Floater Chip (b): Teaser On-road Lucknow */}
-          <div className="hero-floater-chip absolute top-[58vh] right-[6vw] z-30 pointer-events-auto">
+          <div
+            data-layout="hero:chip-price"
+            data-layout-kind="chip"
+            className="hero-floater-chip absolute top-[clamp(120px,16svh,150px)] right-0 z-30 pointer-events-auto"
+          >
             <Floater duration={4.2} deltaY={10} delay={0.6}>
-              <div className="glass-card px-4 py-3 rounded-2xl shadow-card border border-white/80 max-w-[220px]">
+              <div className="glass-card px-4 py-3 rounded-2xl shadow-card border border-white/80 max-w-[210px]">
                 <span className="text-[10px] font-bold uppercase text-accent-ink tracking-wider block">
                   Lucknow On-Road
                 </span>
@@ -341,7 +352,9 @@ export function HeroScene({ data }: HeroSceneProps) {
           {/* Hero Car Cutout bottom-right with CSS Contact Shadow */}
           <div
             id="hero-car-wrapper"
-            className="absolute bottom-[-2vh] right-[-4vw] w-[46vw] max-w-[780px] pointer-events-auto select-none"
+            data-layout="hero:car"
+            data-layout-kind="car"
+            className="absolute bottom-[clamp(82px,10svh,90px)] right-0 w-[min(42%,54svh)] max-w-[580px] pointer-events-auto select-none"
           >
             {/* CSS Contact Shadow (radial gradient ellipse, NOT baked into image) */}
             <div
@@ -362,105 +375,131 @@ export function HeroScene({ data }: HeroSceneProps) {
         </div>
       </div>
 
-      {/* Layer 1: Phone Mockup (bottom-left, cut off by bottom, rotated -2deg) */}
-      <div
-        id="hero-phone-wrapper"
-        data-layer
-        className="hidden lg:flex items-end justify-start pl-[6vw] pb-[-8vh] z-10 pointer-events-none origin-bottom-left"
-        style={{ transform: "rotate(-2deg)" }}
-      >
-        <div className="pointer-events-auto relative">
-          <PhoneMockup>
-            {/* Screen 0: Price Screen */}
-            <div id="screen-price" className="absolute inset-0 p-3 pt-8">
-              <PhoneScreenPrice
-                variantName={`${data.heroModel.name} ${data.heroModel.variantName}`}
-                exShowroom={data.heroModel.exShowroom}
-                total={data.heroModel.teaserOnRoad ?? 1459450}
-                validUntil={data.heroModel.validUntil ?? "31 Dec 2026"}
-              />
+      {/* Layer 1: Phone Mockup */}
+      <div data-layer className="hidden lg:block z-10 pointer-events-none">
+        <div className="stage-inner">
+          <div
+            id="hero-phone-wrapper"
+            className="absolute top-[clamp(130px,18svh,170px)] left-2 pointer-events-none origin-bottom-left"
+            style={{ transform: "rotate(-2deg)" }}
+          >
+            <div data-layout="hero:phone" data-layout-kind="phone" className="pointer-events-auto relative">
+              <PhoneMockup className="w-[clamp(260px,26svh,320px)]">
+                {/* Screen Home: visible at load (progress 0) */}
+                <div id="screen-home" className="absolute inset-0 p-3 pt-8">
+                  <PhoneScreenHome
+                    modelName={data.heroModel.name}
+                    variantName={data.heroModel.variantName}
+                    onRoadPrice={data.heroModel.teaserOnRoad}
+                    validUntil={data.heroModel.validUntil ?? "31 Dec 2026"}
+                    nextSlotTime={data.nextSlot?.timeFormatted ?? "Today, 4:00 PM"}
+                    nextShowroom={data.nextSlot?.showroomName ?? "Hazratganj Flagship"}
+                  />
+                </div>
+                {/* Screen 0: Price Screen */}
+                <div id="screen-price" className="absolute inset-0 p-3 pt-8">
+                  <PhoneScreenPrice
+                    variantName={`${data.heroModel.name} ${data.heroModel.variantName}`}
+                    exShowroom={data.heroModel.exShowroom}
+                    total={data.heroModel.teaserOnRoad ?? 1459450}
+                    validUntil={data.heroModel.validUntil ?? "31 Dec 2026"}
+                  />
+                </div>
+                {/* Screen 1: Slots Screen */}
+                <div id="screen-slots" className="absolute inset-0 p-3 pt-8">
+                  <PhoneScreenSlots
+                    carName={`${data.heroModel.name} ${data.heroModel.variantName}`}
+                    showroomName={data.locations[0]?.name ?? "Hazratganj Flagship"}
+                  />
+                </div>
+                {/* Screen 2: Used Car Screen */}
+                <div id="screen-used" className="absolute inset-0 p-3 pt-8">
+                  <PhoneScreenUsed
+                    stockId={data.usedSample?.stock_id ?? "UC-1182"}
+                    modelName={data.usedSample?.model_name ?? "Model C"}
+                    variantName={data.usedSample?.variant_name ?? "VX Turbo Diesel"}
+                    year={data.usedSample?.year ?? 2022}
+                    km={data.usedSample?.km ?? 41200}
+                    owners={data.usedSample?.owners ?? 1}
+                    price={data.usedSample?.price ?? 845000}
+                    regMasked={data.usedSample?.reg_no_masked ?? "UP32 ** **** 4120"}
+                    score={data.usedSample?.inspection?.score ?? 94}
+                  />
+                </div>
+                {/* Screen 3: Service Screen */}
+                <div id="screen-service" className="absolute inset-0 p-3 pt-8">
+                  <PhoneScreenService
+                    workshopName={data.locations.find((l) => l.type === "workshop")?.name ?? "Central Workshop Transport Nagar"}
+                    baysAvailable={16}
+                  />
+                </div>
+              </PhoneMockup>
             </div>
-            {/* Screen 1: Slots Screen */}
-            <div id="screen-slots" className="absolute inset-0 p-3 pt-8">
-              <PhoneScreenSlots
-                carName={`${data.heroModel.name} ${data.heroModel.variantName}`}
-                showroomName={data.locations[0]?.name ?? "Hazratganj Flagship"}
-              />
-            </div>
-            {/* Screen 2: Used Car Screen */}
-            <div id="screen-used" className="absolute inset-0 p-3 pt-8">
-              <PhoneScreenUsed
-                stockId={data.usedSample?.stock_id ?? "UC-1182"}
-                modelName={data.usedSample?.model_name ?? "Model C"}
-                variantName={data.usedSample?.variant_name ?? "VX Turbo Diesel"}
-                year={data.usedSample?.year ?? 2022}
-                km={data.usedSample?.km ?? 41200}
-                owners={data.usedSample?.owners ?? 1}
-                price={data.usedSample?.price ?? 845000}
-                regMasked={data.usedSample?.reg_no_masked ?? "UP32 ** **** 4120"}
-                score={data.usedSample?.inspection?.score ?? 94}
-              />
-            </div>
-            {/* Screen 3: Service Screen */}
-            <div id="screen-service" className="absolute inset-0 p-3 pt-8">
-              <PhoneScreenService
-                workshopName={data.locations.find((l) => l.type === "workshop")?.name ?? "Central Workshop Transport Nagar"}
-                baysAvailable={16}
-              />
-            </div>
-          </PhoneMockup>
+          </div>
         </div>
       </div>
 
       {/* Layer 2: Accordion rows + H2 + confirmation floaters (enters during scroll) */}
       <div data-layer className="hidden lg:block z-30 pointer-events-none">
-        <div className="relative h-full w-full max-w-7xl mx-auto px-8 pt-16 flex justify-end">
-          <div className="w-[50vw] max-w-xl pointer-events-auto space-y-6">
-            {/* H2 Title */}
-            <div id="hero-h2-group">
-              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-medium tracking-tight text-ink leading-[1.1]">
-                Everything you&apos;d call us for,{" "}
-                <Accent tone="accent">in a few taps</Accent>
-              </h2>
-            </div>
+        <div className="stage-inner">
+          <div className="absolute top-0 right-0 left-[46%] pointer-events-auto flex flex-col justify-between h-full py-1">
+            <div className="space-y-4">
+              {/* H2 Title */}
+              <div id="hero-h2-group" data-layout="hero:h2" data-layout-kind="text" className="pt-2">
+                <h2 className="text-2xl sm:text-3xl lg:text-[clamp(1.75rem,3.2svh,2.6rem)] font-medium tracking-tight text-ink leading-[1.1]">
+                  Everything you&apos;d call us for,{" "}
+                  <Accent tone="accent">in a few taps</Accent>
+                </h2>
+              </div>
 
-            {/* Accordion Rows Container */}
-            <div className="hero-accordion-container space-y-3 pt-2">
-              {accordionSteps.map((step, idx) => {
-                const Icon = step.icon;
-                return (
-                  <div
-                    key={step.id}
-                    className="hero-accordion-row glass-card p-4 rounded-2xl border border-white/80 shadow-sm"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div
-                        id={`row-icon-${idx}`}
-                        className="h-9 w-9 rounded-full bg-ink/5 flex items-center justify-center text-ink-mute transition-colors"
-                      >
-                        <Icon className="h-4 w-4" />
-                      </div>
-                      <h4 className="text-sm font-bold text-ink">{step.title}</h4>
-                    </div>
-                    {/* Scrubbed height tween target on desktop */}
+              {/* Accordion Rows Container (48px gap from H2) */}
+              <div className="hero-accordion-container space-y-2 pt-12">
+                {accordionSteps.map((step, idx) => {
+                  const Icon = step.icon;
+                  return (
                     <div
-                      id={`row-desc-${idx}`}
-                      className="overflow-hidden h-0 opacity-0 pl-12 text-xs text-ink-soft leading-relaxed"
+                      key={step.id}
+                      data-layout={`hero:row-${idx}`}
+                      data-layout-kind="card"
+                      className="hero-accordion-row glass-card p-[clamp(10px,1.3svh,14px)] rounded-2xl border border-white/80 shadow-sm"
                     >
-                      <p className="pt-2">{step.desc}</p>
+                      <div className="flex items-center gap-3">
+                        <div
+                          id={`row-icon-${idx}`}
+                          className="h-8 w-8 rounded-full bg-ink/5 flex items-center justify-center text-ink-mute transition-colors shrink-0"
+                        >
+                          <Icon className="h-4 w-4" />
+                        </div>
+                        <h4 className="text-xs sm:text-sm font-bold text-ink">{step.title}</h4>
+                      </div>
+                      {/* Scrubbed height tween target on desktop */}
+                      <div
+                        id={`row-desc-${idx}`}
+                        className="overflow-hidden h-0 opacity-0 pl-11 text-xs text-ink-soft leading-relaxed"
+                      >
+                        <p className="pt-2">{step.desc}</p>
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
 
             {/* Two Floater Confirmation Chips */}
             <div className="flex items-center gap-3 pt-2">
-              <div className="hero-confirmation-chip glass-card px-3.5 py-2 rounded-pill flex items-center gap-2 border border-accent/30 shadow-sm bg-accent/10">
+              <div
+                data-layout="hero:conf-chip-0"
+                data-layout-kind="chip"
+                className="hero-confirmation-chip glass-card px-3.5 py-2 rounded-pill flex items-center gap-2 border border-accent/30 shadow-sm bg-accent/10"
+              >
                 <CheckCircle2 className="h-4 w-4 text-accent-ink" />
                 <span className="text-xs font-bold text-accent-ink">Booked</span>
               </div>
-              <div className="hero-confirmation-chip glass-card px-3.5 py-2 rounded-pill flex items-center gap-2 border border-white shadow-sm">
+              <div
+                data-layout="hero:conf-chip-1"
+                data-layout-kind="chip"
+                className="hero-confirmation-chip glass-card px-3.5 py-2 rounded-pill flex items-center gap-2 border border-white shadow-sm"
+              >
                 <PhoneCall className="h-3.5 w-3.5 text-ink-mute" />
                 <span className="text-xs text-ink-soft font-semibold">
                   Consultant will contact you within 5 minutes

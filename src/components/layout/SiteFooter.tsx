@@ -89,7 +89,7 @@ export function SiteFooter() {
       ref={footerRef}
       className="mt-20 border-t border-border bg-[#E3E6EB] relative overflow-hidden text-ink"
     >
-      <Container className="pt-16 pb-12 relative z-10">
+      <Container data-layout="footer:content" data-layout-kind="card" className="pt-16 pb-12 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
           {/* Left Column: Newsletter & DPDP Consent */}
           <div className="lg:col-span-5 space-y-4">
@@ -256,6 +256,8 @@ export function SiteFooter() {
       {/* Giant Scrubbed Vrooma Wordmark (Instrument Serif italic) */}
       <div
         ref={wordmarkRef}
+        data-layout="footer:wordmark"
+        data-layout-kind="text"
         aria-hidden="true"
         className="pointer-events-none select-none text-center font-serif italic font-normal tracking-tight text-white/55 leading-none whitespace-nowrap overflow-hidden"
         style={{

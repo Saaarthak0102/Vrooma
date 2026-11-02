@@ -17,7 +17,7 @@ export function FeaturedStrip({ models }: FeaturedStripProps) {
   return (
     <section className="py-20 px-4 sm:px-8 w-full max-w-7xl mx-auto">
       <Reveal>
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10">
+        <div data-layout="featured:heading" data-layout-kind="text" className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10">
           <div className="space-y-2">
             <span className="text-[10px] font-bold uppercase tracking-wider text-accent-ink">
               Official Showroom Lineup
@@ -42,6 +42,8 @@ export function FeaturedStrip({ models }: FeaturedStripProps) {
           <Reveal key={model.id} delay={idx * 0.08}>
             <GlassCard
               interactive
+              data-layout={`featured:card-${idx}`}
+              data-layout-kind="card"
               className="p-5 rounded-3xl border border-white/90 shadow-card flex flex-col justify-between h-full space-y-4"
             >
               {/* Image with subtle contact shadow */}

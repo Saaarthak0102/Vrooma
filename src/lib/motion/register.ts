@@ -16,6 +16,8 @@ export function registerMotion() {
 
 if (typeof window !== "undefined") {
   registerMotion();
+  (window as any).ScrollTrigger = ScrollTrigger;
+  (window as any).gsap = gsap;
 }
 
 export { gsap, ScrollTrigger, DrawSVGPlugin, MotionPathPlugin };

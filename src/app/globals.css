@@ -3,6 +3,12 @@
 @tailwind utilities;
 
 :root {
+  --header-bottom: 80px;
+  --safe-top: calc(var(--header-bottom) + 24px);
+  --safe-bottom: 24px;
+  --gutter: 24px;
+  --container-max: 1410px;
+
   --bg: #EEF0F3;
   --bg-sheen: linear-gradient(135deg, #F6F7F9 0%, #E7EAEE 45%, #F3F4F6 100%);
   --surface: #FFFFFF;
@@ -102,6 +108,13 @@
     position: absolute;
     inset: 0;
   }
+  .stage-inner {
+    position: absolute;
+    inset: var(--safe-top) 0 var(--safe-bottom) 0;
+    margin-inline: auto;
+    width: min(100% - 2 * var(--gutter), var(--container-max));
+    pointer-events: none;
+  }
 }
 
 @media not all and (min-width: 1024px) and (prefers-reduced-motion: no-preference) {
@@ -117,6 +130,12 @@
   [data-scene] .stage > [data-layer] {
     position: relative;
     inset: auto;
+  }
+  .stage-inner {
+    position: relative;
+    inset: auto;
+    width: 100%;
+    margin-inline: auto;
   }
 }
 

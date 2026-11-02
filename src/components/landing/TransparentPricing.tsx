@@ -115,7 +115,9 @@ export function TransparentPricing({ data }: TransparentPricingProps) {
           {/* Heading: Left-aligned 3 lines */}
           <div
             id="pricing-heading"
-            className="absolute top-[28vh] left-[4vw] max-w-xl text-left origin-top-left z-20 pointer-events-auto"
+            data-layout="pricing:heading"
+            data-layout-kind="text"
+            className="absolute top-[28vh] left-0 max-w-xl text-left origin-top-left z-20 pointer-events-auto"
           >
             <span className="text-[10px] font-bold uppercase tracking-wider text-accent-ink">
               Official Price Engine
@@ -130,7 +132,9 @@ export function TransparentPricing({ data }: TransparentPricingProps) {
           {/* Car Cutout A (Lower-left tilted -9deg with perspective) */}
           <div
             id="pricing-car-a"
-            className="absolute bottom-[6vh] left-[2vw] w-[38vw] max-w-[560px] pointer-events-none select-none z-10"
+            data-layout="pricing:car-a"
+            data-layout-kind="car"
+            className="absolute bottom-[6vh] left-0 w-[38vw] max-w-[560px] pointer-events-none select-none z-10"
             style={{ perspective: "1200px" }}
           >
             <div
@@ -151,6 +155,8 @@ export function TransparentPricing({ data }: TransparentPricingProps) {
           {/* Car Cutout B (Top-right tilted +7deg with perspective) */}
           <div
             id="pricing-car-b"
+            data-layout="pricing:car-b"
+            data-layout-kind="car"
             className="absolute top-[12vh] right-[4vw] w-[36vw] max-w-[520px] pointer-events-none select-none z-10"
             style={{ perspective: "1200px" }}
           >
@@ -172,7 +178,7 @@ export function TransparentPricing({ data }: TransparentPricingProps) {
           {/* Three GlassCards Rising */}
           <div className="absolute bottom-[4vh] w-full grid grid-cols-3 gap-6 z-30 pointer-events-auto">
             {/* Card 1: Every line shown */}
-            <GlassCard className="pricing-card p-6 flex flex-col justify-between space-y-4">
+            <GlassCard data-layout="pricing:card-1" data-layout-kind="card" className="pricing-card p-6 flex flex-col justify-between space-y-4">
               <div className="space-y-2">
                 <div className="h-8 w-8 rounded-full bg-accent/15 text-accent-ink flex items-center justify-center">
                   <ShieldCheck className="h-4 w-4" />
@@ -211,7 +217,7 @@ export function TransparentPricing({ data }: TransparentPricingProps) {
             </GlassCard>
 
             {/* Card 2: Valid-until date */}
-            <GlassCard className="pricing-card p-6 flex flex-col justify-between space-y-4">
+            <GlassCard data-layout="pricing:card-2" data-layout-kind="card" className="pricing-card p-6 flex flex-col justify-between space-y-4">
               <div className="space-y-2">
                 <div className="h-8 w-8 rounded-full bg-accent/15 text-accent-ink flex items-center justify-center">
                   <Calendar className="h-4 w-4" />
@@ -237,7 +243,7 @@ export function TransparentPricing({ data }: TransparentPricingProps) {
             </GlassCard>
 
             {/* Card 3: EMI up front */}
-            <GlassCard className="pricing-card p-6 flex flex-col justify-between space-y-4">
+            <GlassCard data-layout="pricing:card-3" data-layout-kind="card" className="pricing-card p-6 flex flex-col justify-between space-y-4">
               <div className="space-y-2">
                 <div className="h-8 w-8 rounded-full bg-accent/15 text-accent-ink flex items-center justify-center">
                   <Calculator className="h-4 w-4" />

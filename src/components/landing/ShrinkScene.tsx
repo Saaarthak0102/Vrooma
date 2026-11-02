@@ -37,7 +37,7 @@ export function ShrinkScene({
     >
       {/* Desktop Pinned Layer */}
       <div data-layer className="hidden lg:block w-full h-full pointer-events-none">
-        <div className="relative w-full h-full max-w-7xl mx-auto px-8 pointer-events-auto">
+        <div className="stage-inner pointer-events-auto">
           {desktopContent}
         </div>
       </div>

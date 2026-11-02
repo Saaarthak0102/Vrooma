@@ -71,30 +71,15 @@ export function FinalCta({ data }: FinalCtaProps) {
       stageClassName="stage flex flex-col justify-center items-center px-4 sm:px-8"
     >
       {/* Desktop Pinned Layout */}
-      <div data-layer className="hidden lg:flex flex-col justify-between h-full max-w-7xl mx-auto py-12 w-full pointer-events-none">
-        {/* Header & Primary CTA */}
-        <div className="text-center space-y-4 max-w-2xl mx-auto pointer-events-auto">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-accent-ink">
-            Instant Test Drive
-          </span>
-          <h2 className="text-4xl sm:text-5xl font-medium tracking-tight text-ink leading-tight">
-            Your next car is <Accent tone="mute">a tap away</Accent>
-          </h2>
-          <p className="text-sm text-ink-soft">
-            Select your showroom, choose your demo car, and meet your consultant with zero dealership games.
-          </p>
-          <div className="pt-2">
-            <PillButton asChild variant="primary" showArrow className="h-12 px-8 text-sm">
-              <Link href="/book/test-drive">Book a test drive</Link>
-            </PillButton>
-          </div>
-        </div>
-
-        {/* Center Stage: Phone on Left, Car on Right, Animated Route Between */}
-        <div className="relative w-full h-[45vh] flex items-center justify-between px-12 my-auto pointer-events-auto">
-          {/* Small PhoneMockup Left */}
-          <div className="shrink-0 -rotate-3 select-none">
-            <PhoneMockup className="w-[230px]">
+      <div data-layer className="hidden lg:block w-full h-full pointer-events-none">
+        <div className="stage-inner pointer-events-auto">
+          {/* Left Column: PhoneMockup */}
+          <div
+            data-layout="final:phone"
+            data-layout-kind="phone"
+            className="absolute left-0 top-1/2 -translate-y-1/2 select-none shrink-0 pointer-events-auto"
+          >
+            <PhoneMockup className="!h-[clamp(340px,68svh,500px)] !w-auto aspect-[9/19.5]">
               <PhoneScreenHome
                 modelName={heroModel.name}
                 variantName={heroModel.variantName}
@@ -107,15 +92,16 @@ export function FinalCta({ data }: FinalCtaProps) {
           </div>
 
           {/* SVG Route Connector */}
-          <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+          <div className="absolute inset-0 pointer-events-none">
             <svg
               className="w-full h-full overflow-visible"
-              viewBox="0 0 1000 400"
+              viewBox="0 0 1000 600"
+              preserveAspectRatio="none"
               fill="none"
             >
               <path
                 id="final-route-path"
-                d="M 280 200 C 420 80 620 320 760 210"
+                d="M 240 300 C 380 300, 540 450, 660 440"
                 stroke="var(--accent)"
                 strokeWidth="4"
                 strokeDasharray="8 8"
@@ -133,10 +119,46 @@ export function FinalCta({ data }: FinalCtaProps) {
             </div>
           </div>
 
-          {/* Car Cutout Right */}
+          {/* Right Column: Stacked text content */}
+          <div
+            className="absolute left-[clamp(340px,28vw,420px)] right-0 top-2 space-y-3 pointer-events-auto"
+          >
+            <span className="text-[10px] font-bold uppercase tracking-wider text-accent-ink block">
+              Instant Test Drive
+            </span>
+            <h2
+              id="final-heading"
+              data-layout="final:heading"
+              data-layout-kind="text"
+              className="text-3xl sm:text-4xl lg:text-5xl font-medium tracking-tight text-ink leading-tight text-balance"
+            >
+              Your next car is <Accent tone="mute">a tap away</Accent>
+            </h2>
+            <p className="text-xs sm:text-sm text-ink-soft max-w-lg leading-relaxed">
+              Select your showroom, choose your demo car, and meet your consultant with zero dealership games.
+            </p>
+            <div className="pt-1">
+              <PillButton asChild variant="primary" showArrow className="h-11 px-7 text-sm">
+                <Link href="/book/test-drive">Book a test drive</Link>
+              </PillButton>
+            </div>
+            <p
+              id="final-footnote"
+              data-layout="final:footnote"
+              data-layout-kind="text"
+              className="text-[11px] text-ink-mute pt-1"
+            >
+              No spam. Unsubscribe in one click. DPDP Act 2023 Compliant.
+            </p>
+          </div>
+
+          {/* Car Cutout Bottom-Right */}
           <div
             id="final-car-img"
-            className="w-[42vw] max-w-[620px] select-none shrink-0"
+            data-layout="final:car"
+            data-layout-kind="car"
+            style={{ bottom: "90px" }}
+            className="absolute right-0 w-[clamp(280px,32vw,440px)] select-none shrink-0 pointer-events-auto"
           >
             <div
               aria-hidden="true"
@@ -147,16 +169,11 @@ export function FinalCta({ data }: FinalCtaProps) {
                 src="/images/cars/final-car.svg"
                 alt="Model H premium sedan profile"
                 fill
-                sizes="(min-width: 1024px) 42vw, 100vw"
+                sizes="(min-width: 1024px) 34vw, 100vw"
                 className="object-contain"
               />
             </div>
           </div>
-        </div>
-
-        {/* Small footer reassurance text */}
-        <div className="text-center text-xs text-ink-mute pointer-events-auto">
-          No obligation · Home test drives available in Lucknow & Kanpur · DPDP Act 2023 Compliant
         </div>
       </div>
 

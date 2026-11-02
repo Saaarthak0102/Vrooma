@@ -64,7 +64,8 @@
 
 ---
 
-## ADR-010: Strict Data Masking & DPDP Act 2023 Parity
-- **Context:** Under DPDP Act 2023, vehicle registration numbers tied to previous owners constitute protected personal data.
-- **Decision:** Strictly mask all registration plates publicly (e.g., `UP32 ** **** 4120`). Exclude `reg_no_private` from public queries and repositories. Newsletter subscription requires an explicit, unticked consent checkbox.
-- **Consequences:** 100% legal compliance with DPDP Act 2023 and zero privacy leakage across all landing components.
+## ADR-011: Automated Layout Audit & Visual Verification via Playwright
+- **Context:** Pinned GSAP desktop scenes have complex rest states across multiple viewport sizes (1920x980, 1536x730, 1440x800, 1366x660, 1280x620). Manual inspection alone is error-prone when verifying non-intersection with header zones, safe bounds, minimum card/text gaps, and mobile/reduced-motion integrity.
+- **Decision:** Introduce `scripts/check-layout.mjs` using Playwright Chromium in devDependencies. Key DOM elements are marked with non-functional `data-layout` and `data-layout-kind` attributes. The script scrolls to rest progress states, captures screenshots, and mathematically evaluates rules R1–R5.
+- **Consequences:** Provides regression testing for responsive landing page layouts, automated overlap detection, and visual audit screenshots in `docs/layout-audit/`.
+

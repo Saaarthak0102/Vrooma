@@ -11,6 +11,7 @@
     "test": "vitest run",
     "format": "prettier --write .",
     "check:wiring": "node scripts/check-wiring.mjs",
+    "check:layout": "node scripts/check-layout.mjs",
     "db:types": "echo \"TODO: supabase gen types typescript\""
   },
   "dependencies": {
@@ -58,6 +59,7 @@
     "autoprefixer": "^10.4.20",
     "eslint": "^9.20.1",
     "eslint-config-next": "^15.1.7",
+    "playwright": "^1.64.1",
     "postcss": "^8.5.2",
     "prettier": "^3.5.1",
     "prettier-plugin-tailwindcss": "^0.6.11",

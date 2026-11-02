@@ -79,7 +79,7 @@ export function Reviews() {
   return (
     <section ref={containerRef} className="py-24 px-4 sm:px-8 w-full max-w-7xl mx-auto">
       {/* Header */}
-      <div className="text-center space-y-2 mb-14">
+      <div data-layout="reviews:heading" data-layout-kind="text" className="text-center space-y-2 mb-14">
         <span className="text-[10px] font-bold uppercase tracking-wider text-accent-ink">
           Verified Ownership
         </span>
@@ -93,9 +93,11 @@ export function Reviews() {
 
       {/* Three Reviews Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {sampleTestimonials.map((review) => (
+        {sampleTestimonials.map((review, idx) => (
           <GlassCard
             key={review.id}
+            data-layout={`reviews:card-${idx}`}
+            data-layout-kind="card"
             className="review-card p-6 rounded-3xl border border-white/90 shadow-elevated flex flex-col justify-between space-y-5"
           >
             <div className="space-y-4">
