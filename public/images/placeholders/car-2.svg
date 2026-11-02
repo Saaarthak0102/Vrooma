@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" width="100%" height="100%">
+  <defs>
+    <linearGradient id="g_car-2_svg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#121A24" />
+      <stop offset="100%" stop-color="#1E293B" />
+    </linearGradient>
+  </defs>
+  <rect width="800" height="450" rx="16" fill="url(#g_car-2_svg)" />
+  <!-- Studio lighting sheen -->
+  <ellipse cx="400" cy="380" rx="340" ry="40" fill="#0F1720" opacity="0.6" />
+  <!-- Car Silhouette -->
+  <path d="M 120 310 C 130 310 160 300 200 270 C 230 250 290 200 370 195 C 460 190 550 200 600 240 C 650 280 670 300 680 310 L 660 320 C 650 320 635 300 610 300 C 585 300 570 320 560 320 L 260 320 C 250 320 235 300 210 300 C 185 300 170 320 160 320 Z" fill="#2563EB" opacity="0.85" />
+  <!-- Roofline and Glass -->
+  <path d="M 280 235 C 330 205 400 200 510 205 C 550 225 570 245 575 250 L 290 250 Z" fill="#F8FAFC" opacity="0.25" />
+  <!-- Wheels -->
+  <circle cx="210" cy="315" r="32" fill="#0A0F14" stroke="#475569" stroke-width="4" />
+  <circle cx="210" cy="315" r="16" fill="#1E293B" />
+  <circle cx="610" cy="315" r="32" fill="#0A0F14" stroke="#475569" stroke-width="4" />
+  <circle cx="610" cy="315" r="16" fill="#1E293B" />
+  <!-- Details & Badge -->
+  <text x="400" y="80" text-anchor="middle" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="24" font-weight="600" letter-spacing="1.5">Model C - Compact SUV</text>
+  <text x="400" y="110" text-anchor="middle" fill="#94A3B8" font-family="system-ui, sans-serif" font-size="14">VROOMA AUTHORISED SHOWROOM</text>
+</svg>

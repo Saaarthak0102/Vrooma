@@ -1,0 +1,48 @@
+export const routes = {
+  home: () => "/",
+  cars: () => "/cars",
+  carDetail: (modelSlug: string) => `/cars/${modelSlug}`,
+  usedCars: () => "/used-cars",
+  usedCarDetail: (stockId: string) => `/used-cars/${stockId}`,
+  offers: () => "/offers",
+  emiCalculator: () => "/emi-calculator",
+  showrooms: () => "/showrooms",
+  about: () => "/about",
+  contact: () => "/contact",
+  privacy: () => "/legal/privacy",
+  terms: () => "/legal/terms",
+  dataRights: () => "/legal/data-rights",
+  signIn: (nextUrl?: string) => (nextUrl ? `/sign-in?next=${encodeURIComponent(nextUrl)}` : "/sign-in"),
+  
+  // Buyer dashboard
+  dashboard: () => "/dashboard",
+  dashboardBookings: () => "/dashboard/bookings",
+  dashboardSaved: () => "/dashboard/saved",
+  dashboardEnquiries: () => "/dashboard/enquiries",
+  dashboardProfile: () => "/dashboard/profile",
+  bookTestDrive: (variantId?: string) => (variantId ? `/book/test-drive?variant=${variantId}` : "/book/test-drive"),
+  bookService: () => "/book/service",
+  tradeIn: () => "/trade-in",
+
+  // Staff
+  staff: () => "/staff",
+  staffLeads: () => "/staff/leads",
+  staffLeadDetail: (id: string) => `/staff/leads/${id}`,
+  staffLeadImport: () => "/staff/leads/import",
+  staffBookings: () => "/staff/bookings",
+
+  // Admin
+  admin: () => "/admin",
+  adminModels: () => "/admin/models",
+  adminModelDetail: (id: string) => `/admin/models/${id}`,
+  adminPrices: () => "/admin/prices",
+  adminUsedCars: () => "/admin/used-cars",
+  adminUsedCarDetail: (id: string) => `/admin/used-cars/${id}`,
+  adminShowrooms: () => "/admin/showrooms",
+  adminSlots: () => "/admin/slots",
+  adminOffers: () => "/admin/offers",
+  adminBanners: () => "/admin/banners",
+  adminAssignment: () => "/admin/assignment",
+  adminUsers: () => "/admin/users",
+  adminAiLogs: () => "/admin/ai-logs",
+} as const;

@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #EEF0F3;
+  --bg-sheen: linear-gradient(135deg, #F6F7F9 0%, #E7EAEE 45%, #F3F4F6 100%);
+  --surface: #FFFFFF;
+  --surface-glass: rgba(255, 255, 255, 0.78);
+  --border: rgba(15, 23, 32, 0.08);
+  --ink: #0F1720;
+  --ink-soft: #4B5563;
+  --ink-mute: #8A94A3;
+  --dark: #121A24;
+  --accent: #1FBF75;
+  --accent-ink: #0B8F56;
+  --accent-soft: #E3F7EE;
+  --danger: #E5484D;
+  --warn: #F5A524;
+  --ok: #1FBF75;
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-pill: 999px;
+  --shadow-card: 0 1px 2px rgba(15, 23, 32, 0.04), 0 8px 24px rgba(15, 23, 32, 0.06);
+  --space-section: clamp(72px, 10vw, 140px);
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  body {
+    background-color: var(--bg);
+    background-image: var(--bg-sheen);
+    background-attachment: fixed;
+    color: var(--ink);
+    font-family: var(--font-urbanist), system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+.glass-panel {
+  background: var(--surface-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border);
+}
+
+.glass-panel-dark {
+  background: rgba(18, 26, 36, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #FFFFFF;
+}
+
+/* Accessible focus outline */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
