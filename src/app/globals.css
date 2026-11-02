@@ -64,3 +64,82 @@
   outline-offset: 2px;
 }
 
+
+/* GlassCard styling */
+.glass-card {
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+@media (min-width: 1024px) {
+  .glass-card {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0.62));
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+}
+
+.glass-card-interactive {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.glass-card-interactive:hover,
+.glass-card-interactive:focus-within {
+  border-color: rgba(15, 23, 32, 0.18);
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 32, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+
+/* PinnedScene CSS Contract */
+@media (min-width: 1024px) and (prefers-reduced-motion: no-preference) {
+  [data-scene] .stage {
+    position: relative;
+    height: 100svh;
+    width: 100%;
+    overflow: hidden;
+  }
+  [data-scene] .stage > [data-layer] {
+    position: absolute;
+    inset: 0;
+  }
+}
+
+@media not all and (min-width: 1024px) and (prefers-reduced-motion: no-preference) {
+  [data-scene] {
+    padding-block: var(--space-section);
+  }
+  [data-scene] .stage {
+    position: relative;
+    height: auto;
+    width: 100%;
+    overflow: visible;
+  }
+  [data-scene] .stage > [data-layer] {
+    position: relative;
+    inset: auto;
+  }
+}
+
+/* Hero H1 Words CSS-only staggered entrance (no JS delay for LCP) */
+.w {
+  display: inline-block;
+  transform: translateY(0.6em);
+  opacity: 0;
+  animation: hero-word-rise 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation-delay: calc(var(--i, 0) * 70ms);
+}
+
+@keyframes hero-word-rise {
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .w {
+    transform: none !important;
+    opacity: 1 !important;
+    animation: none !important;
+  }
+}

@@ -38,3 +38,16 @@ export const BODY_TYPES = [
 export const SLA_MINUTES = 5;
 export const SLA_SECONDS = SLA_MINUTES * 60;
 
+export const COMPANY_FACTS = {
+  staff: 340,
+  newCarsYear: 6000,
+  usedCarsYear: 900,
+  annualRevenue: "₹550–650 Cr",
+} as const;
+
+export const EMI_DEFAULTS = {
+  annualRatePct: 8.5,
+  tenureMonths: 60,
+  downPaymentPct: 20,
+} as const;
+

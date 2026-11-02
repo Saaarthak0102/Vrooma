@@ -1,11 +1,11 @@
-export {
-  HeroScene,
-  WhyVrooma,
-  ShowroomsOrbit,
-  TransparentPricing,
-  InspectedUsed,
-  BookingSteps,
-  Reviews,
-  FinalCta,
-} from "./LandingStubs";
-
+export * from "./HeroScene";
+export * from "./WhyVrooma";
+export * from "./ShowroomsOrbit";
+export * from "./TransparentPricing";
+export * from "./InspectedUsed";
+export * from "./BookingSteps";
+export * from "./Reviews";
+export * from "./FinalCta";
+export * from "./FeaturedStrip";
+export * from "./ShrinkScene";
+export * from "./phone";

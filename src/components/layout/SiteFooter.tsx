@@ -1,194 +1,271 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { Link } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 import { Container } from "@/components/ui/container";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { PillButton } from "@/components/ui/PillButton";
 import { Checkbox } from "@/components/ui/checkbox";
-import { toast } from "sonner";
-import { MapPin, Phone, ShieldCheck, ArrowRight } from "lucide-react";
 import { LocaleSwitcher } from "./LocaleSwitcher";
+import { toast } from "sonner";
+import { useGSAP } from "@gsap/react";
+import { gsap } from "@/lib/motion/register";
+import { PIN_QUERY } from "@/lib/motion/media";
 
 export function SiteFooter() {
   const tNav = useTranslations("nav");
   const tCommon = useTranslations("common");
   const [email, setEmail] = useState("");
   const [consent, setConsent] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleSubscribe = (e: React.FormEvent) => {
+  const footerRef = useRef<HTMLElement>(null);
+  const wordmarkRef = useRef<HTMLDivElement>(null);
+
+  useGSAP(
+    () => {
+      const footer = footerRef.current;
+      const wordmark = wordmarkRef.current;
+      if (!footer || !wordmark) return;
+
+      const mm = gsap.matchMedia();
+
+      mm.add(PIN_QUERY, () => {
+        gsap.fromTo(
+          wordmark,
+          {
+            yPercent: 45,
+            opacity: 0,
+          },
+          {
+            yPercent: 0,
+            opacity: 1,
+            ease: "none",
+            scrollTrigger: {
+              trigger: footer,
+              start: "top bottom",
+              end: "bottom bottom",
+              scrub: 0.6,
+            },
+          }
+        );
+      });
+
+      return () => mm.revert();
+    },
+    { scope: footerRef }
+  );
+
+  const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!consent) {
-      toast.error("Please agree to the privacy consent under DPDP Act 2023");
+      toast.error("Please provide explicit consent to receive showroom updates.");
       return;
     }
-    toast.success("Subscribed successfully! You will receive verified showroom updates.");
-    setEmail("");
-    setConsent(false);
+
+    setLoading(true);
+    try {
+      const res = await fetch("/api/newsletter", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, consent }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || "Subscription failed");
+      }
+      toast.success(data.message || "Subscribed successfully!");
+      setEmail("");
+      setConsent(false);
+    } catch (err: any) {
+      toast.error(err.message || "Could not subscribe. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <footer className="mt-24 border-t border-border bg-surface/80 relative overflow-hidden">
-      {/* Giant Faded Wordmark Background */}
-      <div
-        aria-hidden="true"
-        className="absolute bottom-[-20px] left-1/2 -translate-x-1/2 select-none pointer-events-none opacity-[0.03] text-[18vw] font-black tracking-tighter text-ink leading-none whitespace-nowrap"
-      >
-        VROOMA
-      </div>
-
-      <Container className="py-16 relative z-10">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-10 lg:gap-12">
-          {/* Brand Info & Newsletter */}
-          <div className="md:col-span-5 space-y-4">
+    <footer
+      ref={footerRef}
+      className="mt-20 border-t border-border bg-[#E3E6EB] relative overflow-hidden text-ink"
+    >
+      <Container className="pt-16 pb-12 relative z-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+          {/* Left Column: Newsletter & DPDP Consent */}
+          <div className="lg:col-span-5 space-y-4">
             <Link href="/" className="inline-block">
               <span className="text-2xl font-black tracking-tight text-ink">VROOMA</span>
             </Link>
             <p className="text-sm text-ink-soft max-w-sm leading-relaxed">
-              Official authorised dealership for Brand X in Lucknow. Offering transparent on-road price breakups, guaranteed 140-point certified used vehicles, and real-time test drive slots.
+              Authorised Brand X dealership in Lucknow & Kanpur. Delivering guaranteed price transparency, 140-point certified used vehicles, and real-time appointment bookings.
             </p>
 
-            <form onSubmit={handleSubscribe} className="space-y-3 pt-2 max-w-sm">
-              <label className="text-xs font-semibold uppercase tracking-wider text-ink-soft">
-                Showroom Newsletter & Stock Alerts
+            <form onSubmit={handleSubscribe} className="space-y-3 pt-2 max-w-md">
+              <label
+                htmlFor="footer-email-input"
+                className="text-xs font-bold uppercase tracking-wider text-ink block"
+              >
+                Join our newsletter for new arrivals and offers.
               </label>
-              <div className="flex gap-2">
-                <Input
+
+              <div className="flex flex-col sm:flex-row gap-2">
+                <input
+                  id="footer-email-input"
                   type="email"
-                  placeholder="name@example.com"
+                  required
+                  placeholder="Enter your email address"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="bg-white/80 h-10"
-                  required
+                  className="flex-1 h-11 rounded-pill bg-white/90 border border-border px-4 text-xs text-ink placeholder:text-ink-mute focus:outline-none focus:ring-2 focus:ring-accent"
                 />
-                <Button type="submit" size="sm" className="gap-1 h-10 px-4">
-                  <span>Join</span>
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </Button>
+                <PillButton
+                  type="submit"
+                  disabled={loading}
+                  variant="primary"
+                  className="h-11 px-6 text-xs whitespace-nowrap"
+                >
+                  {loading ? "Subscribing..." : "Subscribe"}
+                </PillButton>
               </div>
-              <div className="flex items-start gap-2 pt-1">
+
+              {/* UNTICKED consent checkbox */}
+              <div className="flex items-start gap-2.5 pt-1">
                 <Checkbox
-                  id="footer-consent"
+                  id="newsletter-consent"
                   checked={consent}
                   onCheckedChange={(checked) => setConsent(!!checked)}
+                  className="mt-0.5"
                 />
                 <label
-                  htmlFor="footer-consent"
-                  className="text-[11px] text-ink-mute leading-tight cursor-pointer"
+                  htmlFor="newsletter-consent"
+                  className="text-[11px] text-ink-soft leading-tight cursor-pointer select-none"
                 >
-                  {tCommon("privacyConsent")}
+                  I agree to receive updates. I can opt out any time per Vrooma Privacy Policy under DPDP Act 2023.
                 </label>
               </div>
             </form>
           </div>
 
-          {/* Quick Links Column */}
-          <div className="md:col-span-2 space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-ink">Vehicles</h4>
-            <ul className="space-y-2 text-sm text-ink-soft">
-              <li>
-                <Link href="/cars" className="hover:text-ink transition-colors">
-                  {tNav("cars")}
-                </Link>
-              </li>
-              <li>
-                <Link href="/used-cars" className="hover:text-ink transition-colors">
-                  {tNav("usedCars")}
-                </Link>
-              </li>
-              <li>
-                <Link href="/offers" className="hover:text-ink transition-colors">
-                  {tNav("offers")}
-                </Link>
-              </li>
-              <li>
-                <Link href="/emi-calculator" className="hover:text-ink transition-colors">
-                  {tNav("emi")}
-                </Link>
-              </li>
-              <li>
-                <Link href="/trade-in" className="hover:text-ink transition-colors">
-                  {tNav("tradeIn")}
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          {/* Showrooms & Service */}
-          <div className="md:col-span-3 space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-ink">Lucknow Centers</h4>
-            <div className="space-y-2.5 text-xs text-ink-soft">
-              <div className="flex items-start gap-2">
-                <MapPin className="h-4 w-4 text-accent-ink shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-semibold text-ink">Hazratganj Flagship</p>
-                  <p className="text-ink-mute">14/A MG Marg · Tel: 0522 409 8800</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-2">
-                <MapPin className="h-4 w-4 text-accent-ink shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-semibold text-ink">Gomti Nagar Experience Center</p>
-                  <p className="text-ink-mute">Vibhuti Khand · Tel: 0522 419 9900</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-2">
-                <MapPin className="h-4 w-4 text-accent-ink shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-semibold text-ink">Transport Nagar Central Workshop</p>
-                  <p className="text-ink-mute">16 Service Bays · Tel: 0522 450 1122</p>
-                </div>
-              </div>
+          {/* Right Columns: Cars, Services, Company, Legal */}
+          <div className="lg:col-span-7 grid grid-cols-2 sm:grid-cols-4 gap-8">
+            {/* Cars */}
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-ink">Cars</h4>
+              <ul className="space-y-2 text-xs text-ink-soft">
+                <li>
+                  <Link href="/cars" className="hover:text-ink transition-colors">
+                    New cars
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/used-cars" className="hover:text-ink transition-colors">
+                    Used cars
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/offers" className="hover:text-ink transition-colors">
+                    Offers
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/emi-calculator" className="hover:text-ink transition-colors">
+                    EMI calculator
+                  </Link>
+                </li>
+              </ul>
             </div>
-          </div>
 
-          {/* Legal & Compliance */}
-          <div className="md:col-span-2 space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-ink">Compliance</h4>
-            <ul className="space-y-2 text-sm text-ink-soft">
-              <li>
-                <Link href="/legal/privacy" className="hover:text-ink transition-colors">
-                  Privacy Policy
-                </Link>
-              </li>
-              <li>
-                <Link href="/legal/terms" className="hover:text-ink transition-colors">
-                  Terms of Sale
-                </Link>
-              </li>
-              <li>
-                <Link href="/legal/data-rights" className="hover:text-ink transition-colors font-medium text-accent-ink">
-                  Data Rights (DPDP)
-                </Link>
-              </li>
-              <li>
-                <Link href="/about" className="hover:text-ink transition-colors">
-                  About Dealership
-                </Link>
-              </li>
-              <li>
-                <Link href="/contact" className="hover:text-ink transition-colors">
-                  Contact Us
-                </Link>
-              </li>
-            </ul>
+            {/* Services */}
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-ink">Services</h4>
+              <ul className="space-y-2 text-xs text-ink-soft">
+                <li>
+                  <Link href="/book/test-drive" className="hover:text-ink transition-colors">
+                    Test drive
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/book/service" className="hover:text-ink transition-colors">
+                    Service booking
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/trade-in" className="hover:text-ink transition-colors">
+                    Trade-in
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            {/* Company */}
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-ink">Company</h4>
+              <ul className="space-y-2 text-xs text-ink-soft">
+                <li>
+                  <Link href="/about" className="hover:text-ink transition-colors">
+                    About
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/showrooms" className="hover:text-ink transition-colors">
+                    Showrooms
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/contact" className="hover:text-ink transition-colors">
+                    Contact
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            {/* Legal */}
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-ink">Legal</h4>
+              <ul className="space-y-2 text-xs text-ink-soft">
+                <li>
+                  <Link href="/legal/privacy" className="hover:text-ink transition-colors">
+                    Privacy
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/legal/terms" className="hover:text-ink transition-colors">
+                    Terms
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/legal/data-rights" className="hover:text-ink transition-colors">
+                    Data rights
+                  </Link>
+                </li>
+              </ul>
+            </div>
           </div>
         </div>
 
-        {/* Bottom Bar */}
-        <div className="mt-14 pt-8 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-ink-mute">
+        {/* Bottom bar with locale toggle */}
+        <div className="pt-12 mt-8 border-t border-ink/10 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-ink-mute">
           <p>© {new Date().getFullYear()} Vrooma Automobiles Pvt. Ltd. All rights reserved.</p>
           <div className="flex items-center gap-4">
-            <span className="flex items-center gap-1 text-accent-ink">
-              <ShieldCheck className="h-3.5 w-3.5" />
-              DPDP Act 2023 Compliant
-            </span>
+            <span className="text-[11px] text-ink-soft">Language:</span>
             <LocaleSwitcher />
           </div>
         </div>
       </Container>
+
+      {/* Giant Scrubbed Vrooma Wordmark (Instrument Serif italic) */}
+      <div
+        ref={wordmarkRef}
+        aria-hidden="true"
+        className="pointer-events-none select-none text-center font-serif italic font-normal tracking-tight text-white/55 leading-none whitespace-nowrap overflow-hidden"
+        style={{
+          fontSize: "clamp(8rem, 26vw, 24rem)",
+          WebkitMaskImage: "linear-gradient(to bottom, rgba(0,0,0,1) 40%, rgba(0,0,0,0) 100%)",
+          maskImage: "linear-gradient(to bottom, rgba(0,0,0,1) 40%, rgba(0,0,0,0) 100%)",
+        }}
+      >
+        Vrooma
+      </div>
     </footer>
   );
 }
-

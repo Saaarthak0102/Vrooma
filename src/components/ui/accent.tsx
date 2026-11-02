@@ -1,19 +1,39 @@
+"use client";
+
 import React from "react";
+import { useLocale } from "next-intl";
 import { cn } from "@/lib/utils";
 
 export interface AccentProps extends React.HTMLAttributes<HTMLSpanElement> {
-  children: React.ReactNode;
+  children?: React.ReactNode;
+  tone?: "mute" | "accent";
 }
 
 /**
- * Renders an italic accent word in headlines using the serif font token.
- * Follows design rule: "Instrument Serif italic only for the single accent word in a headline".
+ * Renders an accent phrase in headlines.
+ * In English: Instrument Serif italic.
+ * In Hindi: Noto Serif Devanagari, NOT italic.
+ * Tones:
+ * - "mute": var(--ink-mute)
+ * - "accent": var(--accent-ink)
  */
-export function Accent({ children, className, ...props }: AccentProps) {
+export function Accent({
+  children,
+  tone = "accent",
+  className,
+  ...props
+}: AccentProps) {
+  const locale = useLocale();
+  const isHindi = locale === "hi";
+
   return (
     <span
       className={cn(
-        "font-serif italic font-normal tracking-normal text-ink inline-block px-1",
+        "inline-block px-1",
+        isHindi
+          ? "font-devanagari not-italic font-medium"
+          : "font-serif italic font-normal tracking-normal",
+        tone === "mute" ? "text-ink-mute" : "text-accent-ink",
         className
       )}
       {...props}
@@ -22,4 +42,3 @@ export function Accent({ children, className, ...props }: AccentProps) {
     </span>
   );
 }
-

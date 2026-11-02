@@ -1,10 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
-import { MessageSquare, X, Send, Sparkles, Bot, User } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import React, { useState, useEffect } from "react";
+import { MessageSquare, X, Send, Bot } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { stopLenis, startLenis } from "@/components/motion/SmoothScrollProvider";
 
 interface Message {
   id: string;
@@ -15,6 +14,7 @@ interface Message {
 
 export function ChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -24,6 +24,28 @@ export function ChatWidget() {
       time: "Just now",
     },
   ]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollY = window.scrollY || document.documentElement.scrollTop;
+      setIsVisible(scrollY > 200);
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  useEffect(() => {
+    if (isOpen) {
+      stopLenis();
+    } else {
+      startLenis();
+    }
+    return () => {
+      startLenis();
+    };
+  }, [isOpen]);
 
   const quickPrompts = [
     "What is the on-road price of Model H in Lucknow?",
@@ -45,13 +67,12 @@ export function ChatWidget() {
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
 
-    // Scripted placeholder response for Phase 1 (to be replaced with Vercel AI SDK in Phase 5)
     setTimeout(() => {
       let reply = "Thank you for reaching out! Our Lucknow showroom consultant is available right now. Would you like to lock a test drive slot or view our full price breakup?";
       if (text.toLowerCase().includes("model h") || text.toLowerCase().includes("price")) {
         reply = "Model H ZX Automatic starts at ₹12,45,000 ex-showroom. Lucknow on-road price is approximately ₹14,59,450 inclusive of road tax (10%), insurance and TCS. You can see the full breakdown on the Model H page!";
       } else if (text.toLowerCase().includes("used") || text.toLowerCase().includes("8 lakh")) {
-        reply = "We currently have certified used cars like UC-1182 (Model C VX Diesel 2022) and UC-1205 (Model C LX 2021) available in Hazratganj, both 140-point inspected!";
+        reply = "We currently have certified used cars like UC-1182 (Model C VX Diesel 2022) and UC-1190 (Model S LX 2021) available in Hazratganj, both 140-point inspected!";
       }
 
       const botMsg: Message = {
@@ -64,21 +85,29 @@ export function ChatWidget() {
     }, 600);
   };
 
+  if (!isVisible && !isOpen) {
+    return null;
+  }
+
   return (
     <div className="fixed bottom-6 right-6 z-50">
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="h-14 w-14 rounded-full bg-dark text-white shadow-xl hover:bg-black transition-all hover:scale-105 flex items-center justify-center relative focus:outline-none focus:ring-4 focus:ring-accent/30"
+          className="h-12 px-4 rounded-pill bg-white/80 border border-border text-ink shadow-card backdrop-blur-md hover:bg-white hover:border-ink/20 transition-all flex items-center gap-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           aria-label="Open Vrooma Live Chat"
         >
-          <MessageSquare className="h-6 w-6" />
-          <span className="absolute -top-1 -right-1 h-3.5 w-3.5 rounded-full bg-accent border-2 border-white" />
+          <div className="h-2 w-2 rounded-full bg-accent" />
+          <MessageSquare className="h-4 w-4 text-ink" />
+          <span className="text-xs font-semibold tracking-wide">Chat with us</span>
         </button>
       )}
 
       {isOpen && (
-        <div className="w-[360px] sm:w-[400px] h-[520px] rounded-2xl border border-border bg-white shadow-2xl flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-200">
+        <div
+          data-lenis-prevent
+          className="w-[360px] sm:w-[400px] h-[520px] rounded-2xl border border-border bg-white shadow-2xl flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-200"
+        >
           {/* Header */}
           <div className="bg-dark text-white p-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -104,73 +133,76 @@ export function ChatWidget() {
             </button>
           </div>
 
-          {/* Messages */}
-          <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-[#F8FAFC]">
+          {/* Messages list with data-lenis-prevent */}
+          <div
+            data-lenis-prevent
+            className="flex-1 p-4 overflow-y-auto space-y-3.5 bg-bg/40 text-xs"
+          >
             {messages.map((m) => (
               <div
                 key={m.id}
-                className={`flex gap-2.5 ${m.sender === "user" ? "justify-end" : "justify-start"}`}
+                className={`flex flex-col ${
+                  m.sender === "user" ? "items-end" : "items-start"
+                }`}
               >
-                {m.sender === "bot" && (
-                  <div className="h-7 w-7 rounded-full bg-ink/10 flex items-center justify-center text-ink shrink-0 mt-0.5">
-                    <Bot className="h-4 w-4" />
-                  </div>
-                )}
                 <div
-                  className={`max-w-[80%] rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed shadow-sm ${
+                  className={`max-w-[85%] rounded-2xl p-3 leading-relaxed ${
                     m.sender === "user"
                       ? "bg-dark text-white rounded-br-none"
-                      : "bg-white text-ink border border-border rounded-bl-none"
+                      : "bg-white border border-border text-ink shadow-sm rounded-bl-none"
                   }`}
                 >
                   {m.text}
-                  <span className="block text-[9px] mt-1 opacity-60 text-right">
-                    {m.time}
-                  </span>
                 </div>
-                {m.sender === "user" && (
-                  <div className="h-7 w-7 rounded-full bg-dark text-white flex items-center justify-center shrink-0 mt-0.5">
-                    <User className="h-4 w-4" />
-                  </div>
-                )}
+                <span className="text-[10px] text-ink-mute mt-1 px-1">
+                  {m.time}
+                </span>
               </div>
             ))}
           </div>
 
           {/* Quick Prompts */}
-          <div className="px-3 py-2 bg-white border-t border-border/60 flex items-center gap-1.5 overflow-x-auto text-[11px]">
-            {quickPrompts.map((q) => (
+          <div
+            data-lenis-prevent
+            className="p-2 border-t border-border bg-white flex gap-1.5 overflow-x-auto whitespace-nowrap scrollbar-none"
+          >
+            {quickPrompts.map((q, idx) => (
               <button
-                key={q}
+                key={idx}
                 onClick={() => handleSend(q)}
-                className="whitespace-nowrap px-2.5 py-1 rounded-pill bg-ink/5 hover:bg-ink/10 text-ink-soft hover:text-ink text-left transition-colors"
+                className="text-[11px] bg-ink/5 hover:bg-ink/10 text-ink-soft hover:text-ink px-2.5 py-1 rounded-pill transition-colors shrink-0"
               >
                 {q}
               </button>
             ))}
           </div>
 
-          {/* Input */}
+          {/* Input Box */}
           <form
             onSubmit={(e) => {
               e.preventDefault();
               handleSend();
             }}
-            className="p-3 bg-white border-t border-border flex items-center gap-2"
+            className="p-3 border-t border-border bg-white flex gap-2"
           >
-            <Input
+            <input
+              type="text"
+              placeholder="Ask about prices, slots, booking..."
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask about prices, bookings..."
-              className="h-10 text-xs bg-ink/5"
+              className="flex-1 bg-ink/5 border-none rounded-pill px-4 text-xs focus:outline-none focus:ring-1 focus:ring-accent"
             />
-            <Button type="submit" size="sm" className="h-10 w-10 p-0 rounded-pill shrink-0">
+            <button
+              type="submit"
+              disabled={!input.trim()}
+              className="h-9 w-9 rounded-full bg-dark text-white disabled:opacity-40 flex items-center justify-center shrink-0 transition-opacity"
+              aria-label="Send Message"
+            >
               <Send className="h-4 w-4" />
-            </Button>
+            </button>
           </form>
         </div>
       )}
     </div>
   );
 }
-

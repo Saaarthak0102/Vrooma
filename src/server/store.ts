@@ -54,6 +54,7 @@ class MemoryStore {
   tradeInRequests: TradeInRequest[] = [];
   outbox: OutboxMessage[] = [];
   savedCarIds: Set<string> = new Set(["model-h", "uc-1182"]);
+  subscribers: Array<{ id: string; email: string; created_at: string }> = [];
 
   addLead(lead: Lead) {
     this.leads.unshift(lead);

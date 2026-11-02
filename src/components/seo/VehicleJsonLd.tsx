@@ -109,3 +109,69 @@ export function OrganizationJsonLd() {
   return <JsonLd data={schema} />;
 }
 
+
+export function DealerAndWebsiteJsonLd() {
+  const siteUrl = env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "");
+  const schema = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "AutoDealer",
+        "@id": `${siteUrl}/#dealer`,
+        name: DEALER_NAME,
+        alternateName: BRAND_NAME,
+        url: siteUrl,
+        logo: `${siteUrl}/images/placeholders/logo-mark.svg`,
+        telephone: "+91-522-4098800",
+        address: {
+          "@type": "PostalAddress",
+          streetAddress: "14/A, MG Marg, Hazratganj",
+          addressLocality: "Lucknow",
+          addressRegion: "Uttar Pradesh",
+          postalCode: "226001",
+          addressCountry: "IN",
+        },
+        geo: {
+          "@type": "GeoCoordinates",
+          latitude: 26.852,
+          longitude: 80.946,
+        },
+        openingHoursSpecification: [
+          {
+            "@type": "OpeningHoursSpecification",
+            dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+            opens: "09:30",
+            closes: "20:00",
+          },
+          {
+            "@type": "OpeningHoursSpecification",
+            dayOfWeek: "Sunday",
+            opens: "10:00",
+            closes: "19:00",
+          },
+        ],
+      },
+      {
+        "@type": "Organization",
+        "@id": `${siteUrl}/#organization`,
+        name: DEALER_NAME,
+        url: siteUrl,
+        logo: `${siteUrl}/images/placeholders/logo-mark.svg`,
+      },
+      {
+        "@type": "WebSite",
+        "@id": `${siteUrl}/#website`,
+        url: siteUrl,
+        name: "Vrooma Lucknow",
+        publisher: { "@id": `${siteUrl}/#organization` },
+        potentialAction: {
+          "@type": "SearchAction",
+          target: `${siteUrl}/cars?q={search_term_string}`,
+          "query-input": "required name=search_term_string",
+        },
+      },
+    ],
+  };
+
+  return <JsonLd data={schema} />;
+}
