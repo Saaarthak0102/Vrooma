@@ -65,7 +65,7 @@ export async function processLeadCsv(csvString: string): Promise<ImportResult> {
           errors,
         });
       },
-      error: (error) => {
+      error: (error: Error) => {
         resolve({
           total: 0,
           created: 0,

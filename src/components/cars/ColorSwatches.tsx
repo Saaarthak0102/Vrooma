@@ -55,8 +55,9 @@ export function ColorSwatches({ colors = [], onColorChange }: ColorSwatchesProps
                 />
               )}
             </button>
-          ))}
-        </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
