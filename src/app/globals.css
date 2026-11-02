@@ -162,3 +162,29 @@
     animation: none !important;
   }
 }
+
+/* Listing card container queries & fine-pointer hover rules */
+.listing-card-container {
+  container-type: inline-size;
+  container-name: listing-card;
+  height: 100%;
+}
+
+@container listing-card (max-width: 380px) {
+  .listing-card-actions {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@container listing-card (min-width: 381px) {
+  .listing-card-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  [aria-roledescription="flip card"]:hover > span[aria-hidden="true"] {
+    box-shadow: 0 8px 30px -4px rgba(15, 23, 32, 0.16) !important;
+  }
+}
+

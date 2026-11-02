@@ -4,7 +4,10 @@ import { Offer, Banner } from "@/types/domain";
 
 export async function listOffers(): Promise<Offer[]> {
   if (env.NEXT_PUBLIC_USE_MOCK) {
-    return memoryStore.offers.filter((o) => o.active);
+    const todayStr = new Date().toISOString().slice(0, 10);
+    return memoryStore.offers.filter(
+      (o) => o.active && (!o.valid_until || o.valid_until >= todayStr)
+    );
   }
   throw new Error("TODO(day-4): Supabase listOffers not implemented yet");
 }

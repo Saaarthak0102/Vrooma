@@ -132,9 +132,17 @@ UC-1190 | Used | Model S | LX | Petrol | 2021 | 58600 | 512000 | Booked
    - Full keyboard navigability: all modals, sheets, and popovers trap focus and dismiss on `Escape`.
 6. **Motion & Interaction Budget:**
    - UI micro-interactions use `motion` (Framer Motion) with a strict limit: maximum 250ms duration, subtle spring curves (`easeOut`).
+   - Rule exception: "No hover zoom" still holds EXCEPT listing-card media on `/cars`, `/used-cars` and `/offers`: image scale <= 1.05 and pointer parallax <= 8px, transform only, pointer-fine devices only. Cards themselves never scale.
    - Landing page GSAP/Lenis canvas animations are isolated to Phase 2. Phase 1 provides clean placeholder sections.
+7. **Frontend Verification & Definition of Done (EVERY frontend change):**
+   - Standing rule: verify across standard viewports: 360×740, 390×844, 768×1024, 1024×768, 1280×720, 1536×864, 1920×1080, landscape phone 667×375, touch device (no hover), `prefers-reduced-motion`, Hindi, and 200% browser zoom.
+   - Hover effects are strictly chosen with `@media (hover:hover) and (pointer:fine)`, never by screen width.
 
 ---
+
+## 5. FLIP LISTING CARDS ARCHITECTURE
+
+Interactive 3D flip cards are deployed exclusively on the three main catalog routes (`/cars`, `/used-cars`, `/offers`). Detailed architecture, component mapping, and accessibility guarantees are documented in [docs/LISTING_CARDS.md](file:///d:/Vrooma/docs/LISTING_CARDS.md).
 
 ## 5. GATING TABLE, ROUTE MAP & DATA MODEL
 

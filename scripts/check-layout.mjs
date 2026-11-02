@@ -32,17 +32,17 @@ const targetSceneArg = args.find((a) => a.startsWith("--scene="))?.split("=")[1]
 async function isServerRunning(url) {
   try {
     const res = await fetch(`${url}/en`, { method: "GET" });
-    if (res.status >= 200 && res.status < 400) return true;
+    if (res.status >= 200 && res.status < 500) return true;
   } catch {}
   if (url.includes("127.0.0.1")) {
     try {
       const res = await fetch(`http://localhost:3000/en`, { method: "GET" });
-      if (res.status >= 200 && res.status < 400) return true;
+      if (res.status >= 200 && res.status < 500) return true;
     } catch {}
   } else if (url.includes("localhost")) {
     try {
       const res = await fetch(`http://127.0.0.1:3000/en`, { method: "GET" });
-      if (res.status >= 200 && res.status < 400) return true;
+      if (res.status >= 200 && res.status < 500) return true;
     } catch {}
   }
   return false;

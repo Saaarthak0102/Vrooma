@@ -69,3 +69,10 @@
 - **Decision:** Introduce `scripts/check-layout.mjs` using Playwright Chromium in devDependencies. Key DOM elements are marked with non-functional `data-layout` and `data-layout-kind` attributes. The script scrolls to rest progress states, captures screenshots, and mathematically evaluates rules R1–R5.
 - **Consequences:** Provides regression testing for responsive landing page layouts, automated overlap detection, and visual audit screenshots in `docs/layout-audit/`.
 
+---
+
+## ADR-012: Unit & Component Testing with Vitest, @testing-library/react, and jsdom
+- **Context:** Flip-card interactions, accessibility semantics, focus transitions, keyboard navigation (Escape, Enter, Space), and listing card behaviors require deterministic component-level test automation.
+- **Decision:** Install `@testing-library/react`, `jsdom`, and `@testing-library/jest-dom` as devDependencies and configure Vitest with jsdom environment for DOM component tests.
+- **Consequences:** Enables comprehensive unit verification of flip toggling, aria-expanded states, focus management, and child event propagation without requiring a full browser instance for fast CI/test execution.
+

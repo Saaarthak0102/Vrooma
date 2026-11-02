@@ -7,7 +7,7 @@ export const mockOffers: Offer[] = [
     body: "Complimentary 5-Year Extended Warranty + Comprehensive 3-Year Maintenance Plan on Model H ZX Automatic.",
     badge: "Exclusive",
     model_id: "model-h",
-    valid_until: "2026-06-30",
+    valid_until: "2026-12-31",
     active: true,
   },
   {
@@ -16,7 +16,7 @@ export const mockOffers: Offer[] = [
     body: "Partnered with leading nationalised banks for instant on-road vehicle loan approval within 2 hours.",
     badge: "Finance Offer",
     model_id: null,
-    valid_until: "2026-12-31",
+    valid_until: "2027-01-31",
     active: true,
   },
   {
@@ -25,7 +25,7 @@ export const mockOffers: Offer[] = [
     body: "Upgrade your existing car of any make or model and receive a guaranteed ₹45,000 corporate exchange bonus.",
     badge: "Exchange",
     model_id: "model-c",
-    valid_until: "2026-07-15",
+    valid_until: "2027-03-31",
     active: true,
   },
 ];

@@ -93,7 +93,7 @@ export function BookingSteps({ data }: BookingStepsProps) {
     >
       {/* Desktop Layout */}
       <div data-layer className="hidden lg:block w-full h-full pointer-events-none">
-        <div className="stage-inner pointer-events-auto flex flex-col justify-between h-full w-full pt-2 pb-16">
+        <div className="stage-inner pointer-events-auto flex flex-col justify-between h-full w-full pt-1 pb-4">
           {/* Top-Left Headline */}
           <div
             id="booking-heading"
@@ -104,25 +104,25 @@ export function BookingSteps({ data }: BookingStepsProps) {
             <span className="text-[10px] font-bold uppercase tracking-wider text-accent-ink">
               Transparent Workflow
             </span>
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-medium tracking-tight text-ink leading-tight mt-1 text-balance">
+            <h2 className="text-xl sm:text-2xl lg:text-3xl font-medium tracking-tight text-ink leading-tight mt-1 text-balance">
               Join Vrooma and simplify{" "}
               <Accent tone="accent">your car buying</Accent>
             </h2>
           </div>
 
           {/* 3-Column Center Stage (Left Steps, Center Phone, Right Dark EMI) */}
-          <div className="grid grid-cols-12 gap-6 items-center mt-2 sm:mt-3 mb-auto pointer-events-auto">
+          <div className="grid grid-cols-12 gap-5 lg:gap-6 items-center mt-1 sm:mt-2 mb-auto pointer-events-auto">
             {/* Left GlassCard: Easy Booking 3 Steps */}
             <div id="booking-left-card" data-layout="booking:card-steps" data-layout-kind="card" className="col-span-4">
-              <GlassCard className="p-5 sm:p-6 rounded-3xl border border-white/90 shadow-elevated space-y-4">
+              <GlassCard className="p-4 sm:p-5 rounded-3xl border border-white/90 shadow-elevated space-y-3">
                 <div>
                   <span className="text-[10px] font-bold uppercase tracking-wider text-accent-ink">
                     3-Step Journey
                   </span>
-                  <h3 className="text-base sm:text-lg font-bold text-ink">Easy booking</h3>
+                  <h3 className="text-sm sm:text-base font-bold text-ink">Easy booking</h3>
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-2.5">
                   <div className="flex items-start gap-3">
                     <div className="h-7 w-7 rounded-full bg-dark text-white font-bold text-xs flex items-center justify-center shrink-0">
                       1
@@ -160,7 +160,7 @@ export function BookingSteps({ data }: BookingStepsProps) {
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-border/80">
+                <div className="pt-1.5 border-t border-border/80">
                   <Link
                     href="/book/test-drive"
                     className="text-xs font-bold text-accent-ink hover:underline inline-flex items-center gap-1.5"
@@ -174,7 +174,7 @@ export function BookingSteps({ data }: BookingStepsProps) {
 
             {/* Center Phone Mockup */}
             <div id="booking-phone" data-layout="booking:phone" data-layout-kind="phone" className="col-span-4 flex justify-center">
-              <PhoneMockup className="!h-[clamp(260px,42svh,350px)] !w-auto aspect-[9/19.5]">
+              <PhoneMockup className="!h-[clamp(230px,36svh,330px)] !w-auto aspect-[9/19.5]">
                 <PhoneScreenHome
                   modelName={heroModel.name}
                   variantName={heroModel.variantName}
@@ -188,13 +188,13 @@ export function BookingSteps({ data }: BookingStepsProps) {
 
             {/* Right Dark Card: Real EMI Calculator */}
             <div id="booking-right-card" data-layout="booking:card-emi" data-layout-kind="card" className="col-span-4">
-              <div className="rounded-3xl bg-dark text-white p-4 sm:p-5 shadow-2xl border border-white/10 space-y-2.5">
+              <div className="rounded-2xl sm:rounded-3xl bg-dark text-white p-3.5 sm:p-4 shadow-2xl border border-white/10 space-y-2">
                 <div className="flex items-center justify-between">
                   <div>
                     <span className="text-[10px] uppercase font-bold text-accent tracking-wider">
                       Instant Financing
                     </span>
-                    <h3 className="text-base sm:text-lg font-bold text-white">Plan your EMI</h3>
+                    <h3 className="text-sm sm:text-base font-bold text-white">Plan your EMI</h3>
                   </div>
                   <span className="text-[10px] bg-white/10 text-slate-300 px-2 py-0.5 rounded font-medium">
                     {emiDefaults.label}
@@ -202,7 +202,7 @@ export function BookingSteps({ data }: BookingStepsProps) {
                 </div>
 
                 {/* Sliders */}
-                <div className="space-y-2.5 text-xs">
+                <div className="space-y-1.5 text-xs">
                   {/* Loan Amount Slider */}
                   <div className="space-y-1">
                     <div className="flex justify-between text-[11px]">
@@ -250,21 +250,21 @@ export function BookingSteps({ data }: BookingStepsProps) {
                 </div>
 
                 {/* Monthly EMI Result */}
-                <div className="rounded-2xl bg-white/5 border border-white/10 p-2.5 text-center">
+                <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-2 text-center">
                   <span className="text-[10px] text-slate-400 uppercase tracking-wider block">
                     Estimated Monthly Instalment
                   </span>
                   <span
                     aria-live="polite"
-                    className="text-xl sm:text-2xl font-black text-accent block mt-0.5"
+                    className="text-lg sm:text-xl font-black text-accent block mt-0.5"
                   >
                     {formatINR(monthlyEmi)} <span className="text-xs font-normal text-slate-300">/ month</span>
                   </span>
                 </div>
 
                 {/* CTAs */}
-                <div className="space-y-1.5 pt-1">
-                  <PillButton asChild variant="secondary" showArrow className="w-full justify-center text-xs h-9 bg-white text-dark hover:bg-slate-100">
+                <div className="space-y-1 pt-0.5">
+                  <PillButton asChild variant="secondary" showArrow className="w-full justify-center text-xs h-8 bg-white text-dark hover:bg-slate-100">
                     <Link href="/cars">Explore cars</Link>
                   </PillButton>
                   <div className="text-center">
