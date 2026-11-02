@@ -35,3 +35,4 @@ export function CarGrid({ models, citySlug = "lucknow", onClearFilters }: CarGri
     </div>
   );
 }
+

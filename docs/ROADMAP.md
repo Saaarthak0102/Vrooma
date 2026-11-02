@@ -81,3 +81,4 @@
   - [ ] Pinned scroll-scrub showroom orbit and transparent pricing layers.
 - [ ] Final wiring check: Verify `pnpm check:wiring` outputs 100% wired (0 placeholders left).
 - [ ] End-to-end performance audit, Core Web Vitals verification, and Vercel production deployment.
+

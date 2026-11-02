@@ -48,3 +48,4 @@ export function SpecTable({ specs = {}, features = [] }: SpecTableProps) {
     </div>
   );
 }
+

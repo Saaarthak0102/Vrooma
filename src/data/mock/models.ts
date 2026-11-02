@@ -84,3 +84,4 @@ export const mockModels: Model[] = [
     variants: mockVariants.filter((v) => v.model_id === "model-t"),
   },
 ];
+

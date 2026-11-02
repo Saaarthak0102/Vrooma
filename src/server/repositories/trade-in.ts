@@ -15,3 +15,4 @@ export async function createTradeInRequest(
   }
   throw new Error("TODO(day-4): Supabase createTradeInRequest not implemented yet");
 }
+

@@ -57,3 +57,4 @@ describe("SLA state calculation", () => {
     expect(formatSeconds(5)).toBe("0:05");
   });
 });
+

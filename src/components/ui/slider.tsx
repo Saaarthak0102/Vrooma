@@ -46,3 +46,4 @@ const RangeSlider = React.forwardRef<
 RangeSlider.displayName = "RangeSlider";
 
 export { Slider, RangeSlider };
+

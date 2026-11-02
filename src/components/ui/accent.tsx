@@ -22,3 +22,4 @@ export function Accent({ children, className, ...props }: AccentProps) {
     </span>
   );
 }
+

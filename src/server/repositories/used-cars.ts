@@ -81,3 +81,4 @@ export async function getUsedCarByStockId(stockId: string): Promise<UsedCar | nu
   // TODO(day-3): Implement Supabase query
   throw new Error("TODO(day-3): Supabase getUsedCarByStockId query not implemented yet");
 }
+

@@ -8,3 +8,4 @@ export async function GET(request: NextRequest) {
   // TODO(day-3): Exchange code with Supabase auth session
   return NextResponse.redirect(new URL(next, request.url));
 }
+

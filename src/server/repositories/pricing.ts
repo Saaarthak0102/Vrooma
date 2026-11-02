@@ -65,3 +65,4 @@ export async function listPriceRules(): Promise<PriceRule[]> {
   }
   throw new Error("TODO(day-3): Supabase listPriceRules not implemented yet");
 }
+

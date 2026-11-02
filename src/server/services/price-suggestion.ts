@@ -31,3 +31,4 @@ export function calculateUsedCarPriceBand(car: Pick<UsedCar, "year" | "km" | "pr
     rationale: `Derived from 18 similar ${car.model_name} sales in Lucknow (2024-2026) with ${car.km.toLocaleString()} km registered.`,
   };
 }
+

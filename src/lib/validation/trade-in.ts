@@ -22,3 +22,4 @@ export const tradeInSchema = z.object({
 });
 
 export type TradeInInput = z.infer<typeof tradeInSchema>;
+

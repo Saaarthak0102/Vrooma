@@ -60,3 +60,4 @@ export function DataTable<T>({
     </div>
   );
 }
+

@@ -263,3 +263,4 @@ export const mockUsedCars: UsedCar[] = [
     },
   },
 ];
+

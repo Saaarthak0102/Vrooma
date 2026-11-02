@@ -56,3 +56,4 @@ export function Gallery({ images, modelName }: GalleryProps) {
     </div>
   );
 }
+

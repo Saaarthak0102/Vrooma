@@ -49,3 +49,4 @@ ON CONFLICT (stock_id) DO NOTHING;
 INSERT INTO price_rules (id, city_id, model_id, variant_id, road_tax_pct, registration, insurance, handling, accessories, tcs_pct, valid_from, valid_until, notes) VALUES
   ('p0000001-0000-0000-0000-000000000001', 'c0000001-0000-0000-0000-000000000001', 'm0000001-0000-0000-0000-000000000001', 'v0000001-0000-0000-0000-000000000001', 10.0, 12000, 42000, 8500, 15000, 1.0, '2026-01-01', '2026-12-31', 'Official Lucknow RTO seed values')
 ON CONFLICT DO NOTHING;
+

@@ -23,3 +23,4 @@ export function StatCard({ label, value, subtitle, icon, className }: StatCardPr
     </div>
   );
 }
+

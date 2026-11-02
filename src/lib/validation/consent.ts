@@ -23,3 +23,4 @@ export const deletionRequestSchema = z.object({
 
 export type ConsentInput = z.infer<typeof consentSchema>;
 export type DeletionRequestInput = z.infer<typeof deletionRequestSchema>;
+

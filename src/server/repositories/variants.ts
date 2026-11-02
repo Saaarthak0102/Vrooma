@@ -17,3 +17,4 @@ export async function getVariantById(id: string): Promise<Variant | null> {
   // TODO(day-3): Implement Supabase query
   throw new Error("TODO(day-3): Supabase getVariantById query not implemented yet");
 }
+

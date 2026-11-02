@@ -38,3 +38,4 @@ CREATE TABLE IF NOT EXISTS used_car_price_suggestions (
   rationale TEXT NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+

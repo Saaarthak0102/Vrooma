@@ -31,3 +31,4 @@ export function SortSelect({ value, onChange, className }: SortSelectProps) {
     </div>
   );
 }
+

@@ -97,3 +97,4 @@ CREATE TABLE IF NOT EXISTS csv_imports (
   errors JSONB NOT NULL DEFAULT '[]'::jsonb,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+

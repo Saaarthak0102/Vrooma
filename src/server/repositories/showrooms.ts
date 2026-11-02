@@ -21,3 +21,4 @@ export async function listWorkshops(cityId?: string): Promise<Workshop[]> {
   }
   throw new Error("TODO(day-3): Supabase listWorkshops not implemented yet");
 }
+

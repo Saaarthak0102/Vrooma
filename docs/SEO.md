@@ -66,3 +66,4 @@ Provides search engines with clear path hierarchies: `Home > New Cars > Model H`
 
 - `src/app/sitemap.ts`: Automatically indexes all static marketing pages and maps all active models (`/cars/*`) and available used inventory (`/used-cars/*`).
 - `src/app/robots.ts`: Allows public search crawling while disallowing staff and admin consoles (`/staff/*`, `/admin/*`, `/api/*`).
+

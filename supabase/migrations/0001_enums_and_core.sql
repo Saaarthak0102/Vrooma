@@ -45,3 +45,4 @@ CREATE TABLE IF NOT EXISTS workshops (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+

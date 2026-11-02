@@ -21,3 +21,4 @@ export function checkSlotAvailability(slotId: string): {
     slot,
   };
 }
+

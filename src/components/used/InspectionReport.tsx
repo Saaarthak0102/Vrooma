@@ -115,3 +115,4 @@ export function InspectionReport({ inspection, stockId }: InspectionReportProps)
     </div>
   );
 }
+

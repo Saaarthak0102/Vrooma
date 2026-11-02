@@ -117,3 +117,4 @@ export function UsedCarCard({ car, className }: UsedCarCardProps) {
     </div>
   );
 }
+

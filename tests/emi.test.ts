@@ -34,3 +34,4 @@ describe("EMI calculator", () => {
     expect(totalPrincipal).toBe(principal);
   });
 });
+

@@ -53,3 +53,4 @@ CREATE TABLE IF NOT EXISTS assignment_rules (
   priority INT NOT NULL DEFAULT 1,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+

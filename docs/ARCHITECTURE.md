@@ -122,3 +122,4 @@ sequenceDiagram
    - Buyer: Read/write only on their own user ID.
    - Staff: Read/write on leads assigned to their designated showroom.
    - Admin / Used-Car Manager: Full access across catalogs and AI price recommendations.
+

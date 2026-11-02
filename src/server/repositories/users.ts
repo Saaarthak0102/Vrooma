@@ -18,3 +18,4 @@ export async function getUserById(id: string): Promise<Profile | null> {
   }
   throw new Error("TODO(day-4): Supabase getUserById not implemented yet");
 }
+

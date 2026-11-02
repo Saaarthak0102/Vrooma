@@ -45,3 +45,4 @@ export async function listDemoCars(showroomId?: string): Promise<DemoCar[]> {
   }
   throw new Error("TODO(day-4): Supabase listDemoCars not implemented yet");
 }
+

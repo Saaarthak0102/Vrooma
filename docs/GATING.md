@@ -54,3 +54,4 @@ export function InspectionReportWrapper({ report }: { report: InspectionReport }
 
 ### In Routes: `useRequireAuth` & Middleware
 Staff and Admin routes enforce role verification in layout shells and Next.js middleware, instantly routing unauthorized sessions to `/sign-in`.
+

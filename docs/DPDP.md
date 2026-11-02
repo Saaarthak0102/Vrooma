@@ -41,3 +41,4 @@ Under Indian privacy principles, vehicle registration numbers can be linked to i
      - Phone numbers and email addresses on past leads are scrubbed/anonymized.
      - Active test-drive bookings are cancelled.
      - A confirmation receipt is presented with a DPDP reference token.
+

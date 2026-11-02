@@ -48,3 +48,4 @@ export const mockBanners: Banner[] = [
     active: true,
   },
 ];
+

@@ -6,3 +6,4 @@ schemas = ["public"]
 
 [db]
 port = 54322
+

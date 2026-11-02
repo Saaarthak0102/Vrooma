@@ -14,3 +14,4 @@ export const mockCities: City[] = [
     slug: "kanpur",
   },
 ];
+

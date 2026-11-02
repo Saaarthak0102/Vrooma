@@ -24,3 +24,4 @@ export const usedCarFilterSchema = z.object({
 
 export type CarSearchFilterInput = z.infer<typeof carSearchFilterSchema>;
 export type UsedCarFilterInput = z.infer<typeof usedCarFilterSchema>;
+

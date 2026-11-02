@@ -39,3 +39,4 @@
 - **Context:** Dealership UI must feel like a bespoke automotive showroom rather than a generic boilerplate template.
 - **Decision:** Wrap un-styled Radix UI primitives (`@radix-ui/react-*`) in `src/components/ui/` with custom CSS variable tokens (`--bg`, `--surface`, `--ink`, `--accent`).
 - **Consequences:** Full keyboard accessibility (WAI-ARIA compliance) with bespoke luxury automotive aesthetics.
+

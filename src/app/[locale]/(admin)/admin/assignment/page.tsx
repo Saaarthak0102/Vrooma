@@ -73,3 +73,4 @@ export default function AdminAssignmentPage() {
     </div>
   );
 }
+

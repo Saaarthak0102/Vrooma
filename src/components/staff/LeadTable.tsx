@@ -42,3 +42,4 @@ export function LeadTable({ leads }: LeadTableProps) {
     </div>
   );
 }
+

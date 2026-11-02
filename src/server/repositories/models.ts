@@ -61,3 +61,4 @@ export async function getModelBySlug(slug: string): Promise<Model | null> {
   // TODO(day-3): Implement Supabase database query for getModelBySlug
   throw new Error("TODO(day-3): Supabase getModelBySlug query not implemented yet");
 }
+

@@ -145,3 +145,4 @@ export function UsedFilters({ filters, onChange, onReset, className }: UsedFilte
     </div>
   );
 }
+

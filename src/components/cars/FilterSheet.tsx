@@ -131,3 +131,4 @@ export function FilterSheet({ filters, onChange, onReset, resultsCount }: Filter
     </Sheet>
   );
 }
+

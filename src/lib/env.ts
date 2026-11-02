@@ -41,3 +41,4 @@ export const env = parsed.success
       AI_PROVIDER_API_KEY: "",
       CRON_SECRET: "",
     };
+

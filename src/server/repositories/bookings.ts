@@ -23,3 +23,4 @@ export async function createBooking(data: Omit<Booking, "id" | "created_at">): P
   }
   throw new Error("TODO(day-4): Supabase createBooking not implemented yet");
 }
+

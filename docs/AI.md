@@ -54,3 +54,4 @@ Every AI prompt and completion is logged to the `ai_logs` table for compliance a
 - `edited_completion`: The final text edited and approved by the consultant.
 - `user_id`: The staff member responsible for transmission.
 - `created_at`: Timestamp.
+

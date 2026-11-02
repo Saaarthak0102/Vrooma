@@ -44,3 +44,4 @@ All routes support locale prefixing (`/en` or `/hi`). Default locale is `/en` (l
 | `/admin/assignment` | `(admin)` | Dealer Principal / Admin | Lead routing rules: round-robin, showroom auto-assignment, model affinity. |
 | `/admin/users` | `(admin)` | Dealer Principal / Admin | Staff permissions, role assignment (Buyer, Staff, Manager, Admin), and showroom linkage. |
 | `/admin/ai-logs` | `(admin)` | Dealer Principal / Admin | Compliance audit table logging AI draft generation, consultant modifications, and sent messages. |
+

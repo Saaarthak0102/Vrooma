@@ -57,3 +57,4 @@ CREATE TABLE IF NOT EXISTS price_rules (
 );
 
 CREATE INDEX IF NOT EXISTS idx_price_rules_city_validity ON price_rules(city_id, valid_from, valid_until);
+

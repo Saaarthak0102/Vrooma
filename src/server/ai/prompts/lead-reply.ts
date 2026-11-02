@@ -17,3 +17,4 @@ CRITICAL GUARDRAILS:
 3. Suggest a concrete next step: e.g. "Would tomorrow 11:30 AM at Hazratganj or an executive doorstep test drive work better for you?"
 4. Keep the draft under 60 words for WhatsApp / SMS readability.
 5. Provide both English and polite Hindi options if requested.`;
+

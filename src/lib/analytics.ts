@@ -7,3 +7,4 @@ export function trackEvent(name: string, properties?: Record<string, unknown>) {
     console.info(`[Analytics Event] ${name}:`, properties);
   }
 }
+

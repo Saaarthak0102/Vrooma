@@ -49,3 +49,4 @@ export function parseMoney(input: string | number): number {
   const parsed = parseFloat(cleaned);
   return isNaN(parsed) ? 0 : Math.round(parsed);
 }
+

@@ -46,3 +46,4 @@ export const routes = {
   adminUsers: () => "/admin/users",
   adminAiLogs: () => "/admin/ai-logs",
 } as const;
+

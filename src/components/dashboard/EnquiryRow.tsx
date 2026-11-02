@@ -32,3 +32,4 @@ export function EnquiryRow({ lead }: { lead: Lead }) {
     </div>
   );
 }
+

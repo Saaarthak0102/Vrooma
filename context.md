@@ -255,3 +255,4 @@ UC-1190 | Used | Model S | LX | Petrol | 2021 | 58600 | 512000 | Booked
   - Full Supabase SSR client integration swapping in-memory repositories with live PostgreSQL tables.
   - Resend email notifications for customer confirmations.
   - Production Vercel AI SDK integration for live LLM streaming in lead copilots.
+

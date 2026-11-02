@@ -76,3 +76,4 @@ ALTER TABLE csv_imports ENABLE ROW LEVEL SECURITY;
 -- CREATE POLICY "Admins view audit and AI logs" ON ai_logs
 --   FOR SELECT TO authenticated
 --   USING (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.role = 'admin'));
+

@@ -108,3 +108,4 @@ export function OrganizationJsonLd() {
 
   return <JsonLd data={schema} />;
 }
+

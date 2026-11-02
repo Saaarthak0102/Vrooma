@@ -21,3 +21,4 @@ describe("masking utilities for DPDP compliance", () => {
     expect(maskPhone(null)).toBe("******0000");
   });
 });
+

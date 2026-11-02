@@ -152,3 +152,4 @@ export const mockPriceRules: PriceRule[] = [
     notes: "Kanpur standard rule (seed values)",
   },
 ];
+

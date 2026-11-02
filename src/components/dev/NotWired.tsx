@@ -46,3 +46,4 @@ export function NotWired({ label, day = 3, children, className }: NotWiredProps)
     </span>
   );
 }
+

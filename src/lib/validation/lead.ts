@@ -39,3 +39,4 @@ export const reassignLeadSchema = z.object({
 export type CreateLeadInput = z.infer<typeof createLeadSchema>;
 export type UpdateLeadStatusInput = z.infer<typeof updateLeadStatusSchema>;
 export type ReassignLeadInput = z.infer<typeof reassignLeadSchema>;
+

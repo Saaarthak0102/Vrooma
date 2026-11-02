@@ -21,3 +21,4 @@ export function MaskedReg({ regNo, className, showIcon = true }: MaskedRegProps)
     </span>
   );
 }
+

@@ -31,3 +31,4 @@ export function SimilarCars({ currentModelId, models }: SimilarCarsProps) {
     </div>
   );
 }
+

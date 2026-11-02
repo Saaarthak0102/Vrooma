@@ -146,3 +146,4 @@ export function UsedCarDetailView({ car }: { car: UsedCar }) {
     </PageShell>
   );
 }
+

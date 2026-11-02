@@ -94,3 +94,4 @@ class MemoryStore {
 const globalForStore = globalThis as unknown as { vroomaStore: MemoryStore };
 export const memoryStore = globalForStore.vroomaStore || new MemoryStore();
 if (process.env.NODE_ENV !== "production") globalForStore.vroomaStore = memoryStore;
+

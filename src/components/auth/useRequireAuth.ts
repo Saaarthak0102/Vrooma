@@ -15,3 +15,4 @@ export function useRequireAuth() {
 
   return { requireAuth, isAuthenticated: !!user };
 }
+

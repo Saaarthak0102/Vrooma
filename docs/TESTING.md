@@ -49,3 +49,4 @@ pnpm vitest run --coverage
 ### E. SLA Countdown & State Machine (`tests/sla.test.ts`)
 - Evaluates lead response time countdowns against the 5-minute target.
 - Tests state transitions: `ok` ($\ge 2$ min remaining), `warning` ($< 2$ min remaining), `breached` ($< 0$ min remaining), and `met` (contacted before deadline).
+

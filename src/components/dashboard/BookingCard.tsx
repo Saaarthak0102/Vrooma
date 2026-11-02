@@ -79,3 +79,4 @@ export function BookingCard({ booking }: { booking: Booking }) {
     </div>
   );
 }
+

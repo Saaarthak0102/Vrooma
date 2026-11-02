@@ -35,3 +35,4 @@ CREATE TABLE IF NOT EXISTS bookings (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+

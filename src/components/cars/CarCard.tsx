@@ -96,3 +96,4 @@ export function CarCard({ model, citySlug = "lucknow", className }: CarCardProps
     </div>
   );
 }
+

@@ -30,3 +30,4 @@ export function CitySelect({ value, onChange, className }: CitySelectProps) {
     </div>
   );
 }
+

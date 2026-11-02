@@ -27,3 +27,4 @@ export async function generateLeadCopilot(lead: Lead): Promise<CopilotGeneration
     suggestedAction: "Schedule a 45-minute home test drive",
   };
 }
+

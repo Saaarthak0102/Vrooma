@@ -103,3 +103,4 @@ export const mockLeads: Lead[] = [
     created_at: new Date(now.getTime() - 4000 * 1000).toISOString(),
   },
 ];
+

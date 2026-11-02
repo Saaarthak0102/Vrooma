@@ -40,3 +40,4 @@ The following high-fidelity landing scenes are explicitly deferred to Phase 2:
 
 > [!NOTE]
 > All Phase 2 scenes currently render clean, static, accessible HTML/CSS placeholder sections in `src/components/landing/` to maintain 100% route completeness and visual appeal without introducing premature scroll overhead.
+

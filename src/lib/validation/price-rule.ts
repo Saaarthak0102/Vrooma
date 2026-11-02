@@ -17,3 +17,4 @@ export const priceRuleSchema = z.object({
 });
 
 export type PriceRuleInput = z.infer<typeof priceRuleSchema>;
+

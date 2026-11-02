@@ -45,3 +45,4 @@ pnpm check:wiring
 ```
 
 If any unregistered `notWired()` call is introduced or any dead `href="#"` link is detected, the check will alert and guide registration.
+

@@ -23,3 +23,4 @@ export function assignConsultant({
   const randomIndex = Math.floor(Math.random() * pool.length);
   return pool[randomIndex];
 }
+

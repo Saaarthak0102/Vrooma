@@ -79,3 +79,4 @@ All primitives live in `src/components/ui/` and wrap Radix UI primitives with Ta
 | Use `notWired("Feature Name", day)` for pending integrations | Leave empty callbacks `onClick={() => {}}` or dead `href="#"` |
 | Mask pre-owned registration plates (`UP32 ** **** 1234`) | Show full registration numbers to unauthenticated public visitors |
 | Place a clear Next Step (Test Drive / Price Breakup) on every vehicle screen | Leave the user at a dead-end without an enquiry action |
+

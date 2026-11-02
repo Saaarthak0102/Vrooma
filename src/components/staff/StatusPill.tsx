@@ -23,3 +23,4 @@ export function StatusPill({ status }: { status: LeadStatus }) {
     </Badge>
   );
 }
+

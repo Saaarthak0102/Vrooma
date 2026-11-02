@@ -53,3 +53,4 @@ export function SlaTimer({ dueAt, firstContactedAt, className }: SlaTimerProps) 
     </span>
   );
 }
+

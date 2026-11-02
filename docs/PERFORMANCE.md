@@ -44,3 +44,4 @@ The client brief mandates that every public page load in **under 2.5 seconds on 
 - [ ] Are all car thumbnail dimensions fixed with aspect-ratio classes to prevent CLS?
 - [ ] Are third-party scripts (e.g. Google Maps, analytics) deferred or loaded asynchronously?
 - [ ] Has the page bundle size been verified with `pnpm build`?
+

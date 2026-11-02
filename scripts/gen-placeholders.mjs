@@ -57,3 +57,4 @@ const avatarSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"
 fs.writeFileSync(path.join(targetDir, "avatar.svg"), avatarSvg, "utf-8");
 
 console.log("Successfully generated all placeholder SVGs in public/images/placeholders");
+

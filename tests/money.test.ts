@@ -24,3 +24,4 @@ describe("money utilities", () => {
     expect(parseMoney("₹ 5,12,000.50")).toBe(512001);
   });
 });
+

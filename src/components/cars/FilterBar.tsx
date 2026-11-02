@@ -125,3 +125,4 @@ export function FilterBar({ filters, onChange, onReset, className }: FilterBarPr
     </div>
   );
 }
+

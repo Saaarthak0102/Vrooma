@@ -17,3 +17,4 @@ export async function listBanners(): Promise<Banner[]> {
   }
   throw new Error("TODO(day-4): Supabase listBanners not implemented yet");
 }
+
