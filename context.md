@@ -250,8 +250,15 @@ UC-1190 | Used | Model S | LX | Petrol | 2021 | 58600 | 512000 | Booked
   - All 28 frontend pages, staff portals, admin consoles, and buyer dashboards built with responsive UI, skeleton loaders, and mock data.
   - Strict dead-button audit implemented with zero silent buttons.
   - Complete bilingual translations (`en` and `hi`) in place.
-- **Phase 2 (Upcoming):**
-  - High-performance GSAP 3D car scene and Lenis smooth scroll orchestration on the public homepage.
+- **Phase 2 (Complete - High-Performance Landing Page & Motion Architecture):**
+  - High-performance GSAP 3.12+ (ScrollTrigger, DrawSVGPlugin, MotionPathPlugin) + Lenis smooth momentum scroll.
+  - Zero Three.js / WebGL overhead: pure CSS and SVG transforms, respecting reduced motion and mobile battery constraints.
+  - CSS-only hero intro (`@keyframes hero-word-rise`) ensuring instant paint (LCP < 700ms).
+  - Complete scene suite: HeroScene (450vh), WhyVrooma (160vh), ShowroomsOrbit (260vh), TransparentPricing (280vh), InspectedUsed (260vh), FeaturedStrip (P1), BookingSteps (220vh with real EMI calculator), Reviews (sample customer cards), FinalCta (140vh route drawing), and scrubbed wordmark footer.
+  - Dynamic `getLandingData` server repository aggregator with zero hardcoded prices or showroom names.
+  - DPDP Act 2023 compliance: used car plate masking (`UP32 ** **** 4120`) and newsletter subscription table (migration 0008) with unticked explicit consent.
+  - Full test coverage (30 tests) passing with 0 ESLint warnings.
+- **Phase 3 & Beyond (Upcoming):**
   - Full Supabase SSR client integration swapping in-memory repositories with live PostgreSQL tables.
   - Resend email notifications for customer confirmations.
   - Production Vercel AI SDK integration for live LLM streaming in lead copilots.

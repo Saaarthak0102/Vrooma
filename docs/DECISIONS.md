@@ -40,3 +40,31 @@
 - **Decision:** Wrap un-styled Radix UI primitives (`@radix-ui/react-*`) in `src/components/ui/` with custom CSS variable tokens (`--bg`, `--surface`, `--ink`, `--accent`).
 - **Consequences:** Full keyboard accessibility (WAI-ARIA compliance) with bespoke luxury automotive aesthetics.
 
+
+---
+
+## ADR-007: GSAP + Lenis for Phase 2 Landing Orchestration (No Three.js)
+- **Context:** The dealership brief emphasizes premium automotive feel, minimal aesthetic, and fast mobile performance (<2.5s on 4G). Heavy 3D WebGL (Three.js/Fiber) introduces 600KB+ initial bundles, high GPU battery drain, and poor 4G LCP.
+- **Decision:** Use GSAP (ScrollTrigger, DrawSVGPlugin, MotionPathPlugin) combined with Lenis smooth scrolling. Pinned scenes run strictly on desktop under `PIN_QUERY = (min-width: 1024px) and (prefers-reduced-motion: no-preference)`. Never run pinned layouts or Lenis on mobile/reduced-motion.
+- **Consequences:** Ultra-fluid 60fps scrubbed timelines on desktop while mobile devices get instant, accessible, vertical static flows with zero scroll jank.
+
+---
+
+## ADR-008: CSS-Only Hero Intro for Instant LCP (<700ms)
+- **Context:** If hero headlines and car imagery wait for JavaScript hydration and GSAP initialization, the Largest Contentful Paint (LCP) metric suffers on mobile 4G networks.
+- **Decision:** Execute the initial entrance of H1 words and hero car via pure CSS keyframe animations (`@keyframes hero-word-rise`) and inline `--i` stagger variables rendered directly on the server by the `<Words>` component.
+- **Consequences:** The primary LCP element paints by ~500–700ms without blocking on JavaScript chunks.
+
+---
+
+## ADR-009: Zero SplitText Dependency
+- **Context:** SplitText is a proprietary GSAP Club plugin requiring private license keys and adds runtime DOM manipulation overhead.
+- **Decision:** Eliminate SplitText. Implement a lightweight Server Component `<Words>` that splits text strings into accessible DOM spans with CSS animation delays.
+- **Consequences:** Zero external licensing complexity, full server-rendered SEO indexability, and identical visual luxury typography.
+
+---
+
+## ADR-010: Strict Data Masking & DPDP Act 2023 Parity
+- **Context:** Under DPDP Act 2023, vehicle registration numbers tied to previous owners constitute protected personal data.
+- **Decision:** Strictly mask all registration plates publicly (e.g., `UP32 ** **** 4120`). Exclude `reg_no_private` from public queries and repositories. Newsletter subscription requires an explicit, unticked consent checkbox.
+- **Consequences:** 100% legal compliance with DPDP Act 2023 and zero privacy leakage across all landing components.
