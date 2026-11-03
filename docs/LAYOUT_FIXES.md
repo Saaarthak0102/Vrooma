@@ -175,3 +175,64 @@ Audit executed across all 5 mandatory viewports (1920x980, 1536x730, 1440x800, 1
 | `src/components/landing/FeaturedStrip.tsx` | Typography (F2) | Ad hoc sizes -> `fs-micro`, `fs-small`, `fs-body`, `fs-title` | Complies with typography scale |
 | `src/components/landing/Reviews.tsx` | Typography (F2) | Ad hoc sizes -> `fs-micro`, `fs-small`, `fs-body`, `fs-title`; H2 clamp upper limit +2px | Complies with typography scale |
 | `src/components/landing/FinalCta.tsx` | Standard phone & typography (F2, F6) | `!h-[clamp(340px,68svh,500px)] !w-auto` -> `w-[var(--phone-w)] !h-auto`; `fs-micro`, `fs-small`, `fs-body`, `fs-title`; H2 clamp +2px | Standardizes phone token and raises typography across scene |
+
+---
+
+## 6. ROUND 3: LANDING MINOR FIXES & FINAL POLISH
+
+### 6.1 DIAGNOSIS LOG
+
+1. **M2 Service Banner Diagnosis (`WhyVrooma.tsx`):**
+   - *Timeline Issue:* The dark bar slide-up tween was configured at `tl.to(darkBar, ..., 0.8)` with duration `0.2`, finishing at progress `1.0` (the exact instant the scene unpinned and scrolled away). It held for 0% of the pin length, meaning users barely caught a glimpse before cards began sliding upwards.
+   - *Base Positioning Issue:* In shorter viewport heights ($\le 730$px), the stage-inner flex layout pushed cards with `my-auto py-2` down toward the footer area, while the dark bar's initial `y: 60` offset translated it below the stage bounds, clipping the button and card text.
+   - *Solution:* Advanced the timeline start from `0.80` to `0.72` with duration `0.20`, settling at `0.92` (held for 8% of pin length). Adjusted base layout to `w-[min(100%,1000px)] mx-auto mb-3` inside `stage-inner pb-[clamp(24px,4svh,36px)]`, keeping $\ge 24$px clearance above the stage bottom and completely clear of the 220x80px bottom-right chat widget corner.
+
+2. **M3 Footer Wordmark Diagnosis (`SiteFooter.tsx`):**
+   - *Client-side Navigation:* `SiteFooter` resides in the persistent root layout (`src/app/[locale]/layout.tsx`). When navigating between pages client-side, the layout did not unmount, and `useGSAP` lacked a `usePathname()` dependency, preventing ScrollTrigger from re-initializing or adapting to route changes.
+   - *Short Pages & Pre-scrolled Views:* `gsap.fromTo` immediately forced `opacity: 0, yPercent: 45`. On short pages (e.g. `/legal/*`, `/contact`, `/about`) where the footer is already in the viewport upon initial load, `ScrollTrigger` never received scroll events to scrub the rise, leaving the giant wordmark permanently invisible at `opacity: 0`.
+   - *Solution:* Added `usePathname()` to re-evaluate on every route transition. Added in-view and short page detection (`rect.top <= window.innerHeight && !isScrollable`) to render the final state (`opacity: 1, yPercent: 0`) immediately. Ensured `relative z-0 pb-6` placement behind links (`z-10`) with `clamp(4.5rem, 24vw, 24rem)` mobile sizing and `overflow-hidden`.
+
+### 6.2 COMPLETE CHANGELOG
+
+| File | What | Before -> After | Why |
+|---|---|---|---|
+| `src/components/landing/HeroScene.tsx` | Next Free Slot chip positioning (M1) | Absolute positioned at `top: 44vh, left: 34vw` floating over CTA buttons -> Structural child following CTA buttons inside `#hero-body-group` (`space-y-4 pt-2`) | Eliminates overlap with "Book a test drive" and "Browse cars" buttons; guarantees $\ge 24$px clearance across all desktop viewports and wraps cleanly without colliding with chips or car cutout |
+| `src/components/landing/HeroScene.tsx` | Mobile Next Free Slot chip (M1) | Stacked inside horizontal row prone to button collisions -> Full-width vertical block under CTA buttons with $\ge 20$px gap | Ensures clean mobile hierarchy and prevents touch targets from overlapping |
+| `src/components/landing/WhyVrooma.tsx` | Service banner timeline & position (M2) | Started at progress `0.80`, finished at `1.0` (0% hold); bottom clipping -> Timeline starts at `0.72`, ends at `0.92` (8% hold); centered with $\ge 24$px clearance to cards and stage bottom, clearing chat widget | Guarantees banner is fully visible before pin release, non-clipped on all desktop sizes |
+| `src/components/landing/WhyVrooma.tsx` | Mobile service banner (M2) | Squished horizontal bar -> Centered stacked block with full container width, text, and full-width `min-h-[44px]` button | Mobile accessibility, proper touch target size ($\ge 44$px), zero text clipping |
+| `src/components/layout/SiteFooter.tsx` | Wordmark visibility across pages (M3) | Wordmark invisible on short pages or after client navigation -> Integrated `usePathname()`, in-view/short-page detection, immediate `opacity: 1` on non-scrollable pages, scrubbed reveal on tall pages | Wordmark reliably renders on all public, buyer, and legal pages without blocking interactivity |
+| `src/components/layout/SiteFooter.tsx` | Wordmark mobile sizing & newsletter input (M3) | `clamp(8rem, 26vw, 24rem)`; `text-xs` on mobile input -> `clamp(4.5rem, 24vw, 24rem)` with `pb-6`; input with `text-base sm:text-xs` | Prevents horizontal overflow on 360px phones and prevents iOS Safari auto-zoom on newsletter input |
+| `src/server/landing-data.ts` | Book now preview data extension (M4) | No `bookNowPreview` payload -> Added `BookNowPreviewData` with 2 showroom previews (evaluated live with `Asia/Kolkata` hours) and up to 3 slots for today (or next day fallback) | Supplies real-time preview data to Final CTA phone screen without hardcoding hours or slots |
+| `src/components/landing/phone/PhoneScreenBookNow.tsx` | Final CTA phone screen (M4) | None (reused `PhoneScreenHome`) -> New dedicated `PhoneScreenBookNow` component: mini header with car thumbnail, Step 1 showroom selection with live hours, Step 2 slots with pills, mini confirm CTA, pinned tab bar with Bookings active | Delivers true test-drive booking preview experience in Final CTA scene |
+| `src/components/landing/phone/index.ts` | Export PhoneScreenBookNow (M4) | Omitted PhoneScreenBookNow -> Exported `PhoneScreenBookNow` | Clean barrel export for landing phone screens |
+| `src/components/landing/FinalCta.tsx` | Desktop & mobile phone preview (M4) | Desktop reused `PhoneScreenHome`; mobile omitted mockup -> Desktop renders `PhoneScreenBookNow`; mobile renders centered mockup at `min(78vw, 320px)` between car and CTA button | Showcases booking app preview to both desktop and mobile users |
+| `messages/en.json` & `messages/hi.json` | Localization keys (M4) | Missing `home.phone.*` keys -> Added `bookTestDriveHeader`, `step1PickShowroom`, `step2TodaySlots`, `noSlotsToday`, `tomorrow`, `confirmTestDrive`, `selected`, `nearby`, `tabHome`, `tabCars`, `tabUsed`, `tabBookings`, `tabProfile` | Full English and Hindi i18n support without hardcoded UI strings |
+| `tests/landing-data.test.ts` | Unit tests for preview data (M4) | No test for `bookNowPreview` -> Added unit tests asserting data structure, 2 showrooms, valid open/closed label regex, and valid time format | Guarantees data stability and regression prevention |
+
+---
+
+## 7. ROUND 4: WHYVROOMA SERVICE BANNER POSITIONING FIX
+
+### 7.1 DIAGNOSIS LOG
+
+1. **Root Cause Analysis:**
+   - At 1920x980 viewport, `.stage-inner` had `h-full` coupled with `inset: var(--safe-top) 0 var(--safe-bottom) 0;`. Since `[data-layer]` has `height: 100svh` (980px) and `safe-top` is 104px, `h-full` forced `.stage-inner` to expand down to `y = 1084px` ($104 + 980$).
+   - Combined with `flex flex-col justify-between`, `.stage-inner` pushed `#why-dark-bar` to its absolute bottom (`y = 955px` to `1036px`), clipping 46-56px of the banner behind the stage overflow hidden boundary (`y = 980-990px`). Only ~35px of the banner was visible.
+   - The pillar cards container used `my-auto`, centering the cards in the middle of the expanded container (`cards bottom ≈ 807px`), creating an accidental ~148px empty space between cards bottom and the banner top.
+
+2. **Structural Fix Implementation:**
+   - Removed `h-full` and inner `pb-[clamp(24px,4svh,36px)]` from `.stage-inner`, allowing the global `inset: var(--safe-top) 0 var(--safe-bottom) 0;` contract to govern stage bounds (`top: 104px`, `bottom: 24px` above stage bottom).
+   - Grouped the three GlassCards and `#why-dark-bar` together in an in-flow column wrapper with `my-auto` to center the cards+banner block vertically in the available viewport height below the heading.
+   - Anchored `#why-dark-bar` directly beneath the cards grid in normal document flow with `style={{ marginTop: "clamp(32px, 5svh, 56px)" }}`, eliminating `mb-3` and preventing any future layout drift across viewport height, font rendering, or Hindi text expansion.
+   - Verified that the banner bottom maintains $\ge 24$px clearance to the stage clip line across all target viewports (188.8px clearance at 1920x980; 36.8px clearance at 1366x660), and remains completely clear of the 220x80px bottom-right chat widget corner.
+
+3. **Timeline Verification:**
+   - Dark bar slide-up tween `tl.to(darkBar, { y: 0, opacity: 1, duration: 0.2, ease: "expo.out" }, 0.42)` begins at timeline progress 0.42 and completes at 0.62.
+   - The timeline duration is $\ge 0.84$ (or 1.0). At 0.62, the banner completes its slide-up well before the last 6% handoff (0.94-1.00), remaining fully visible, settled, and still for $>26\%$ of the pinned duration.
+   - Position fix alone was completely sufficient; no timeline adjustments were required.
+
+### 7.2 COMPLETE CHANGELOG
+
+| File | What | Before -> After | Why |
+|---|---|---|---|
+| `src/components/landing/WhyVrooma.tsx` | Service banner resting position & column flow | `.stage-inner` with `h-full justify-between pb-[clamp(24px,4svh,36px)]`; cards with `my-auto`; banner at bottom with `mb-3` (top: ~955px, bottom: ~1036px, clipped by 56px) -> Removed `h-full`; wrapped cards and banner in single `my-auto` flex column; anchored banner directly under cards with `style={{ marginTop: "clamp(32px, 5svh, 56px)" }}` (1920x980: top 702.4px, bottom 791.2px, 188.8px clearance; 1366x660: top 534.4px, bottom 623.2px, 36.8px clearance) | Fixes bottom clipping, anchors banner directly under cards with formulaic clamp gap, guarantees $\ge 24$px bottom clearance, and prevents layout drift |
