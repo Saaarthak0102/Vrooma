@@ -1,0 +1,880 @@
+/* ==========================================================================
+   VROOMA BUTTON SYSTEM & ORIGIN-AWARE MOTION
+   Pure CSS motion tokens, spring dynamics, variant styles & origin transitions
+   ========================================================================== */
+
+:root {
+  --btn-press-scale: .96;
+  --btn-press-in: 90ms;
+  --btn-spring-dur: 420ms;
+  --btn-hover-dur: 250ms;
+  --btn-sweep-dur: 700ms;
+  --btn-ease-out: cubic-bezier(.22, 1, .36, 1);
+
+  /* Fallback spring ease */
+  --btn-ease-spring: cubic-bezier(.34, 1.56, .64, 1);
+}
+
+/* Computed Damped Harmonic Oscillator with 3.8% overshoot settling at 420ms */
+@supports (transition-timing-function: linear(0, 1)) {
+  :root {
+    --btn-ease-spring: linear(
+      0.000 0%,
+      0.046 4%,
+      0.157 7%,
+      0.298 11%,
+      0.446 14%,
+      0.586 18%,
+      0.708 21%,
+      0.810 25%,
+      0.889 29%,
+      0.948 32%,
+      0.989 36%,
+      1.015 39%,
+      1.030 43%,
+      1.037 46%,
+      1.038 50%,
+      1.036 54%,
+      1.031 57%,
+      1.025 61%,
+      1.020 64%,
+      1.014 68%,
+      1.010 71%,
+      1.006 75%,
+      1.004 79%,
+      1.002 82%,
+      1.000 86%,
+      0.999 89%,
+      0.999 93%,
+      0.999 96%,
+      1.000 100%
+    );
+  }
+}
+
+/* ==========================================================================
+   1. BASE BUTTON COMPONENT (.btn)
+   Outer element: layout, positioning, hit-box and focus ring ONLY.
+   NEVER apply transform to the outer element (preserves GSAP timelines).
+   ========================================================================== */
+
+.btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none !important;
+  background: transparent;
+  padding: 0 !important;
+  margin: 0;
+  text-decoration: none;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  font-family: inherit;
+  font-weight: 600;
+  line-height: 1;
+  box-sizing: border-box;
+  vertical-align: middle;
+  outline: none;
+  white-space: nowrap;
+}
+
+/* Enforce non-wrapping on all internal button containers unless data-wrap="true" */
+.btn:not([data-wrap="true"]),
+.btn:not([data-wrap="true"]) .btn__surface,
+.btn:not([data-wrap="true"]) .btn__content,
+.btn:not([data-wrap="true"]) .btn__label,
+.btn:not([data-wrap="true"]) .btn__label > *,
+.btn:not([data-wrap="true"]) .btn__loading,
+.btn:not([data-wrap="true"]) .btn__loading > *,
+.btn:not([data-wrap="true"]) .btn__success,
+.btn:not([data-wrap="true"]) .btn__success > * {
+  white-space: nowrap;
+}
+
+.btn[data-wrap="true"],
+.btn[data-wrap="true"] .btn__surface,
+.btn[data-wrap="true"] .btn__content,
+.btn[data-wrap="true"] .btn__label {
+  white-space: normal;
+}
+
+/* Outer Focus Ring (Offset by 2px, never clipped by overflow:hidden) */
+.btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Full Width */
+.btn[data-full-width="true"] {
+  width: 100%;
+  display: flex;
+}
+
+/* Shapes */
+.btn[data-shape="pill"] {
+  border-radius: 9999px;
+}
+.btn[data-shape="soft"] {
+  border-radius: 12px;
+}
+
+/* Sizes */
+.btn[data-size="sm"] {
+  height: 36px;
+  min-width: 36px;
+  font-size: 12px;
+}
+.btn[data-size="md"] {
+  height: 44px;
+  min-width: 44px;
+  font-size: 14px;
+}
+.btn[data-size="lg"] {
+  height: 52px;
+  min-width: 52px;
+  font-size: 16px;
+}
+.btn[data-size="icon"] {
+  height: 44px;
+  width: 44px;
+  min-width: 44px;
+  min-height: 44px;
+}
+
+/* Coarse Pointers: Minimum 44px touch floor */
+@media (pointer: coarse) {
+  .btn {
+    min-height: 44px;
+  }
+  .btn[data-size="sm"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  .btn[data-size="icon"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* ==========================================================================
+   2. BUTTON SURFACE (.btn__surface)
+   Houses background, border, press scaling (scale), and clips light sweep.
+   ========================================================================== */
+
+.btn__surface {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  overflow: hidden;
+  box-sizing: border-box;
+  isolation: isolate;
+  transform: scale(1);
+  transition: transform var(--btn-spring-dur) var(--btn-ease-spring),
+              background-color var(--btn-hover-dur) ease,
+              border-color var(--btn-hover-dur) ease,
+              color var(--btn-hover-dur) ease,
+              box-shadow var(--btn-hover-dur) ease;
+}
+
+/* Surface Padding */
+.btn[data-size="sm"] .btn__surface {
+  padding: 0 14px;
+}
+.btn[data-size="md"] .btn__surface {
+  padding: 0 20px;
+}
+.btn[data-size="lg"] .btn__surface {
+  padding: 0 28px;
+}
+.btn[data-size="icon"] .btn__surface {
+  padding: 0;
+}
+
+/* Active Press Scale (Pointer & Touch everywhere) */
+.btn:active:not([disabled]):not([data-status="loading"]) .btn__surface {
+  transform: scale(var(--btn-press-scale));
+  transition: transform var(--btn-press-in) ease-out;
+}
+
+.btn[data-size="icon"]:active:not([disabled]):not([data-status="loading"]) .btn__surface {
+  transform: scale(0.92);
+  transition: transform var(--btn-press-in) ease-out;
+}
+
+/* ==========================================================================
+   3. BUTTON CONTENT & STACKED GRID (.btn__content)
+   Label, loading, and success share 1 single grid cell so width never jumps.
+   ========================================================================== */
+
+.btn__content {
+  display: inline-grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
+  align-items: center;
+  justify-items: center;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  z-index: 2;
+  white-space: nowrap;
+}
+
+.btn__label,
+.btn__loading,
+.btn__success {
+  grid-column: 1 / -1;
+  grid-row: 1 / -1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 100%;
+  transition: opacity 200ms ease, transform 200ms ease;
+  white-space: nowrap;
+}
+
+.btn__label > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.btn__label svg,
+.btn__label img {
+  flex-shrink: 0;
+}
+
+/* Idle State */
+.btn[data-status="idle"] .btn__label {
+  opacity: 1;
+  transform: translateY(0);
+}
+.btn[data-status="idle"] .btn__loading {
+  opacity: 0;
+  transform: translateY(4px);
+  pointer-events: none;
+  visibility: hidden;
+}
+.btn[data-status="idle"] .btn__success {
+  opacity: 0;
+  transform: translateY(4px);
+  pointer-events: none;
+  visibility: hidden;
+}
+
+/* Loading State */
+.btn[data-status="loading"] {
+  cursor: default;
+  pointer-events: none;
+}
+.btn[data-status="loading"] .btn__label {
+  opacity: 0;
+  transform: translateY(-4px);
+  pointer-events: none;
+  visibility: hidden;
+}
+.btn[data-status="loading"] .btn__loading {
+  opacity: 1;
+  transform: translateY(0);
+  visibility: visible;
+}
+.btn[data-status="loading"] .btn__success {
+  opacity: 0;
+  transform: translateY(4px);
+  pointer-events: none;
+  visibility: hidden;
+}
+
+/* Success State */
+.btn[data-status="success"] .btn__label {
+  opacity: 0;
+  transform: translateY(-4px);
+  pointer-events: none;
+  visibility: hidden;
+}
+.btn[data-status="success"] .btn__loading {
+  opacity: 0;
+  transform: translateY(-4px);
+  pointer-events: none;
+  visibility: hidden;
+}
+.btn[data-status="success"] .btn__success {
+  opacity: 1;
+  transform: translateY(0);
+  visibility: visible;
+}
+
+/* Spinner */
+@keyframes btn-spin {
+  to { transform: rotate(360deg); }
+}
+.btn__spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: btn-spin 700ms linear infinite;
+  flex-shrink: 0;
+}
+
+/* Success Check Draw */
+@keyframes btn-check-draw {
+  from { stroke-dashoffset: 24; }
+  to { stroke-dashoffset: 0; }
+}
+.btn__check-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+.btn__check-icon path {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+}
+.btn[data-status="success"] .btn__check-icon path {
+  animation: btn-check-draw 240ms ease-out forwards;
+}
+
+/* Error State (3 oscillations, 6px, 280ms) */
+@keyframes btn-shake {
+  0%, 100% { transform: translateX(0); }
+  16.6% { transform: translateX(-6px); }
+  33.3% { transform: translateX(6px); }
+  50% { transform: translateX(-6px); }
+  66.6% { transform: translateX(6px); }
+  83.3% { transform: translateX(-3px); }
+}
+.btn[data-status="error"] .btn__surface {
+  animation: btn-shake 280ms ease-in-out;
+}
+
+/* Icons within Button */
+.btn .btn__icon-right,
+.btn .notch-btn-icon,
+.btn svg:last-child:not(:first-child) {
+  transition: transform var(--btn-hover-dur) ease;
+}
+
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .btn:hover:not([disabled]):not([data-status="loading"]) .btn__icon-right,
+  .btn:hover:not([disabled]):not([data-status="loading"]) .notch-btn-icon,
+  .btn:hover:not([disabled]):not([data-status="loading"]) svg:last-child:not(:first-child) {
+    transform: translateX(3px);
+  }
+}
+
+/* ==========================================================================
+   4. VARIANTS
+   ========================================================================== */
+
+/* Primary (Dark) */
+.btn[data-variant="primary"] .btn__surface {
+  background-color: var(--dark);
+  color: #FFFFFF;
+  border: 1px solid transparent;
+}
+
+/* Top 1px highlight pseudo */
+.btn[data-variant="primary"] .btn__surface::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--btn-hover-dur) ease;
+  z-index: 1;
+}
+
+/* 105deg Light Sweep pseudo */
+.btn[data-variant="primary"]:not([data-size="icon"]) .btn__surface::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 38%,
+    rgba(255, 255, 255, 0.16) 50%,
+    transparent 62%
+  );
+  transform: translateX(-130%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .btn[data-variant="primary"]:hover:not([disabled]):not([data-status="loading"]) .btn__surface {
+    background-color: color-mix(in srgb, var(--dark) 88%, white);
+  }
+  .btn[data-variant="primary"]:hover:not([disabled]):not([data-status="loading"]) .btn__surface::before {
+    opacity: 1;
+  }
+  .btn[data-variant="primary"]:not([data-size="icon"]):hover:not([disabled]):not([data-status="loading"]) .btn__surface::after {
+    transform: translateX(130%);
+    transition: transform var(--btn-sweep-dur) var(--btn-ease-out);
+  }
+}
+
+.btn[data-variant="primary"]:focus-visible .btn__surface {
+  background-color: color-mix(in srgb, var(--dark) 88%, white);
+}
+.btn[data-variant="primary"]:focus-visible .btn__surface::before {
+  opacity: 1;
+}
+
+/* Secondary (Soft / Glass) */
+.btn[data-variant="secondary"] .btn__surface {
+  background-color: rgba(255, 255, 255, 0.80);
+  color: var(--ink);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.btn[data-variant="secondary"]:not([data-size="icon"]) .btn__surface::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-color: var(--ink);
+  opacity: 0;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 300ms var(--btn-ease-out), opacity var(--btn-hover-dur) ease;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .btn[data-variant="secondary"]:not([data-size="icon"]):hover:not([disabled]):not([data-status="loading"]) .btn__surface::before {
+    opacity: 0.06;
+    transform: scaleX(1);
+  }
+  .btn[data-variant="secondary"]:hover:not([disabled]):not([data-status="loading"]) .btn__surface {
+    border-color: var(--ink-soft);
+  }
+}
+
+/* Outline */
+.btn[data-variant="outline"] .btn__surface {
+  background-color: transparent;
+  color: var(--ink);
+  border: 1px solid var(--border);
+}
+
+.btn[data-variant="outline"]:not([data-size="icon"]) .btn__surface::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-color: var(--ink);
+  opacity: 0;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 300ms var(--btn-ease-out), opacity var(--btn-hover-dur) ease;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .btn[data-variant="outline"]:not([data-size="icon"]):hover:not([disabled]):not([data-status="loading"]) .btn__surface::before {
+    transform: scaleX(1);
+  }
+  .btn[data-variant="outline"]:hover:not([disabled]):not([data-status="loading"]) .btn__surface {
+    border-color: var(--ink);
+  }
+}
+
+/* Ghost */
+.btn[data-variant="ghost"] .btn__surface {
+  background-color: transparent;
+  color: var(--ink);
+  border: 1px solid transparent;
+}
+
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .btn[data-variant="ghost"]:hover:not([disabled]):not([data-status="loading"]) .btn__surface {
+    background-color: rgba(15, 23, 32, 0.05);
+  }
+}
+
+/* Destructive (Red - used ONLY for delete/cancel) */
+.btn[data-variant="destructive"] .btn__surface,
+.btn[data-variant="danger"] .btn__surface {
+  background-color: var(--danger);
+  color: #FFFFFF;
+  border: 1px solid transparent;
+}
+
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .btn[data-variant="destructive"]:hover:not([disabled]):not([data-status="loading"]) .btn__surface,
+  .btn[data-variant="danger"]:hover:not([disabled]):not([data-status="loading"]) .btn__surface {
+    background-color: color-mix(in srgb, var(--danger) 85%, black);
+  }
+}
+
+/* Link Variant */
+.btn[data-variant="link"] {
+  height: auto;
+  min-height: auto;
+  padding: 0;
+}
+.btn[data-variant="link"] .btn__surface {
+  background: transparent;
+  border: none;
+  padding: 0;
+  overflow: visible;
+}
+.btn[data-variant="link"] .btn__label {
+  position: relative;
+}
+.btn[data-variant="link"] .btn__label::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -2px;
+  width: 100%;
+  height: 1px;
+  background-color: currentColor;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 300ms var(--btn-ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .btn[data-variant="link"]:hover .btn__label::after {
+    transform: scaleX(1);
+  }
+}
+.btn[data-variant="link"]:focus-visible .btn__label::after {
+  transform: scaleX(1);
+}
+.btn[data-variant="link"]:active {
+  opacity: 0.7;
+}
+
+/* Chip / Toggle Variant */
+.btn-chip {
+  height: 36px;
+  font-size: 13px;
+  border-radius: 9999px;
+  user-select: none;
+}
+.btn-chip[data-selected="true"] .btn__surface {
+  background-color: var(--dark) !important;
+  color: #FFFFFF !important;
+  border-color: var(--dark) !important;
+}
+
+/* Disabled & Booked Styles */
+.btn[disabled],
+.btn[aria-disabled="true"] {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+.btn[data-booked="true"],
+.btn.is-booked {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ==========================================================================
+   5. ORIGIN-AWARE DROPDOWNS (Menus, Selects, Popovers, Tooltips)
+   Entrance & exit driven by data-state & data-side
+   ========================================================================== */
+
+.origin-dropdown {
+  transform-origin: var(
+    --radix-dropdown-menu-content-transform-origin,
+    var(
+      --radix-select-content-transform-origin,
+      var(
+        --radix-popover-content-transform-origin,
+        var(
+          --radix-tooltip-content-transform-origin,
+          var(--radix-popper-transform-origin, top)
+        )
+      )
+    )
+  );
+  will-change: transform, opacity;
+}
+
+/* Keyframes for 4 sides */
+@keyframes origin-dropdown-in-bottom {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+@keyframes origin-dropdown-out-bottom {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-3px) scale(0.98);
+  }
+}
+
+@keyframes origin-dropdown-in-top {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+@keyframes origin-dropdown-out-top {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(3px) scale(0.98);
+  }
+}
+
+@keyframes origin-dropdown-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(-6px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+@keyframes origin-dropdown-out-right {
+  from {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-3px) scale(0.98);
+  }
+}
+
+@keyframes origin-dropdown-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(6px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+@keyframes origin-dropdown-out-left {
+  from {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(3px) scale(0.98);
+  }
+}
+
+@keyframes origin-dropdown-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes origin-dropdown-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+/* Animations bound to state and side */
+.origin-dropdown[data-state="open"][data-side="bottom"] {
+  animation: origin-dropdown-in-bottom 180ms var(--btn-ease-out) forwards;
+}
+.origin-dropdown[data-state="closed"][data-side="bottom"] {
+  animation: origin-dropdown-out-bottom 120ms ease-in forwards;
+}
+
+.origin-dropdown[data-state="open"][data-side="top"] {
+  animation: origin-dropdown-in-top 180ms var(--btn-ease-out) forwards;
+}
+.origin-dropdown[data-state="closed"][data-side="top"] {
+  animation: origin-dropdown-out-top 120ms ease-in forwards;
+}
+
+.origin-dropdown[data-state="open"][data-side="right"] {
+  animation: origin-dropdown-in-right 180ms var(--btn-ease-out) forwards;
+}
+.origin-dropdown[data-state="closed"][data-side="right"] {
+  animation: origin-dropdown-out-right 120ms ease-in forwards;
+}
+
+.origin-dropdown[data-state="open"][data-side="left"] {
+  animation: origin-dropdown-in-left 180ms var(--btn-ease-out) forwards;
+}
+.origin-dropdown[data-state="closed"][data-side="left"] {
+  animation: origin-dropdown-out-left 120ms ease-in forwards;
+}
+
+/* Trigger Chevrons rotation (180deg in 200ms) */
+[data-state="open"] > svg.lucide-chevron-down,
+[data-state="open"] svg.select-chevron,
+[data-state="open"] .lucide-chevron-down {
+  transform: rotate(180deg);
+}
+svg.lucide-chevron-down,
+svg.select-chevron {
+  transition: transform 200ms ease;
+}
+
+/* Trigger border tint towards accent while open */
+button[data-state="open"]:not([data-variant="primary"]),
+[data-state="open"].select-trigger {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border)) !important;
+}
+
+/* Menu Items hover fade (120ms) */
+.origin-dropdown [role="menuitem"],
+.origin-dropdown [role="option"] {
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+/* Mobile Dropdown Rules (<640px) */
+@media (max-width: 639px) {
+  .origin-dropdown {
+    max-height: min(60svh, var(--radix-dropdown-menu-content-available-height, var(--radix-select-content-available-height, var(--radix-popover-content-available-height, 400px)))) !important;
+    overflow-y: auto !important;
+  }
+  .origin-dropdown [role="menuitem"],
+  .origin-dropdown [role="option"] {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+}
+
+/* ==========================================================================
+   6. CHAT PANEL MOTION
+   Panel grows out of bottom-right corner: 220ms enter, 140ms exit
+   ========================================================================== */
+
+.chat-panel {
+  transform-origin: bottom right;
+}
+
+@keyframes chat-panel-enter {
+  from {
+    opacity: 0;
+    transform: translate(8px, 8px) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+}
+
+@keyframes chat-panel-exit {
+  from {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translate(4px, 4px) scale(0.97);
+  }
+}
+
+.chat-panel-animate-enter {
+  animation: chat-panel-enter 220ms var(--btn-ease-out) forwards;
+}
+
+.chat-panel-animate-exit {
+  animation: chat-panel-exit 140ms ease-in forwards;
+}
+
+/* ==========================================================================
+   7. REDUCED MOTION & FORCED COLORS OVERRIDES
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  .btn__surface,
+  .btn:active:not([disabled]):not([data-status="loading"]) .btn__surface,
+  .btn[data-size="icon"]:active:not([disabled]):not([data-status="loading"]) .btn__surface,
+  .btn__surface::before,
+  .btn__surface::after,
+  .btn__label,
+  .btn__loading,
+  .btn__success,
+  .btn .btn__icon-right,
+  .btn .notch-btn-icon,
+  .btn svg:last-child:not(:first-child),
+  svg.lucide-chevron-down,
+  svg.select-chevron {
+    transform: none !important;
+    animation: none !important;
+    transition-duration: 0ms !important;
+  }
+
+  .btn__surface::after {
+    display: none !important;
+  }
+
+  .btn[data-status="success"] .btn__check-icon path {
+    stroke-dashoffset: 0 !important;
+    animation: none !important;
+  }
+
+  .btn__spinner {
+    animation-duration: 1500ms !important;
+  }
+
+  .origin-dropdown[data-state="open"] {
+    animation: origin-dropdown-fade-in 120ms ease-out forwards !important;
+    transform: none !important;
+  }
+  .origin-dropdown[data-state="closed"] {
+    animation: origin-dropdown-fade-out 120ms ease-in forwards !important;
+    transform: none !important;
+  }
+
+  .chat-panel-animate-enter {
+    animation: origin-dropdown-fade-in 120ms ease-out forwards !important;
+    transform: none !important;
+  }
+  .chat-panel-animate-exit {
+    animation: origin-dropdown-fade-out 120ms ease-in forwards !important;
+    transform: none !important;
+  }
+}
+
+@media (forced-colors: active) {
+  .btn {
+    outline: 2px solid ButtonText;
+  }
+  .btn__surface {
+    border: 1px solid ButtonText;
+  }
+  .btn:focus-visible {
+    outline: 3px solid Highlight;
+  }
+}

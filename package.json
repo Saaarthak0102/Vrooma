@@ -12,7 +12,8 @@
     "format": "prettier --write .",
     "check:wiring": "node scripts/check-wiring.mjs",
     "check:layout": "node scripts/check-layout.mjs",
-    "db:types": "echo \"TODO: supabase gen types typescript\""
+    "db:types": "echo \"TODO: supabase gen types typescript\"",
+    "check:buttons": "node scripts/check-buttons.mjs"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",

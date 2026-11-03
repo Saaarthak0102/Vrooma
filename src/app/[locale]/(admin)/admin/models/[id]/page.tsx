@@ -23,10 +23,16 @@ export default function AdminModelDetailPage() {
   const [tagline, setTagline] = useState(model.tagline);
   const [bodyType, setBodyType] = useState(model.body_type);
   const [isActive, setIsActive] = useState(model.is_active);
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success(`Model ${name} updated successfully in catalog`);
+    setStatus("loading");
+    setTimeout(() => {
+      setStatus("success");
+      toast.success(`Model ${name} updated successfully in catalog`);
+      setTimeout(() => setStatus("idle"), 1400);
+    }, 350);
   };
 
   return (
@@ -124,9 +130,15 @@ export default function AdminModelDetailPage() {
         </div>
 
         <div className="flex justify-end pt-4 border-t border-border">
-          <Button type="submit" className="gap-2 text-xs">
-            <Save className="h-4 w-4" />
-            <span>Save Model Changes</span>
+          <Button
+            type="submit"
+            status={status}
+            loadingText="Saving..."
+            successText="Model Saved!"
+            className="gap-2 text-xs"
+            leftIcon={<Save className="h-4 w-4" />}
+          >
+            Save Model Changes
           </Button>
         </div>
       </form>

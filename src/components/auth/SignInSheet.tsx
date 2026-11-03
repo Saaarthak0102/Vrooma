@@ -22,13 +22,25 @@ export function SignInSheet() {
   const { isSignInSheetOpen, closeSignInSheet, signIn, switchRole, user } = useAuth();
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
 
   const handleMagicLink = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
     setIsLoading(true);
-    await signIn(email, "buyer");
-    setIsLoading(false);
+    setStatus("loading");
+    try {
+      await signIn(email, "buyer");
+      setStatus("success");
+      setTimeout(() => {
+        closeSignInSheet();
+      }, 500);
+    } catch {
+      setStatus("error");
+      setTimeout(() => setStatus("idle"), 600);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleDevRoleSelect = (role: Role) => {
@@ -66,8 +78,15 @@ export function SignInSheet() {
                 required
               />
             </div>
-            <Button type="submit" className="w-full gap-2" disabled={isLoading}>
-              <Mail className="h-4 w-4" />
+            <Button
+              type="submit"
+              className="w-full gap-2"
+              disabled={isLoading}
+              status={status}
+              loadingText="Signing in..."
+              successText="Signed In!"
+              leftIcon={<Mail className="h-4 w-4" />}
+            >
               {t("sendMagicLink")}
             </Button>
           </form>

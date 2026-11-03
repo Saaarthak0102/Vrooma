@@ -12,6 +12,7 @@ export default function LeadImportPage() {
   const [csvContent, setCsvContent] = useState("");
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
 
   const sampleCsv = `name,phone,email,model,source,notes
 Rajesh Sharma,9876543210,rajesh.sharma@example.com,Model H,portal,Interested in ZX Automatic Petrol test drive this weekend
@@ -39,15 +40,21 @@ Sunita Singh,9876543213,sunita.singh@example.com,Model H,portal,Wants corporate 
     }
 
     setLoading(true);
+    setStatus("loading");
     try {
       const result = await processLeadCsv(csvContent);
       setImportResult(result);
       if (result.created > 0) {
+        setStatus("success");
+        setTimeout(() => setStatus("idle"), 1400);
         toast.success(`Successfully imported ${result.created} leads! Deduplicated ${result.skipped} entries.`);
       } else {
+        setStatus("idle");
         toast.info(`0 new leads created. ${result.skipped} duplicates or errors.`);
       }
     } catch {
+      setStatus("error");
+      setTimeout(() => setStatus("idle"), 600);
       toast.error("Failed to parse CSV file.");
     } finally {
       setLoading(false);
@@ -102,9 +109,16 @@ Sunita Singh,9876543213,sunita.singh@example.com,Model H,portal,Wants corporate 
         </div>
 
         <div className="flex justify-end pt-2">
-          <Button onClick={handleImport} disabled={loading || !csvContent.trim()} className="gap-2">
-            <FileSpreadsheet className="h-4 w-4" />
-            <span>{loading ? "Processing Deduplication..." : "Parse & Import Leads"}</span>
+          <Button
+            onClick={handleImport}
+            disabled={loading || !csvContent.trim()}
+            status={status}
+            loadingText="Processing Deduplication..."
+            successText="Leads Imported!"
+            className="gap-2"
+            leftIcon={<FileSpreadsheet className="h-4 w-4" />}
+          >
+            Parse & Import Leads
           </Button>
         </div>
       </div>

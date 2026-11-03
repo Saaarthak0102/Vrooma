@@ -18,6 +18,7 @@ import {
   useReducedMotion,
 } from "motion/react";
 import { cn } from "@/lib/utils";
+import { Button } from "./button";
 
 export interface FlipCardContextValue {
   flipped: boolean;
@@ -64,9 +65,12 @@ export const FlipToggle = React.forwardRef<HTMLButtonElement, FlipToggleProps>(
     );
 
     return (
-      <button
+      <Button
         ref={handleRef}
         type="button"
+        variant="ghost"
+        shape="pill"
+        size="icon"
         data-no-flip="true"
         aria-expanded={ctx?.flipped ?? false}
         aria-controls={ctx?.backId}
@@ -77,13 +81,13 @@ export const FlipToggle = React.forwardRef<HTMLButtonElement, FlipToggleProps>(
           onClick?.(e);
         }}
         className={cn(
-          "min-w-[44px] min-h-[44px] inline-flex items-center justify-center rounded-full transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent",
+          "min-w-[44px] min-h-[44px] inline-flex items-center justify-center",
           className
         )}
         {...props}
       >
         {children || label}
-      </button>
+      </Button>
     );
   }
 );

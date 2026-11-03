@@ -11,6 +11,7 @@ import { notWired } from "@/components/dev/NotWired";
 export function DataRightsPanel() {
   const [optOutMarketing, setOptOutMarketing] = useState(false);
   const [deleteInput, setDeleteInput] = useState("");
+  const [deleteStatus, setDeleteStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
 
   const handleToggleOptOut = (checked: boolean) => {
     setOptOutMarketing(checked);
@@ -24,13 +25,20 @@ export function DataRightsPanel() {
   const handleDeleteRequest = (e: React.FormEvent) => {
     e.preventDefault();
     if (deleteInput !== "DELETE MY DATA") {
+      setDeleteStatus("error");
+      setTimeout(() => setDeleteStatus("idle"), 600);
       toast.error("Please type DELETE MY DATA exactly to confirm.");
       return;
     }
-    toast.success(
-      "DPDP Erasure Request Registered. Our Data Protection Officer will permanently purge your customer records within 48 hours."
-    );
-    setDeleteInput("");
+    setDeleteStatus("loading");
+    setTimeout(() => {
+      setDeleteStatus("success");
+      toast.success(
+        "DPDP Erasure Request Registered. Our Data Protection Officer will permanently purge your customer records within 48 hours."
+      );
+      setDeleteInput("");
+      setTimeout(() => setDeleteStatus("idle"), 1400);
+    }, 500);
   };
 
   return (
@@ -77,8 +85,11 @@ export function DataRightsPanel() {
             />
             <Button
               type="submit"
-              variant="danger"
+              variant="destructive"
               size="sm"
+              status={deleteStatus}
+              loadingText="Purging..."
+              successText="Purge Requested"
               className="text-xs shrink-0 h-10 px-4"
             >
               Request Purge

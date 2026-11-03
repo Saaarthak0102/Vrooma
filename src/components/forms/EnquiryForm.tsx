@@ -32,6 +32,7 @@ export function EnquiryForm({
 }: EnquiryFormProps) {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
 
   const {
     register,
@@ -60,6 +61,7 @@ export function EnquiryForm({
 
   const onSubmit = async (data: CreateLeadInput) => {
     setLoading(true);
+    setStatus("loading");
     try {
       await createLead({
         name: data.name,
@@ -72,10 +74,13 @@ export function EnquiryForm({
         source: data.source,
       });
 
+      setStatus("success");
       setSubmitted(true);
       toast.success("Enquiry received! A dedicated consultant is assigned.");
       onSuccess?.();
     } catch {
+      setStatus("error");
+      setTimeout(() => setStatus("idle"), 600);
       toast.error("Failed to submit enquiry. Please try again.");
     } finally {
       setLoading(false);
@@ -147,8 +152,15 @@ export function EnquiryForm({
         error={errors.consent?.message}
       />
 
-      <Button type="submit" className="w-full h-11" disabled={loading}>
-        {loading ? "Submitting..." : "Submit Enquiry & Unlock Priority Slot"}
+      <Button
+        type="submit"
+        className="w-full h-11"
+        disabled={loading}
+        status={status}
+        loadingText="Subscribing..."
+        successText="Enquiry Submitted!"
+      >
+        Submit Enquiry & Unlock Priority Slot
       </Button>
     </form>
   );

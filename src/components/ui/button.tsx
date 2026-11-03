@@ -1,80 +1,260 @@
 import * as React from "react";
-import { Slot } from "@radix-ui/react-slot";
+import { Link } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
+
+export type ButtonVariant =
+  | "primary"
+  | "secondary"
+  | "outline"
+  | "ghost"
+  | "destructive"
+  | "link"
+  | "danger"
+  | "accent";
+
+export type ButtonSize = "sm" | "md" | "lg" | "icon";
+export type ButtonShape = "pill" | "soft";
+export type ButtonStatus = "idle" | "loading" | "success" | "error";
 
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "primary" | "secondary" | "outline" | "ghost" | "danger" | "accent";
-  size?: "sm" | "md" | "lg" | "icon";
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  shape?: ButtonShape;
+  status?: ButtonStatus;
+  loadingText?: React.ReactNode;
+  successText?: React.ReactNode;
+  leftIcon?: React.ReactNode;
+  rightIcon?: React.ReactNode;
+  fullWidth?: boolean;
+  wrap?: boolean;
   asChild?: boolean;
+  href?: string;
+  isBooked?: boolean;
 }
 
-const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = "primary", size = "md", asChild = false, ...props }, ref) => {
-    const Comp = asChild ? Slot : "button";
+export const Button = React.forwardRef<any, ButtonProps>(
+  (
+    {
+      className,
+      variant = "primary",
+      size = "md",
+      shape = "pill",
+      status = "idle",
+      loadingText,
+      successText,
+      leftIcon,
+      rightIcon,
+      fullWidth = false,
+      wrap = false,
+      asChild = false,
+      href,
+      disabled,
+      isBooked = false,
+      children,
+      onClick,
+      ...props
+    },
+    ref
+  ) => {
+    const effectiveVariant =
+      variant === "danger"
+        ? "destructive"
+        : variant === "accent"
+        ? "primary"
+        : variant;
 
-    const baseStyles =
-      "inline-flex items-center justify-center font-medium transition-all duration-150 disabled:opacity-50 disabled:pointer-events-none select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent";
+    const isLoading = status === "loading";
+    const isSuccess = status === "success";
 
-    const variants = {
-      // Dark pill buttons for primary CTAs per design system
-      primary:
-        "bg-dark text-white hover:bg-black rounded-pill shadow-sm active:translate-y-[0.5px]",
-      secondary:
-        "bg-white/80 hover:bg-white text-ink border border-border rounded-pill shadow-card",
-      outline:
-        "border border-ink/20 hover:border-ink/40 text-ink bg-transparent rounded-pill hover:bg-white/40",
-      ghost:
-        "text-ink hover:bg-black/5 rounded-pill",
-      danger:
-        "bg-danger text-white hover:opacity-90 rounded-pill shadow-sm",
-      accent:
-        "bg-accent text-dark font-semibold hover:bg-accent-ink hover:text-white rounded-pill shadow-sm",
+    const handleClick = (e: React.MouseEvent<any>) => {
+      if (isLoading || disabled) {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+      onClick?.(e as any);
     };
 
-    const sizes = {
-      sm: "h-9 px-4 text-xs tracking-wider uppercase font-semibold",
-      md: "h-11 px-6 text-sm",
-      lg: "h-13 px-8 text-base font-semibold",
-      icon: "h-10 w-10 p-0 rounded-pill",
-    };
+    const content = (
+      <>
+        <span className="btn__surface">
+          <span className="btn__content">
+            <span className="btn__label">
+              {leftIcon}
+              {children}
+              {rightIcon}
+            </span>
+            <span className="btn__loading" aria-hidden={!isLoading}>
+              <span className="btn__spinner" />
+              <span>{loadingText || children}</span>
+            </span>
+            <span className="btn__success" aria-hidden={!isSuccess}>
+              <svg
+                className="btn__check-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M20 6 9 17l-5-5" />
+              </svg>
+              <span>{successText || children}</span>
+            </span>
+          </span>
+        </span>
+        <span className="sr-only" aria-live="polite">
+          {isSuccess
+            ? typeof successText === "string"
+              ? successText
+              : "Action completed successfully"
+            : null}
+        </span>
+      </>
+    );
+
+    // asChild pattern: clone child element if provided
+    if (asChild && React.isValidElement(children)) {
+      const child = children as React.ReactElement<any>;
+      const childChildren = child.props.children;
+      return React.cloneElement(child, {
+        ref,
+        ...props,
+        ...child.props,
+        className: cn("btn", className, child.props.className),
+        "data-variant": effectiveVariant,
+        "data-size": size,
+        "data-shape": shape,
+        "data-status": status,
+        "data-full-width": fullWidth ? "true" : undefined,
+        "data-wrap": wrap ? "true" : undefined,
+        "data-booked": isBooked ? "true" : undefined,
+        "aria-busy": isLoading ? "true" : undefined,
+        "aria-disabled": disabled || isLoading ? "true" : undefined,
+        onClick: (e: any) => {
+          if (isLoading || disabled) {
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+          }
+          child.props.onClick?.(e);
+          onClick?.(e);
+        },
+        children: (
+          <>
+            <span className="btn__surface">
+              <span className="btn__content">
+                <span className="btn__label">
+                  {leftIcon}
+                  {childChildren}
+                  {rightIcon}
+                </span>
+                <span className="btn__loading" aria-hidden={!isLoading}>
+                  <span className="btn__spinner" />
+                  <span>{loadingText || childChildren}</span>
+                </span>
+                <span className="btn__success" aria-hidden={!isSuccess}>
+                  <svg
+                    className="btn__check-icon"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M20 6 9 17l-5-5" />
+                  </svg>
+                  <span>{successText || childChildren}</span>
+                </span>
+              </span>
+            </span>
+            <span className="sr-only" aria-live="polite">
+              {isSuccess
+                ? typeof successText === "string"
+                  ? successText
+                  : "Action completed successfully"
+                : null}
+            </span>
+          </>
+        ),
+      });
+    }
+
+    if (href) {
+      return (
+        <Link
+          ref={ref}
+          href={href as any}
+          className={cn("btn", className)}
+          data-variant={effectiveVariant}
+          data-size={size}
+          data-shape={shape}
+          data-status={status}
+          data-full-width={fullWidth ? "true" : undefined}
+          data-booked={isBooked ? "true" : undefined}
+          aria-busy={isLoading ? "true" : undefined}
+          aria-disabled={disabled || isLoading ? "true" : undefined}
+          tabIndex={disabled ? -1 : props.tabIndex}
+          onClick={handleClick}
+          {...(props as any)}
+        >
+          {content}
+        </Link>
+      );
+    }
 
     return (
-      <Comp
-        className={cn(baseStyles, variants[variant], sizes[size], className)}
+      <button
         ref={ref}
+        type={props.type || "button"}
+        disabled={disabled}
+        className={cn("btn", className)}
+        data-variant={effectiveVariant}
+        data-size={size}
+        data-shape={shape}
+        data-status={status}
+        data-full-width={fullWidth ? "true" : undefined}
+        data-booked={isBooked ? "true" : undefined}
+        aria-busy={isLoading ? "true" : undefined}
+        aria-disabled={disabled || isLoading ? "true" : undefined}
+        onClick={handleClick}
         {...props}
-      />
+      >
+        {content}
+      </button>
     );
   }
 );
+
 Button.displayName = "Button";
 
-export { Button };
-
-export interface IconButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "primary" | "secondary" | "outline" | "ghost";
+export interface IconButtonProps extends Omit<ButtonProps, "size"> {
   size?: "sm" | "md" | "lg";
 }
 
-export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
+export const IconButton = React.forwardRef<any, IconButtonProps>(
   ({ className, variant = "secondary", size = "md", ...props }, ref) => {
     const sizeMap = {
-      sm: "h-8 w-8 text-xs",
-      md: "h-10 w-10 text-sm",
-      lg: "h-12 w-12 text-base",
+      sm: "h-8 w-8 min-w-8 min-h-8 text-xs",
+      md: "h-10 w-10 min-w-10 min-h-10 text-sm",
+      lg: "h-12 w-12 min-w-12 min-h-12 text-base",
     };
 
     return (
       <Button
-        variant={variant as any}
+        ref={ref}
+        variant={variant}
         size="icon"
         className={cn(sizeMap[size], className)}
-        ref={ref}
         {...props}
       />
     );
   }
 );
-IconButton.displayName = "IconButton";
 
+IconButton.displayName = "IconButton";

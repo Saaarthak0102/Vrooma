@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
+import { Button } from "@/components/ui/button";
 
 export interface GalleryProps {
   images: string[];
@@ -33,12 +34,14 @@ export function Gallery({ images, modelName }: GalleryProps) {
       {images.length > 1 && (
         <div className="flex gap-3 overflow-x-auto pb-1">
           {images.map((img, i) => (
-            <button
+            <Button
               key={i}
+              variant="outline"
+              shape="soft"
               onClick={() => setSelectedIdx(i)}
-              className={`relative h-16 w-24 shrink-0 overflow-hidden rounded-md border-2 transition-all ${
+              className={`relative h-16 w-24 shrink-0 overflow-hidden rounded-md border-2 p-0 ${
                 i === selectedIdx
-                  ? "border-accent shadow-sm"
+                  ? "!border-accent shadow-sm"
                   : "border-border opacity-70 hover:opacity-100"
               }`}
             >
@@ -49,7 +52,7 @@ export function Gallery({ images, modelName }: GalleryProps) {
                 sizes="96px"
                 className="object-contain p-1"
               />
-            </button>
+            </Button>
           ))}
         </div>
       )}

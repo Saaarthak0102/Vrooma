@@ -52,15 +52,20 @@ export function UserMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="flex items-center gap-2 rounded-pill p-1 hover:bg-ink/5 transition-colors focus:outline-none focus:ring-2 focus:ring-accent">
-          <Avatar className="h-8 w-8">
-            <AvatarFallback>{initials}</AvatarFallback>
+        <Button
+          variant="ghost"
+          size="sm"
+          shape="pill"
+          className="h-10 px-2 py-1 gap-2 font-semibold text-ink"
+        >
+          <Avatar className="h-7 w-7">
+            <AvatarFallback className="text-xs">{initials}</AvatarFallback>
           </Avatar>
-          <span className="text-xs font-semibold max-w-[100px] truncate hidden sm:inline text-ink">
+          <span className="text-xs max-w-[100px] truncate hidden sm:inline text-ink">
             {user.full_name.split(" ")[0]}
           </span>
-          <ChevronDown className="h-3.5 w-3.5 text-ink-mute" />
-        </button>
+          <ChevronDown className="h-3.5 w-3.5 text-ink-mute ml-1" />
+        </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuLabel className="font-normal">

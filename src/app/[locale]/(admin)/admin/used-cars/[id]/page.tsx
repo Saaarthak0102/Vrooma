@@ -23,15 +23,23 @@ export default function AdminUsedCarDetailPage() {
     JSON.stringify(car.inspection, null, 2)
   );
   const [jsonError, setJsonError] = useState<string | null>(null);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
 
   const handleSaveCar = (e: React.FormEvent) => {
     e.preventDefault();
+    setSaveStatus("loading");
     try {
       JSON.parse(inspectionJson);
       setJsonError(null);
-      toast.success(`Used car ${car.stock_id} record and inspection updated.`);
+      setTimeout(() => {
+        setSaveStatus("success");
+        toast.success(`Used car ${car.stock_id} record and inspection updated.`);
+        setTimeout(() => setSaveStatus("idle"), 1400);
+      }, 350);
     } catch {
       setJsonError("Invalid JSON format in inspection field");
+      setSaveStatus("error");
+      setTimeout(() => setSaveStatus("idle"), 600);
       toast.error("Invalid JSON format in inspection field");
     }
   };
@@ -100,9 +108,15 @@ export default function AdminUsedCarDetailPage() {
         </div>
 
         <div className="flex justify-end pt-4 border-t border-border">
-          <Button type="submit" className="gap-2 text-xs">
-            <Save className="h-4 w-4" />
-            <span>Save Stock Changes</span>
+          <Button
+            type="submit"
+            status={saveStatus}
+            loadingText="Saving..."
+            successText="Stock Saved!"
+            className="gap-2 text-xs"
+            leftIcon={<Save className="h-4 w-4" />}
+          >
+            Save Stock Changes
           </Button>
         </div>
       </form>

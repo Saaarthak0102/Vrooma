@@ -23,8 +23,9 @@ export function LocaleSwitcher() {
     <Button
       variant="ghost"
       size="sm"
+      shape="pill"
       onClick={toggleLocale}
-      disabled={isPending}
+      status={isPending ? "loading" : "idle"}
       className="h-8 px-2.5 text-xs font-semibold gap-1.5 text-ink-soft hover:text-ink rounded-pill"
       title="Switch Language (English / हिन्दी)"
     >

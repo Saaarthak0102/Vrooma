@@ -7,6 +7,7 @@ import { Container } from "@/components/ui/container";
 import { UserMenu } from "@/components/auth/UserMenu";
 import { LocaleSwitcher } from "./LocaleSwitcher";
 import { PillButton } from "@/components/ui/PillButton";
+import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import Image from "next/image";
 import { stopLenis, startLenis } from "@/components/motion/SmoothScrollProvider";
@@ -121,15 +122,17 @@ export function SiteHeader() {
               </div>
 
               {/* Mobile Menu Button */}
-              <button
-                type="button"
+              <Button
+                variant="secondary"
+                size="icon"
+                shape="pill"
                 onClick={() => setMobileMenuOpen(true)}
-                className="md:hidden h-10 w-10 flex items-center justify-center rounded-pill bg-white/80 border border-border shadow-sm text-ink"
+                className="md:hidden h-10 w-10 bg-white/80 border border-border shadow-sm text-ink"
                 aria-label="Open navigation menu"
                 aria-expanded={mobileMenuOpen}
               >
                 <Menu className="h-5 w-5" />
-              </button>
+              </Button>
             </div>
           </div>
         </Container>
@@ -165,13 +168,16 @@ export function SiteHeader() {
               </span>
             </Link>
 
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
+              shape="pill"
               onClick={() => setMobileMenuOpen(false)}
-              className="h-10 w-10 flex items-center justify-center rounded-pill bg-ink/5 text-ink hover:bg-ink/10 transition-colors"
+              className="h-10 w-10 rounded-pill bg-ink/5 text-ink hover:bg-ink/10 transition-colors"
               aria-label="Close navigation menu"
             >
               <X className="h-5 w-5" />
-            </button>
+            </Button>
           </div>
 
           <nav className="flex flex-col gap-4 py-8 flex-1">

@@ -6,6 +6,7 @@ import { newCarTag, hasAccentDot } from "@/lib/listing-tags";
 import { NotchCard } from "@/components/listing/NotchCard";
 import { NotchMedia } from "@/components/listing/NotchMedia";
 import { NotchTag } from "@/components/listing/NotchTag";
+import { Button } from "@/components/ui/button";
 import { Fuel, Gauge, ArrowRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 
@@ -123,20 +124,26 @@ export function CarCard({
 
         {/* 6. Buttons with container queries */}
         <div className="notch-card-actions">
-          <Link
+          <Button
             href={`/cars/${model.slug}`}
-            className="notch-btn-secondary notch-interactive"
+            variant="secondary"
+            shape="soft"
+            size="md"
+            className="notch-interactive text-[13px] font-semibold w-full"
           >
-            <span>View Variants</span>
-          </Link>
+            View Variants
+          </Button>
 
-          <Link
+          <Button
             href={`/book/test-drive?model=${model.slug}`}
-            className="notch-btn-primary notch-interactive"
+            variant="primary"
+            shape="soft"
+            size="md"
+            className="notch-interactive text-[13px] font-semibold w-full"
+            rightIcon={<ArrowRight className="h-3.5 w-3.5 notch-btn-icon" />}
           >
-            <span>Book Demo</span>
-            <ArrowRight className="h-3.5 w-3.5 notch-btn-icon" />
-          </Link>
+            Book Demo
+          </Button>
         </div>
       </div>
     </NotchCard>

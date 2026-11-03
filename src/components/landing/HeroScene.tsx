@@ -8,6 +8,7 @@ import { PinnedScene } from "@/components/motion/PinnedScene";
 import { Words } from "@/components/motion/Words";
 import { Accent } from "@/components/ui/accent";
 import { PillButton } from "@/components/ui/PillButton";
+import { Button } from "@/components/ui/button";
 import { Floater } from "@/components/motion/Floater";
 import {
   PhoneMockup,
@@ -593,29 +594,33 @@ export function HeroScene({ data }: HeroSceneProps) {
                   key={step.id}
                   className="glass-card rounded-2xl border border-white/90 overflow-hidden"
                 >
-                  <button
-                    type="button"
+                  <Button
+                    variant="ghost"
+                    shape="soft"
+                    fullWidth
                     onClick={() => setMobileStep(idx)}
                     aria-expanded={isExpanded}
                     aria-controls={`mobile-row-content-${idx}`}
-                    className="w-full p-4 flex items-center justify-between text-left gap-3 focus:outline-none min-h-[44px]"
+                    className="w-full p-4 h-auto justify-between text-left min-h-[44px] !bg-transparent"
                   >
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`h-8 w-8 rounded-full flex items-center justify-center transition-colors ${
-                          isExpanded ? "bg-accent/20 text-accent-ink" : "bg-ink/5 text-ink-mute"
-                        }`}
-                      >
-                        <Icon className="h-4 w-4" />
+                    <div className="flex items-center gap-3 w-full justify-between">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`h-8 w-8 rounded-full flex items-center justify-center transition-colors ${
+                            isExpanded ? "bg-accent/20 text-accent-ink" : "bg-ink/5 text-ink-mute"
+                          }`}
+                        >
+                          <Icon className="h-4 w-4" />
+                        </div>
+                        <span className="fs-small sm:fs-body font-bold text-ink">{step.title}</span>
                       </div>
-                      <span className="fs-small sm:fs-body font-bold text-ink">{step.title}</span>
+                      <ChevronDown
+                        className={`h-4 w-4 text-ink-mute transition-transform duration-200 ${
+                          isExpanded ? "rotate-180" : ""
+                        }`}
+                      />
                     </div>
-                    <ChevronDown
-                      className={`h-4 w-4 text-ink-mute transition-transform duration-200 ${
-                        isExpanded ? "rotate-180" : ""
-                      }`}
-                    />
-                  </button>
+                  </Button>
 
                   {/* CSS Grid-based smooth accordion reveal */}
                   <div

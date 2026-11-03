@@ -34,15 +34,22 @@ export function ReassignDialog({
     currentAssignedId || consultants[0]?.id || ""
   );
   const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
 
   const handleReassign = async () => {
     setLoading(true);
+    setStatus("loading");
     try {
       await reassignLead(leadId, selectedConsultant);
+      setStatus("success");
       toast.success("Lead successfully reassigned");
-      setOpen(false);
-      onReassigned?.();
+      setTimeout(() => {
+        setOpen(false);
+        onReassigned?.();
+      }, 500);
     } catch {
+      setStatus("error");
+      setTimeout(() => setStatus("idle"), 600);
       toast.error("Failed to reassign lead");
     } finally {
       setLoading(false);
@@ -84,8 +91,16 @@ export function ReassignDialog({
           <Button variant="ghost" size="sm" onClick={() => setOpen(false)}>
             Cancel
           </Button>
-          <Button variant="primary" size="sm" onClick={handleReassign} disabled={loading}>
-            {loading ? "Reassigning..." : "Confirm Assignment"}
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={handleReassign}
+            disabled={loading}
+            status={status}
+            loadingText="Reassigning..."
+            successText="Reassigned!"
+          >
+            Confirm Assignment
           </Button>
         </DialogFooter>
       </DialogContent>

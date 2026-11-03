@@ -36,6 +36,7 @@ export function ReplyDraftEditor({
 }: ReplyDraftEditorProps) {
   const [draft, setDraft] = useState(initialDraft);
   const [sending, setSending] = useState(false);
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [sentSuccess, setSentSuccess] = useState(false);
 
   // Check for forbidden discount words
@@ -48,6 +49,8 @@ export function ReplyDraftEditor({
 
   const handleSend = async () => {
     if (hasDiscountWarning) {
+      setStatus("error");
+      setTimeout(() => setStatus("idle"), 600);
       toast.error(
         `Action Blocked: Dealership policy strictly prohibits quoting unapproved discounts ("${detectedForbiddenWord}"). Remove it before sending.`
       );
@@ -55,6 +58,7 @@ export function ReplyDraftEditor({
     }
 
     setSending(true);
+    setStatus("loading");
     try {
       // 1. Dispatch outbox message
       await dispatchMessage({
@@ -68,10 +72,13 @@ export function ReplyDraftEditor({
       // 2. Mark lead as contacted (stops SLA timer)
       await updateLeadStatus(leadId, "contacted");
 
+      setStatus("success");
       setSentSuccess(true);
       toast.success("First reply sent via WhatsApp! SLA timer stopped.");
       onSent?.();
     } catch {
+      setStatus("error");
+      setTimeout(() => setStatus("idle"), 600);
       toast.error("Failed to send message.");
     } finally {
       setSending(false);
@@ -132,11 +139,14 @@ export function ReplyDraftEditor({
         <Button
           onClick={handleSend}
           disabled={sending || hasDiscountWarning || !draft.trim()}
+          status={status}
+          loadingText="Sending..."
+          successText="Dispatched!"
           size="sm"
           className="gap-1.5 text-xs h-10 px-5"
+          leftIcon={<Send className="h-3.5 w-3.5" />}
         >
-          <Send className="h-3.5 w-3.5" />
-          <span>{sending ? "Sending..." : "Approve & Send via WhatsApp"}</span>
+          Approve & Send via WhatsApp
         </Button>
       </div>
     </div>

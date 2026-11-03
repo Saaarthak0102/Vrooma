@@ -13,6 +13,7 @@ import {
   FinalCta,
 } from "@/components/landing";
 import { DealerAndWebsiteJsonLd } from "@/components/seo/VehicleJsonLd";
+import { Button } from "@/components/ui/button";
 import { env } from "@/lib/env";
 
 export const revalidate = 60;
@@ -75,12 +76,15 @@ export default async function HomePage({ params }: HomePageProps) {
       <DealerAndWebsiteJsonLd />
 
       {/* Accessible skip link */}
-      <a
+      <Button
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 z-50 px-4 py-2 bg-dark text-white rounded-pill text-xs font-bold"
+        variant="primary"
+        shape="pill"
+        size="sm"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 z-50 text-xs font-bold"
       >
         Skip to main content
-      </a>
+      </Button>
 
       <div id="main-content" className="w-full flex flex-col">
         {/* 1. HeroScene (pinned 450vh, CSS intro + accordion) */}

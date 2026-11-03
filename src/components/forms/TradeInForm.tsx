@@ -17,6 +17,7 @@ import { CheckCircle2, Sparkles, Upload } from "lucide-react";
 export function TradeInForm({ className }: { className?: string }) {
   const [estimatedVal, setEstimatedVal] = useState<{ min: number; max: number } | null>(null);
   const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
 
   const {
     register,
@@ -44,6 +45,7 @@ export function TradeInForm({ className }: { className?: string }) {
 
   const onSubmit = async (data: TradeInInput) => {
     setLoading(true);
+    setStatus("loading");
     try {
       // Calculate realistic market indicative band
       const currentYear = 2026;
@@ -61,9 +63,12 @@ export function TradeInForm({ className }: { className?: string }) {
         estimated_range: { min, max },
       });
 
+      setStatus("success");
       setEstimatedVal({ min, max });
       toast.success("Trade-in request registered! Indicative value calculated.");
     } catch {
+      setStatus("error");
+      setTimeout(() => setStatus("idle"), 600);
       toast.error("Failed to submit trade-in request.");
     } finally {
       setLoading(false);
@@ -146,8 +151,15 @@ export function TradeInForm({ className }: { className?: string }) {
           error={errors.consent?.message}
         />
 
-        <Button type="submit" className="w-full h-11" disabled={loading}>
-          {loading ? "Calculating..." : "Get Instant Trade-In Valuation"}
+        <Button
+          type="submit"
+          className="w-full h-11"
+          disabled={loading}
+          status={status}
+          loadingText="Calculating..."
+          successText="Valuation Ready!"
+        >
+          Get Instant Trade-In Valuation
         </Button>
       </form>
     </div>

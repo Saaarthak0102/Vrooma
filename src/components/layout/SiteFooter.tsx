@@ -19,6 +19,7 @@ export function SiteFooter() {
   const [email, setEmail] = useState("");
   const [consent, setConsent] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
 
   const footerRef = useRef<HTMLElement>(null);
   const wordmarkRef = useRef<HTMLDivElement>(null);
@@ -86,10 +87,13 @@ export function SiteFooter() {
     e.preventDefault();
     if (!consent) {
       toast.error("Please provide explicit consent to receive showroom updates.");
+      setStatus("error");
+      setTimeout(() => setStatus("idle"), 600);
       return;
     }
 
     setLoading(true);
+    setStatus("loading");
     try {
       const res = await fetch("/api/newsletter", {
         method: "POST",
@@ -103,8 +107,12 @@ export function SiteFooter() {
       toast.success(data.message || "Subscribed successfully!");
       setEmail("");
       setConsent(false);
+      setStatus("success");
+      setTimeout(() => setStatus("idle"), 1400);
     } catch (err: any) {
       toast.error(err.message || "Could not subscribe. Please try again.");
+      setStatus("error");
+      setTimeout(() => setStatus("idle"), 600);
     } finally {
       setLoading(false);
     }
@@ -147,10 +155,13 @@ export function SiteFooter() {
                 <PillButton
                   type="submit"
                   disabled={loading}
+                  status={status}
+                  loadingText="Subscribing..."
+                  successText="Subscribed!"
                   variant="primary"
                   className="h-11 px-6 text-xs whitespace-nowrap"
                 >
-                  {loading ? "Subscribing..." : "Subscribe"}
+                  Subscribe
                 </PillButton>
               </div>
 

@@ -48,6 +48,7 @@ export default function BookTestDrivePage() {
   const [phone, setPhone] = useState("");
   const [consent, setConsent] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [confirmedBooking, setConfirmedBooking] = useState<Booking | null>(null);
 
   const handleNext = () => {
@@ -74,6 +75,7 @@ export default function BookTestDrivePage() {
     }
 
     setIsSubmitting(true);
+    setSubmitStatus("loading");
     try {
       const booking = await createBooking({
         user_id: "usr-buyer-1",
@@ -98,9 +100,12 @@ export default function BookTestDrivePage() {
         source: "web",
       });
 
+      setSubmitStatus("success");
       setConfirmedBooking(booking);
       setCurrentStep(4); // Completed step
     } catch {
+      setSubmitStatus("error");
+      setTimeout(() => setSubmitStatus("idle"), 600);
       toast.error("Failed to confirm booking. Please try again.");
     } finally {
       setIsSubmitting(false);
@@ -215,9 +220,16 @@ export default function BookTestDrivePage() {
                 <ArrowLeft className="h-4 w-4" />
                 <span>Back</span>
               </Button>
-              <Button type="submit" disabled={isSubmitting} className="gap-2">
-                <span>{isSubmitting ? "Locking Slot..." : "Confirm Test Drive"}</span>
-                <ShieldCheck className="h-4 w-4" />
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                status={submitStatus}
+                loadingText="Locking Slot..."
+                successText="Slot Confirmed!"
+                className="gap-2"
+                rightIcon={<ShieldCheck className="h-4 w-4" />}
+              >
+                Confirm Test Drive
               </Button>
             </div>
           </form>

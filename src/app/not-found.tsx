@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 export default function RootNotFound() {
   return (
@@ -11,12 +11,9 @@ export default function RootNotFound() {
             The vehicle listing or page you requested could not be found.
           </p>
           <div className="pt-2">
-            <Link
-              href="/"
-              className="inline-block px-5 py-2.5 rounded-full bg-[#121A24] text-white text-xs font-semibold"
-            >
+            <Button href="/" variant="primary" shape="pill" size="sm">
               Return to Showroom
-            </Link>
+            </Button>
           </div>
         </div>
       </body>

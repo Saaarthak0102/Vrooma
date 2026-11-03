@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { VariantColor } from "@/types/domain";
+import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
 
 export interface ColorSwatchesProps {
@@ -33,13 +34,16 @@ export function ColorSwatches({ colors = [], onColorChange }: ColorSwatchesProps
         {colors.map((c) => {
           const isSelected = c.id === activeColor.id;
           return (
-            <button
+            <Button
               key={c.id}
+              variant="outline"
+              shape="pill"
+              size="icon"
               onClick={() => handleSelect(c)}
-              className={`h-9 w-9 rounded-full border-2 transition-all flex items-center justify-center ${
+              className={`h-9 w-9 min-w-9 min-h-9 p-0 border-2 ${
                 isSelected
-                  ? "border-dark ring-2 ring-accent scale-105"
-                  : "border-border hover:scale-105"
+                  ? "!border-dark ring-2 ring-accent"
+                  : "border-border"
               }`}
               style={{ backgroundColor: c.hex }}
               title={c.name}
@@ -54,7 +58,7 @@ export function ColorSwatches({ colors = [], onColorChange }: ColorSwatchesProps
                   }`}
                 />
               )}
-            </button>
+            </Button>
           );
         })}
       </div>

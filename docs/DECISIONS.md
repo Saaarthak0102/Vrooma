@@ -76,3 +76,15 @@
 - **Decision:** Install `@testing-library/react`, `jsdom`, and `@testing-library/jest-dom` as devDependencies and configure Vitest with jsdom environment for DOM component tests.
 - **Consequences:** Enables comprehensive unit verification of flip toggling, aria-expanded states, focus management, and child event propagation without requiring a full browser instance for fast CI/test execution.
 
+
+---
+
+## ADR-013: Site-Wide Button Motion & Origin-Aware Dropdowns via Pure CSS (Zero New JS Runtime)
+- **Context:** To elevate Vrooma to automotive luxury standards, buttons require subtle tactile spring tap feedback, light sweeps, and status crossfades, while menus, selects, and popovers require origin-anchored physical scale/shift entrance animations. However, adding third-party UI libraries (such as EasyUI or Framer Motion) would increase client JS bundles, conflict with GSAP pinned timelines, and degrade mobile 4G LCP performance.
+- **Decision:** Implement all button motion, springs, sweeps, and origin-aware dropdown transitions exclusively with pure modern CSS custom properties and keyframes in `src/styles/buttons.css` (imported once in `globals.css`):
+  1. **Zero New JavaScript Runtime:** 0 bytes of new JavaScript libraries added.
+  2. **Computed Spring Curve:** Implemented `--btn-ease-spring` using the CSS `linear()` timing function with 3.8% overshoot settling at 420ms based on damped harmonic oscillator physics ($\zeta = 0.72$, $\omega_n = 22$), with cubic-bezier fallback for legacy engines.
+  3. **GSAP Insulation Architecture:** The outer `<button>`/`<Link>` provides only layout positioning and focus rings; all transforms, press scaling (`scale(.96)`), and sweep animations are strictly confined to `.btn__surface`. This prevents any collision with GSAP ScrollTrigger timelines.
+  4. **Stable Layout Grid Stacking:** `.btn__content` uses a single CSS grid cell to crossfade label, loading spinner, and success check layers, preventing any button width jumps.
+  5. **Origin-Aware Transitions:** Dropdown menus, selects, popovers, and tooltips read the primitive's exposed `--radix-*-content-transform-origin` and animate dynamically from the calculated `data-side` (top, bottom, left, right).
+- **Consequences:** Eliminates layout jank, maintains strict zero JS bundle increase on the homepage and catalog routes, preserves full DPDP compliance and accessibility, and delivers ultra-smooth 60fps micro-interactions across touch and pointer devices.

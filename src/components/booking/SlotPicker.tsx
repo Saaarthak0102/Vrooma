@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { Slot } from "@/types/domain";
+import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Clock, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
@@ -51,20 +52,22 @@ export function SlotPicker({
             const dayNum = d.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
 
             return (
-              <button
+              <Button
                 key={dateStr}
+                variant={isSelected ? "primary" : "outline"}
+                shape="soft"
                 onClick={() => setActiveDate(dateStr)}
-                className={`flex flex-col items-center justify-center min-w-[76px] py-2.5 px-3 rounded-lg border transition-all ${
+                className={`flex flex-col items-center justify-center min-w-[76px] py-2.5 px-3 h-auto ${
                   isSelected
                     ? "border-dark bg-dark text-white shadow-sm"
                     : "border-border bg-white text-ink hover:border-ink/20"
                 }`}
               >
-                <span className="text-[10px] uppercase font-bold tracking-wider opacity-70">
+                <span className="text-[10px] uppercase font-bold tracking-wider opacity-70 block">
                   {weekday}
                 </span>
-                <span className="text-sm font-extrabold mt-0.5">{dayNum}</span>
-              </button>
+                <span className="text-sm font-extrabold mt-0.5 block">{dayNum}</span>
+              </Button>
             );
           })}
         </div>
@@ -100,24 +103,28 @@ export function SlotPicker({
                 return isTaken ? (
                   <Tooltip key={slot.id}>
                     <TooltipTrigger asChild>
-                      <button
+                      <Button
                         disabled
-                        className="flex flex-col items-center justify-center p-3 rounded-lg border border-dashed border-border/80 bg-ink/[0.03] text-ink-mute cursor-not-allowed opacity-60 text-xs"
+                        variant="outline"
+                        shape="soft"
+                        className="flex flex-col items-center justify-center p-3 h-auto border border-dashed border-border/80 bg-ink/[0.03] text-ink-mute cursor-not-allowed opacity-60 text-xs"
                       >
                         <Clock className="h-3.5 w-3.5 mb-1 opacity-50" />
                         <span className="font-semibold line-through">{startTime}</span>
                         <span className="text-[10px]">Fully Booked</span>
-                      </button>
+                      </Button>
                     </TooltipTrigger>
                     <TooltipContent>
                       <p>This slot is already reserved by another customer</p>
                     </TooltipContent>
                   </Tooltip>
                 ) : (
-                  <button
+                  <Button
                     key={slot.id}
+                    variant={isSelected ? "secondary" : "outline"}
+                    shape="soft"
                     onClick={() => handleSlotClick(slot)}
-                    className={`flex flex-col items-center justify-center p-3 rounded-lg border transition-all text-xs ${
+                    className={`flex flex-col items-center justify-center p-3 h-auto text-xs ${
                       isSelected
                         ? "border-accent bg-accent-soft/40 shadow-sm ring-2 ring-accent text-dark font-bold"
                         : "border-border bg-white text-ink hover:border-ink/20"
@@ -130,7 +137,7 @@ export function SlotPicker({
                         {remainingBays} bay{remainingBays > 1 ? "s" : ""} left
                       </span>
                     )}
-                  </button>
+                  </Button>
                 );
               })}
             </div>

@@ -13,13 +13,17 @@ export function ProfileForm() {
   const [name, setName] = useState(user?.full_name || "");
   const [phone, setPhone] = useState(user?.phone || "");
   const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setStatus("loading");
     setTimeout(() => {
       setLoading(false);
+      setStatus("success");
       toast.success("Profile preferences updated");
+      setTimeout(() => setStatus("idle"), 1400);
     }, 500);
   };
 
@@ -37,8 +41,16 @@ export function ProfileForm() {
         <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
       </FormField>
 
-      <Button type="submit" size="sm" disabled={loading} className="text-xs">
-        {loading ? "Saving..." : "Update Profile"}
+      <Button
+        type="submit"
+        size="sm"
+        disabled={loading}
+        status={status}
+        loadingText="Saving..."
+        successText="Profile Saved!"
+        className="text-xs"
+      >
+        Update Profile
       </Button>
     </form>
   );

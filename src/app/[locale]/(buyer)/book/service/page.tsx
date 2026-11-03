@@ -42,6 +42,7 @@ export default function BookServicePage() {
   const [phone, setPhone] = useState("");
   const [consent, setConsent] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [confirmedBooking, setConfirmedBooking] = useState<Booking | null>(null);
 
   const handleNext = () => {
@@ -68,6 +69,7 @@ export default function BookServicePage() {
     }
 
     setIsSubmitting(true);
+    setSubmitStatus("loading");
     try {
       const booking = await createBooking({
         user_id: "usr-buyer-1",
@@ -84,9 +86,12 @@ export default function BookServicePage() {
         consultant_name: "Service Bay Lead Advisor",
       });
 
+      setSubmitStatus("success");
       setConfirmedBooking(booking);
       setCurrentStep(4);
     } catch {
+      setSubmitStatus("error");
+      setTimeout(() => setSubmitStatus("idle"), 600);
       toast.error("Failed to confirm service appointment.");
     } finally {
       setIsSubmitting(false);
@@ -251,9 +256,16 @@ export default function BookServicePage() {
                 <ArrowLeft className="h-4 w-4" />
                 <span>Back</span>
               </Button>
-              <Button type="submit" disabled={isSubmitting} className="gap-2">
-                <span>{isSubmitting ? "Locking Bay..." : "Confirm Service Appointment"}</span>
-                <ShieldCheck className="h-4 w-4" />
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                status={submitStatus}
+                loadingText="Locking Bay..."
+                successText="Appointment Confirmed!"
+                className="gap-2"
+                rightIcon={<ShieldCheck className="h-4 w-4" />}
+              >
+                Confirm Service Appointment
               </Button>
             </div>
           </form>

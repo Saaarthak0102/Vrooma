@@ -14,14 +14,25 @@ export default function SignInPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
     setLoading(true);
-    await signIn(email, "buyer");
-    setLoading(false);
-    router.push("/dashboard");
+    setStatus("loading");
+    try {
+      await signIn(email, "buyer");
+      setStatus("success");
+      setTimeout(() => {
+        router.push("/dashboard");
+      }, 500);
+    } catch {
+      setStatus("error");
+      setTimeout(() => setStatus("idle"), 600);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleDevRole = (role: Role) => {
@@ -57,9 +68,16 @@ export default function SignInPage() {
               required
             />
           </div>
-          <Button type="submit" className="w-full h-11 gap-2" disabled={loading}>
-            <Mail className="h-4 w-4" />
-            <span>{loading ? "Sending link..." : "Send Magic Link"}</span>
+          <Button
+            type="submit"
+            className="w-full h-11 gap-2"
+            disabled={loading}
+            status={status}
+            loadingText="Sending link..."
+            successText="Link Sent!"
+            leftIcon={<Mail className="h-4 w-4" />}
+          >
+            Send Magic Link
           </Button>
         </form>
 

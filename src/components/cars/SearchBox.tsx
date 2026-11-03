@@ -2,6 +2,7 @@
 
 import React from "react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Search, X } from "lucide-react";
 
 export interface SearchBoxProps {
@@ -28,13 +29,16 @@ export function SearchBox({
         className="pl-10 pr-9 h-11 bg-white"
       />
       {value && (
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
+          shape="pill"
           onClick={() => onChange("")}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-mute hover:text-ink transition-colors"
+          className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 text-ink-mute hover:text-ink"
           aria-label="Clear search"
         >
           <X className="h-4 w-4" />
-        </button>
+        </Button>
       )}
     </div>
   );

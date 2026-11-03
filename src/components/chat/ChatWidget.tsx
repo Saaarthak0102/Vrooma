@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { MessageSquare, X, Send, Bot } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { stopLenis, startLenis } from "@/components/motion/SmoothScrollProvider";
 
 interface Message {
@@ -92,21 +93,24 @@ export function ChatWidget() {
   return (
     <div className="fixed bottom-6 right-6 z-50">
       {!isOpen && (
-        <button
+        <Button
+          variant="secondary"
+          size="md"
+          shape="pill"
           onClick={() => setIsOpen(true)}
-          className="h-12 px-4 rounded-pill bg-white/80 border border-border text-ink shadow-card backdrop-blur-md hover:bg-white hover:border-ink/20 transition-all flex items-center gap-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          className="h-12 shadow-card"
+          leftIcon={<div className="h-2 w-2 rounded-full bg-accent" aria-hidden="true" />}
           aria-label="Open Vrooma Live Chat"
         >
-          <div className="h-2 w-2 rounded-full bg-accent" />
-          <MessageSquare className="h-4 w-4 text-ink" />
+          <MessageSquare className="h-4 w-4 text-ink inline" />
           <span className="text-xs font-semibold tracking-wide">Chat with us</span>
-        </button>
+        </Button>
       )}
 
       {isOpen && (
         <div
           data-lenis-prevent
-          className="w-[360px] sm:w-[400px] h-[520px] rounded-2xl border border-border bg-white shadow-2xl flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-200"
+          className="chat-panel chat-panel-animate-enter w-[360px] sm:w-[400px] h-[520px] rounded-2xl border border-border bg-white shadow-2xl flex flex-col overflow-hidden"
         >
           {/* Header */}
           <div className="bg-dark text-white p-4 flex items-center justify-between">
@@ -124,13 +128,16 @@ export function ChatWidget() {
                 <p className="text-[11px] text-gray-400">Available 24/7 · Lucknow Desk</p>
               </div>
             </div>
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
+              shape="pill"
               onClick={() => setIsOpen(false)}
-              className="text-gray-400 hover:text-white transition-colors"
+              className="h-8 w-8 text-gray-400 hover:text-white"
               aria-label="Close Chat"
             >
               <X className="h-5 w-5" />
-            </button>
+            </Button>
           </div>
 
           {/* Messages list with data-lenis-prevent */}
@@ -167,13 +174,16 @@ export function ChatWidget() {
             className="p-2 border-t border-border bg-white flex gap-1.5 overflow-x-auto whitespace-nowrap scrollbar-none"
           >
             {quickPrompts.map((q, idx) => (
-              <button
+              <Button
                 key={idx}
+                variant="ghost"
+                size="sm"
+                shape="pill"
                 onClick={() => handleSend(q)}
-                className="text-[11px] bg-ink/5 hover:bg-ink/10 text-ink-soft hover:text-ink px-2.5 py-1 rounded-pill transition-colors shrink-0"
+                className="text-[11px] h-7 px-2.5 py-0 bg-ink/5 hover:bg-ink/10 text-ink-soft hover:text-ink shrink-0 font-normal"
               >
                 {q}
-              </button>
+              </Button>
             ))}
           </div>
 
@@ -192,14 +202,17 @@ export function ChatWidget() {
               onChange={(e) => setInput(e.target.value)}
               className="flex-1 bg-ink/5 border-none rounded-pill px-4 text-xs focus:outline-none focus:ring-1 focus:ring-accent"
             />
-            <button
+            <Button
               type="submit"
+              variant="primary"
+              size="icon"
+              shape="pill"
               disabled={!input.trim()}
-              className="h-9 w-9 rounded-full bg-dark text-white disabled:opacity-40 flex items-center justify-center shrink-0 transition-opacity"
+              className="h-9 w-9 shrink-0"
               aria-label="Send Message"
             >
               <Send className="h-4 w-4" />
-            </button>
+            </Button>
           </form>
         </div>
       )}

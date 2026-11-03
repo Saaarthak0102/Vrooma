@@ -51,16 +51,20 @@ export function SavedCarCard({
       </div>
 
       <div className="flex items-center gap-2 shrink-0 notch-interactive">
-        <Link
+        <Button
           href={linkHref as any}
-          className="notch-btn-secondary !min-h-[38px] !h-[38px] !px-3 text-xs"
+          variant="secondary"
+          shape="soft"
+          size="sm"
+          className="!min-h-[38px] !h-[38px] !px-3 text-xs"
+          rightIcon={<ArrowRight className="h-3.5 w-3.5 ml-1" />}
         >
-          <span>View</span>
-          <ArrowRight className="h-3.5 w-3.5 ml-1" />
-        </Link>
+          View
+        </Button>
         <Button
           variant="ghost"
           size="icon"
+          shape="soft"
           className="h-[38px] w-[38px] text-ink-mute hover:text-danger rounded-xl"
           onClick={notWired("Remove Saved Car", 4)}
         >
