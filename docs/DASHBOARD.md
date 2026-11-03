@@ -10,14 +10,14 @@ The Vrooma buyer dashboard (`/dashboard`) redesign adopts a modern automotive be
 
 | Block | Data Source | File | Status |
 |---|---|---|---|
-| **4.1 Greeting** | `useAuth()` (`user.full_name`) + i18n (`messages/{locale}.json:dashboard.greeting`) | `src/components/dashboard/DashboardGreeting.tsx` | Pending Build |
-| **4.2 Count Strip** | `listBookings()` / `memoryStore.bookings`<br>`useSavedCars()` / `memoryStore.savedCarIds`<br>`listLeads()` / `memoryStore.leads`<br>`listShowrooms()` | `src/components/dashboard/DashboardCountStrip.tsx` | Pending Build |
-| **4.3 Next Appointment** | `listBookings()` / `memoryStore.bookings` (sorted ascending by `starts_at >= now`) | `src/components/dashboard/NextAppointmentCard.tsx` | Pending Build |
-| **4.4 Saved Vehicles** | `memoryStore.models`, `memoryStore.usedCars` via `savedCarIds` (latest 2) | `src/components/dashboard/SavedVehiclesCard.tsx` | Pending Build |
-| **4.5 Action Tiles** | Direct action triggers (Dark: Test Drive `/book/test-drive`; Light: Service `/book/service`) | `src/components/dashboard/DashboardActionTile.tsx` | Pending Build |
-| **4.6 Recent Enquiries** | `listLeads()` / `memoryStore.leads` (latest 2 inquiries) | `src/components/dashboard/RecentEnquiriesPanel.tsx` | Pending Build |
-| **5.0 In-Place "View All" Stage** | Aggregated data for Bookings (upcoming & past), Saved items (models & used), Enquiries (with status filters) | `src/components/dashboard/DashboardViewAllPanel.tsx` | Pending Build |
-| **Footnote** | Static DPDP & legal routes (`/legal/privacy`, `/legal/data-rights`, `/legal/terms`) | `src/components/dashboard/DashboardFootnote.tsx` | Pending Build |
+| **4.1 Greeting** | `useAuth()` (`user.full_name`) + i18n (`messages/{locale}.json:dashboard.greeting`) | `src/components/dashboard/DashboardGreeting.tsx` | Implemented & Verified |
+| **4.2 Count Strip** | `listBookings()` / `memoryStore.bookings`<br>`useSavedCars()` / `memoryStore.savedCarIds`<br>`listLeads()` / `memoryStore.leads`<br>`listShowrooms()` | `src/components/dashboard/DashboardCountStrip.tsx` | Implemented & Verified |
+| **4.3 Next Appointment** | `listBookings()` / `memoryStore.bookings` (sorted ascending by `starts_at >= now`) | `src/components/dashboard/NextAppointmentCard.tsx` | Implemented & Verified |
+| **4.4 Saved Vehicles** | `memoryStore.models`, `memoryStore.usedCars` via `savedCarIds` (latest 2) | `src/components/dashboard/SavedVehiclesCard.tsx` | Implemented & Verified |
+| **4.5 Action Tiles** | Direct action triggers (Dark: Test Drive `/book/test-drive`; Light: Service `/book/service`) | `src/components/dashboard/DashboardActionTile.tsx` | Implemented & Verified |
+| **4.6 Recent Enquiries** | `listLeads()` / `memoryStore.leads` (latest 2 inquiries) | `src/components/dashboard/RecentEnquiriesPanel.tsx` | Implemented & Verified |
+| **5.0 In-Place "View All" Stage** | Aggregated data for Bookings (upcoming & past), Saved items (models & used), Enquiries (with status filters) | `src/components/dashboard/DashboardViewAllPanel.tsx` | Implemented & Verified |
+| **Footnote** | Static DPDP & legal routes (`/legal/privacy`, `/legal/data-rights`, `/legal/terms`) | `src/components/dashboard/DashboardFootnote.tsx` | Implemented & Verified |
 
 ---
 

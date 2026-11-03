@@ -1,0 +1,226 @@
+"use client";
+
+import React, { useRef, useState, useEffect } from "react";
+import { useQueryState, parseAsStringEnum } from "nuqs";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { Booking, Lead } from "@/types/domain";
+import { SavedVehicleRecord } from "@/server/repositories/saved";
+import { DashboardGreeting } from "./DashboardGreeting";
+import { DashboardCountStrip } from "./DashboardCountStrip";
+import { NextAppointmentCard } from "./NextAppointmentCard";
+import { SavedVehiclesCard } from "./SavedVehiclesCard";
+import { DashboardActionTile } from "./DashboardActionTile";
+import { RecentEnquiriesPanel } from "./RecentEnquiriesPanel";
+import { DashboardFootnote } from "./DashboardFootnote";
+import { DashboardViewAllPanel } from "./DashboardViewAllPanel";
+import { DashboardMobileSheet } from "./DashboardMobileSheet";
+import { useTranslations } from "next-intl";
+import { Car, Wrench } from "lucide-react";
+import { Container } from "@/components/ui/container";
+
+const validViews = ["bookings", "saved", "enquiries"] as const;
+export type DashboardView = (typeof validViews)[number];
+
+export interface DashboardClientShellProps {
+  initialBookings: Booking[];
+  initialSavedVehicles: SavedVehicleRecord[];
+  initialEnquiries: Lead[];
+}
+
+export function DashboardClientShell({
+  initialBookings,
+  initialSavedVehicles,
+  initialEnquiries,
+}: DashboardClientShellProps) {
+  const t = useTranslations("dashboard");
+
+  // Local state for live mutations
+  const [bookings] = useState<Booking[]>(initialBookings);
+  const [savedVehicles, setSavedVehicles] = useState<SavedVehicleRecord[]>(initialSavedVehicles);
+  const [enquiries] = useState<Lead[]>(initialEnquiries);
+
+  // URL state with nuqs
+  const [view, setView] = useQueryState(
+    "view",
+    parseAsStringEnum<DashboardView>([...validViews]).withOptions({
+      shallow: true,
+      history: "push",
+    })
+  );
+
+  // Track if view was loaded directly on page mount
+  const isInitialParamRef = useRef<boolean>(false);
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.has("view") && validViews.includes(params.get("view") as any)) {
+        isInitialParamRef.current = true;
+      }
+    }
+  }, []);
+
+  // Desktop media query check: >= 1100px wide AND >= 620px tall
+  const isDesktop = useMediaQuery("(min-width: 1100px) and (min-height: 620px)");
+
+  // Stage and overview DOM refs for Web Animations API
+  const stageRef = useRef<HTMLDivElement>(null);
+  const overviewRef = useRef<HTMLDivElement>(null);
+  const [originEl, setOriginEl] = useState<HTMLElement | null>(null);
+
+  // Handler when clicking a panel trigger (count strip cell or "View all" link)
+  const handleOpenView = (targetView: DashboardView, triggerElement: HTMLElement) => {
+    isInitialParamRef.current = false;
+    setOriginEl(triggerElement);
+
+    if (view === targetView) {
+      // Toggle close if already open
+      setView(null);
+    } else {
+      setView(targetView);
+    }
+  };
+
+  const handleClose = () => {
+    isInitialParamRef.current = false;
+    setView(null);
+  };
+
+  const handleTabChange = (nextTab: DashboardView) => {
+    isInitialParamRef.current = false;
+    setView(nextTab);
+  };
+
+  const handleRemoveSaved = (id: string) => {
+    setSavedVehicles((prev) => prev.filter((s) => s.id !== id));
+  };
+
+  // Find next upcoming appointment
+  const now = new Date().getTime();
+  const sortedUpcoming = [...bookings]
+    .filter((b) => new Date(b.starts_at).getTime() >= now)
+    .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());
+  const nextBooking = sortedUpcoming[0] || null;
+
+  const isViewValid = (val: string | null): val is DashboardView =>
+    val !== null && (validViews as readonly string[]).includes(val);
+
+  const isOpen = isViewValid(view);
+  const activeTab: DashboardView = isViewValid(view) ? view : "bookings";
+
+  return (
+    <div
+      data-dashboard-desktop-shell="true"
+      className="dashboard-desktop-shell min-h-full w-full"
+    >
+      <Container className="h-full flex flex-col justify-between max-w-[1440px] px-4 sm:px-6 lg:px-8">
+        {/* Top Greeting: always visible outside the stage */}
+        <DashboardGreeting />
+
+        {/* Stage Container: covers Count Strip + Bento Grid on Desktop */}
+        <div ref={stageRef} className="dashboard-stage-container relative">
+          {/* Overview layer that fades out when in-place panel opens */}
+          <div ref={overviewRef} className="dashboard-overview-stage">
+            {/* 4.2 Count Strip */}
+            <DashboardCountStrip
+              bookingsCount={bookings.length}
+              savedCount={savedVehicles.length}
+              enquiriesCount={enquiries.length}
+              activeView={isOpen ? view : null}
+              onSelectView={handleOpenView}
+            />
+
+            {/* Bento Grid */}
+            <div className="dashboard-bento-grid mt-2">
+              {/* 4.3 Next Appointment (Cols 1-5, Rows 1-4 on Desktop) */}
+              <NextAppointmentCard
+                booking={nextBooking}
+                totalBookingsCount={bookings.length}
+                onViewAll={(el) => handleOpenView("bookings", el)}
+                style={{ "--i": 1 } as React.CSSProperties}
+              />
+
+              {/* 4.5 Mobile/Tablet Tiles Wrapper (order 2 on small screens) */}
+              <div className="bento-tiles-wrapper min-[1100px]:contents">
+                {/* Tile 1: Book a test drive (DARK tile, primary action) */}
+                <DashboardActionTile
+                  variant="dark"
+                  href="/book/test-drive"
+                  icon={Car}
+                  title={t("bookTestDrive")}
+                  subtitle={t("bookTestDriveSub")}
+                  className="bento-tile-test-drive"
+                  style={{ "--i": 3 } as React.CSSProperties}
+                />
+
+                {/* Tile 2: Book a service (Light tile) */}
+                <DashboardActionTile
+                  variant="light"
+                  href="/book/service"
+                  icon={Wrench}
+                  title={t("bookService")}
+                  subtitle={t("bookServiceSub")}
+                  className="bento-tile-service"
+                  style={{ "--i": 4 } as React.CSSProperties}
+                />
+              </div>
+
+              {/* Tablet 768px-1023px Side-by-Side Wrapper */}
+              <div className="tablet-side-by-side min-[1100px]:contents max-[767px]:contents">
+                {/* 4.4 Saved Vehicles (Cols 6-9, Rows 1-2 on Desktop) */}
+                <SavedVehiclesCard
+                  records={savedVehicles}
+                  onViewAll={(el) => handleOpenView("saved", el)}
+                  className="bento-saved"
+                  style={{ "--i": 2 } as React.CSSProperties}
+                />
+
+                {/* 4.6 Recent Enquiries (Cols 6-12, Rows 3-4 on Desktop) */}
+                <RecentEnquiriesPanel
+                  enquiries={enquiries}
+                  onViewAll={(el) => handleOpenView("enquiries", el)}
+                  className="bento-enquiries"
+                  style={{ "--i": 5 } as React.CSSProperties}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Desktop In-Place Expanding Panel (Active when isDesktop) */}
+          {isDesktop && (
+            <DashboardViewAllPanel
+              isOpen={isOpen}
+              activeTab={activeTab}
+              onTabChange={handleTabChange}
+              onClose={handleClose}
+              originElement={originEl}
+              stageElement={stageRef.current}
+              overviewElement={overviewRef.current}
+              bookings={bookings}
+              savedVehicles={savedVehicles}
+              enquiries={enquiries}
+              onRemoveSaved={handleRemoveSaved}
+              isInitialParam={isInitialParamRef.current}
+            />
+          )}
+        </div>
+
+        {/* Desktop Footnote: Replaces global footer in desktop viewport */}
+        <DashboardFootnote />
+
+        {/* Mobile/Tablet Full-Height Bottom Sheet (Active when not desktop) */}
+        {!isDesktop && (
+          <DashboardMobileSheet
+            isOpen={isOpen}
+            activeTab={activeTab}
+            onTabChange={handleTabChange}
+            onClose={handleClose}
+            bookings={bookings}
+            savedVehicles={savedVehicles}
+            enquiries={enquiries}
+            onRemoveSaved={handleRemoveSaved}
+          />
+        )}
+      </Container>
+    </div>
+  );
+}

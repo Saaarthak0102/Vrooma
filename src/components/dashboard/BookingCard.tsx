@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar, MapPin, User, Car, Clock } from "lucide-react";
 import { notWired } from "@/components/dev/NotWired";
+import { bookingRef } from "@/lib/booking-ref";
 
 export function BookingCard({ booking }: { booking: Booking }) {
   const isTestDrive = booking.kind === "test_drive";
@@ -27,7 +28,7 @@ export function BookingCard({ booking }: { booking: Booking }) {
           <Badge variant="accent" className="capitalize text-xs">
             {isTestDrive ? "Test Drive" : "Workshop Service"}
           </Badge>
-          <span className="text-xs font-mono text-ink-mute">#{booking.id.slice(-6)}</span>
+          <span className="text-xs font-mono text-ink-mute font-medium">{bookingRef(booking.id)}</span>
         </div>
         <Badge variant={booking.status === "confirmed" ? "ok" : "secondary"} className="text-[10px]">
           {booking.status.toUpperCase()}

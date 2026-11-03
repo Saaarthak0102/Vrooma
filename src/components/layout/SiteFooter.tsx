@@ -121,7 +121,9 @@ export function SiteFooter() {
   return (
     <footer
       ref={footerRef}
-      className="mt-20 border-t border-border bg-[#E3E6EB] relative overflow-hidden text-ink"
+      className={`site-footer mt-20 border-t border-border bg-[#E3E6EB] relative overflow-hidden text-ink ${
+        pathname === "/dashboard" ? "max-[1099px]:block min-[1100px]:hidden max-h-[619px]:!block" : ""
+      }`}
     >
       <Container data-layout="footer:content" data-layout-kind="card" className="pt-16 pb-12 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">

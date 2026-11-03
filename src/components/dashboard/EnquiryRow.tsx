@@ -1,21 +1,18 @@
 import React from "react";
 import { Lead } from "@/types/domain";
-import { StatusPill } from "@/components/staff/StatusPill";
-import { Calendar, User, Phone } from "lucide-react";
+import { BuyerStatusPill } from "./BuyerStatusPill";
+import { Calendar, User } from "lucide-react";
+import { formatEnquiryDate } from "@/lib/date";
 
-export function EnquiryRow({ lead }: { lead: Lead }) {
-  const dateFormatted = new Date(lead.created_at).toLocaleDateString("en-IN", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
+export function EnquiryRow({ lead, locale = "en" }: { lead: Lead; locale?: string }) {
+  const dateFormatted = formatEnquiryDate(lead.created_at, locale);
 
   return (
     <div className="rounded-xl border border-border bg-white p-4 shadow-card flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
       <div className="space-y-1">
         <div className="flex items-center gap-2">
           <span className="font-bold text-sm text-ink">{lead.model_name || "Enquiry"}</span>
-          <StatusPill status={lead.status} />
+          <BuyerStatusPill status={lead.status} />
         </div>
         <p className="text-ink-soft">{lead.message || "Requested showroom quotation and specs"}</p>
         <div className="flex items-center gap-3 text-ink-mute text-[11px] pt-1">

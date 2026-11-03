@@ -1,0 +1,294 @@
+/* ==========================================================================
+   VROOMA DASHBOARD BENTO & DENSITY MODES
+   ========================================================================== */
+
+/* Fade-up entrance on first paint: opacity and transform 8px, 400ms, stagger 50ms via --i */
+@keyframes bento-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.bento-block {
+  animation: bento-fade-up 400ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation-delay: calc(var(--i, 0) * 50ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bento-block {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+/* Text floors: labels 12px, body 14px */
+.bento-block,
+.dashboard-count-strip,
+.dashboard-stage-panel {
+  --text-floor-label: 12px;
+  --text-floor-body: 14px;
+}
+
+/* ==========================================================================
+   DESKTOP APP-SHELL (>= 1100px wide AND >= 620px tall): NO PAGE SCROLL
+   ========================================================================== */
+@media (min-width: 1100px) and (min-height: 620px) {
+  /* Hide the global site footer on dashboard overview in desktop viewports */
+  body:has([data-dashboard-desktop-shell]) .site-footer {
+    display: none !important;
+  }
+
+  /* Dashboard overview root page container: fills viewport with no page scroll */
+  .dashboard-desktop-shell {
+    height: 100svh;
+    max-height: 100svh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    padding-top: calc(var(--header-bottom) + 16px);
+    padding-bottom: 12px;
+    box-sizing: border-box;
+  }
+
+  /* Stage container covering count strip + bento */
+  .dashboard-stage-container {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .dashboard-overview-stage {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    transition: opacity 250ms ease;
+  }
+
+  /* Bento 12-column x 4-row CSS grid */
+  .dashboard-bento-grid {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    grid-template-rows: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .dashboard-bento-grid > * {
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  /* Bento Grid Placement */
+  .bento-appointment {
+    grid-column: 1 / 6;
+    grid-row: 1 / 5;
+  }
+
+  .bento-saved {
+    grid-column: 6 / 10;
+    grid-row: 1 / 3;
+  }
+
+  .bento-tile-test-drive {
+    grid-column: 10 / 13;
+    grid-row: 1 / 2;
+  }
+
+  .bento-tile-service {
+    grid-column: 10 / 13;
+    grid-row: 2 / 3;
+  }
+
+  .bento-enquiries {
+    grid-column: 6 / 13;
+    grid-row: 3 / 5;
+  }
+
+  /* Default density (h: 761px - 899px) */
+  .greeting-title {
+    font-size: 40px;
+    line-height: 1.1;
+  }
+  .count-strip-value {
+    font-size: 32px;
+  }
+  .appt-date-numeral {
+    font-size: 56px;
+  }
+  .saved-thumb {
+    width: 64px;
+    height: 48px;
+  }
+
+  /* Roomy density (>= 900px tall) */
+  @media (min-height: 900px) {
+    .dashboard-bento-grid {
+      gap: 14px;
+    }
+    .greeting-title {
+      font-size: 44px;
+    }
+    .bento-appointment,
+    .bento-saved,
+    .bento-tile-test-drive .tile-surface,
+    .bento-tile-service .tile-surface {
+      padding: 24px;
+    }
+  }
+
+  /* Compact density (<= 760px tall) */
+  @media (max-height: 760px) {
+    .dashboard-bento-grid {
+      gap: 10px;
+    }
+    .greeting-title {
+      font-size: 32px;
+    }
+    .greeting-subtitle {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border-width: 0;
+    }
+    .count-strip-value {
+      font-size: 28px;
+    }
+    .appt-date-numeral {
+      font-size: 44px;
+    }
+    .bento-appointment,
+    .bento-saved,
+    .bento-tile-test-drive .tile-surface,
+    .bento-tile-service .tile-surface {
+      padding: 16px;
+    }
+  }
+
+  /* Ultra-compact density (<= 700px tall) */
+  @media (max-height: 700px) {
+    .dashboard-bento-grid {
+      gap: 8px;
+    }
+    .tile-subtitle {
+      display: none !important;
+    }
+    .saved-thumb {
+      width: 52px;
+      height: 40px;
+    }
+    .enquiry-message {
+      -webkit-line-clamp: 2 !important;
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+  }
+}
+
+/* ==========================================================================
+   TABLET & PHONE FALLBACK (< 1100px wide OR < 620px tall)
+   ========================================================================== */
+@media not all and (min-width: 1100px) and (min-height: 620px) {
+  .dashboard-desktop-shell {
+    height: auto;
+    overflow: visible;
+    padding-top: calc(var(--header-bottom) + 16px);
+    padding-bottom: 32px;
+  }
+
+  .dashboard-stage-container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .dashboard-overview-stage {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .dashboard-bento-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .greeting-title {
+    font-size: 28px;
+    line-height: 1.2;
+  }
+
+  .count-strip-value {
+    font-size: 24px;
+  }
+
+  .appt-date-numeral {
+    font-size: 44px;
+  }
+
+  .saved-thumb {
+    width: 64px;
+    height: 48px;
+  }
+
+  /* Order on tablet & phone:
+     1. Appointment
+     2. Two tiles side by side
+     3. Saved vehicles
+     4. Recent enquiries
+  */
+  .bento-appointment {
+    order: 1;
+    width: 100%;
+  }
+
+  .bento-tiles-wrapper {
+    order: 2;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .bento-saved {
+    order: 3;
+    width: 100%;
+  }
+
+  .bento-enquiries {
+    order: 4;
+    width: 100%;
+  }
+
+  /* Tablet 768px - 1023px: saved and enquiries side by side if width allows */
+  @media (min-width: 768px) and (max-width: 1023px) {
+    .tablet-side-by-side {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      order: 3;
+    }
+    .bento-saved {
+      order: unset;
+    }
+    .bento-enquiries {
+      order: unset;
+    }
+  }
+}
+

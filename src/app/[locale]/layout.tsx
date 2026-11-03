@@ -11,6 +11,7 @@ import { SiteFooter } from "@/components/layout/SiteFooter";
 import { ChatWidget } from "@/components/chat/ChatWidget";
 import { SheenBackground } from "@/components/layout/SheenBackground";
 import { SmoothScrollProvider } from "@/components/motion/SmoothScrollProvider";
+import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Toaster } from "sonner";
 import { constructMetadata } from "@/lib/seo";
 import "@/app/globals.css";
@@ -78,16 +79,18 @@ export default async function RootLocaleLayout({
         />
         <SheenBackground />
         <NextIntlClientProvider locale={locale} messages={messages}>
-          <AuthProvider>
-            <SmoothScrollProvider>
-              <SiteHeader />
-              <main className="flex-1">{children}</main>
-              <SiteFooter />
-              <ChatWidget />
-              <SignInSheet />
-              <Toaster position="top-right" richColors closeButton />
-            </SmoothScrollProvider>
-          </AuthProvider>
+          <NuqsAdapter>
+            <AuthProvider>
+              <SmoothScrollProvider>
+                <SiteHeader />
+                <main className="flex-1">{children}</main>
+                <SiteFooter />
+                <ChatWidget />
+                <SignInSheet />
+                <Toaster position="top-right" richColors closeButton />
+              </SmoothScrollProvider>
+            </AuthProvider>
+          </NuqsAdapter>
         </NextIntlClientProvider>
       </body>
     </html>

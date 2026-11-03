@@ -262,6 +262,7 @@ Migration Status: **100% Complete**.
 | `src/components/used/UsedFilters.tsx:110` | `<Select` | button | primary, md | primary | Complete (Button) |
 | `src/components/used/UsedFilters.tsx:114` | `<SelectTrigger className="h-9 text-xs">` | dropdown trigger | select trigger, border | select-trigger | Complete (Origin-Aware) |
 | `src/components/used/UsedFilters.tsx:117` | `<SelectContent>` | dropdown content | floating select menu | origin-aware select | Complete (Origin-Aware) |
+| `src/components/used/UsedFilters.tsx:135` | `<Button` | button | primary, pill, md | primary | Complete (Button) |
 
 ---
 
@@ -287,4 +288,3 @@ Migration Status: **100% Complete**.
 4. **Rest-State Zero Opacity:** Updated `src/styles/buttons.css` so secondary and outline `::before` pseudo-layers have `opacity: 0;` at rest, transitioning to `opacity: 0.06; transform: scaleX(1);` only during hover on fine-pointer devices.
 5. **Outer Button Insulation:** Enforced `padding: 0 !important; border: none !important;` on `.btn` to prevent external padding/border utilities from offsetting the inner `.btn__surface`.
 
-| `src/components/used/UsedFilters.tsx:135` | `<Button` | button | primary, pill, md | primary | Complete (Button) |
