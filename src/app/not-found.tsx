@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 export default function RootNotFound() {
@@ -12,7 +13,7 @@ export default function RootNotFound() {
           </p>
           <div className="pt-2">
             <Button asChild variant="primary" shape="pill" size="sm">
-              <a href="/">Return to Showroom</a>
+              <Link href="/">Return to Showroom</Link>
             </Button>
           </div>
         </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { Booking } from "@/types/domain";
 import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
@@ -10,6 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { BookingDetailsDialog } from "./BookingDetailsDialog";
 import { useLocale, useTranslations } from "next-intl";
 import { bookingRef } from "@/lib/booking-ref";
 import { formatAppointmentDate } from "@/lib/date";
@@ -31,9 +32,15 @@ interface AppointmentSubCardProps {
   booking: Booking;
   locale: string;
   t: any;
+  onViewBooking: (b: Booking) => void;
 }
 
-function AppointmentSubCard({ booking, locale, t }: AppointmentSubCardProps) {
+function AppointmentSubCard({
+  booking,
+  locale,
+  t,
+  onViewBooking,
+}: AppointmentSubCardProps) {
   const dateDetails = formatAppointmentDate(booking.starts_at, locale);
   const isTestDrive = booking.kind === "test_drive";
   const title = isTestDrive
@@ -99,15 +106,15 @@ function AppointmentSubCard({ booking, locale, t }: AppointmentSubCardProps) {
         )}
       </div>
 
-      {/* 4. Action Buttons */}
+      {/* 4. Action Buttons: "View Booking" opens detailed card; "Cancel" remains */}
       <div className="appt-actions-line pt-2 flex gap-2 shrink-0">
         <Button
           variant="secondary"
           size="sm"
           className="flex-1 text-xs h-8"
-          onClick={notWired("Reschedule Booking", 4)}
+          onClick={() => onViewBooking(booking)}
         >
-          {t("reschedule")}
+          {t("viewBooking")}
         </Button>
         <Button
           variant="outline"
@@ -134,6 +141,9 @@ export function NextAppointmentCard({
   const locale = useLocale();
   const t = useTranslations("dashboard");
 
+  // State to track which booking is currently opened in the detailed view dialog
+  const [detailedBooking, setDetailedBooking] = useState<Booking | null>(null);
+
   // Determine top 2 confirmed upcoming bookings sorted soonest first
   const now = new Date().getTime();
   const candidateList = bookings || (booking ? [booking] : []);
@@ -144,88 +154,112 @@ export function NextAppointmentCard({
   const displayList = upcomingBookings || confirmedUpcoming.slice(0, 2);
 
   return (
-    <article
-      data-bento-origin="appointment"
-      style={style}
-      className={cn(
-        "bento-block bento-appointment rounded-[16px] border border-border bg-white p-4 sm:p-5 flex flex-col justify-between shadow-sm transition-colors hover:border-black/20 overflow-hidden",
-        className
-      )}
-    >
-      {/* Row 1: Header */}
-      <div className="appt-card-header flex items-center justify-between shrink-0 pb-2 border-b border-border">
-        <span className="text-[12px] font-bold uppercase tracking-[0.08em] text-ink-mute">
-          {t("upcomingAppointments")}
-        </span>
-        <Button
-          variant="link"
-          size="sm"
-          onClick={(e) => onViewAll(e.currentTarget)}
-          className="h-auto p-0 text-xs font-semibold text-accent-ink hover:underline"
-        >
-          {t("viewAllCount", { count: totalBookingsCount })}
-        </Button>
-      </div>
-
-      {/* Row 2 & 3: Sub-card slots */}
-      {displayList.length === 0 ? (
-        <div className="appt-empty-both flex-1 flex flex-col items-center justify-center text-center p-4 border border-dashed border-border rounded-xl space-y-2 min-h-0">
-          <div className="h-10 w-10 rounded-full bg-stone-100 flex items-center justify-center text-ink-mute">
-            <Calendar className="h-5 w-5" />
-          </div>
-          <div className="space-y-0.5">
-            <p className="text-sm font-semibold text-ink">{t("noUpcomingBookings")}</p>
-            <p className="text-xs text-ink-soft">{t("noUpcomingHint")}</p>
-          </div>
-        </div>
-      ) : displayList.length === 1 ? (
-        <>
-          <AppointmentSubCard booking={displayList[0]} locale={locale} t={t} />
-          <div className="appt-empty-second flex-1 flex items-center justify-center text-center p-3 border border-dashed border-border rounded-xl min-h-0">
-            <span className="text-xs text-ink-mute font-medium">{t("noOtherUpcoming")}</span>
-          </div>
-        </>
-      ) : (
-        <>
-          <AppointmentSubCard booking={displayList[0]} locale={locale} t={t} />
-          <AppointmentSubCard booking={displayList[1]} locale={locale} t={t} />
-        </>
-      )}
-
-      {/* Row 4: Add New Booking Button with Upward Dropdown */}
-      <div className="appt-card-footer shrink-0 pt-1">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="secondary"
-              size="md"
-              className="w-full h-11 text-xs font-semibold gap-2 border border-border shadow-sm hover:border-black/20"
-            >
-              <Plus className="h-4 w-4 text-ink-soft" />
-              <span>{t("addNewBooking")}</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            side="top"
-            align="center"
-            sideOffset={8}
-            className="w-56 p-1.5 shadow-xl origin-dropdown"
+    <>
+      <article
+        data-bento-origin="appointment"
+        style={style}
+        className={cn(
+          "bento-block bento-appointment rounded-[16px] border border-border bg-white p-4 sm:p-5 flex flex-col justify-between shadow-sm transition-colors hover:border-black/20 overflow-hidden",
+          className
+        )}
+      >
+        {/* Row 1: Header */}
+        <div className="appt-card-header flex items-center justify-between shrink-0 pb-2 border-b border-border">
+          <span className="text-[12px] font-bold uppercase tracking-[0.08em] text-ink-mute">
+            {t("upcomingAppointments")}
+          </span>
+          <Button
+            variant="link"
+            size="sm"
+            onClick={(e) => onViewAll(e.currentTarget)}
+            className="h-auto p-0 text-xs font-semibold text-accent-ink hover:underline"
           >
-            <DropdownMenuItem asChild className="h-11 px-3 cursor-pointer rounded-lg flex items-center gap-2.5 text-xs font-semibold hover:bg-ink/5">
-              <Link href="/book/test-drive" className="flex items-center gap-2.5 w-full">
-                <Car className="h-4 w-4 text-accent" />
-                <span>{t("testDrive")}</span>
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild className="h-11 px-3 cursor-pointer rounded-lg flex items-center gap-2.5 text-xs font-semibold hover:bg-ink/5">
-              <Link href="/book/service" className="flex items-center gap-2.5 w-full">
-                <Wrench className="h-4 w-4 text-accent" />
-                <span>{t("service")}</span>
-              </Link>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-    </article>
+            {t("viewAllCount", { count: totalBookingsCount })}
+          </Button>
+        </div>
+
+        {/* Row 2 & 3: Sub-card slots */}
+        {displayList.length === 0 ? (
+          <div className="appt-empty-both flex-1 flex flex-col items-center justify-center text-center p-4 border border-dashed border-border rounded-xl space-y-2 min-h-0">
+            <div className="h-10 w-10 rounded-full bg-stone-100 flex items-center justify-center text-ink-mute">
+              <Calendar className="h-5 w-5" />
+            </div>
+            <div className="space-y-0.5">
+              <p className="text-sm font-semibold text-ink">{t("noUpcomingBookings")}</p>
+              <p className="text-xs text-ink-soft">{t("noUpcomingHint")}</p>
+            </div>
+          </div>
+        ) : displayList.length === 1 ? (
+          <>
+            <AppointmentSubCard
+              booking={displayList[0]}
+              locale={locale}
+              t={t}
+              onViewBooking={setDetailedBooking}
+            />
+            <div className="appt-empty-second flex-1 flex items-center justify-center text-center p-3 border border-dashed border-border rounded-xl min-h-0">
+              <span className="text-xs text-ink-mute font-medium">{t("noOtherUpcoming")}</span>
+            </div>
+          </>
+        ) : (
+          <>
+            <AppointmentSubCard
+              booking={displayList[0]}
+              locale={locale}
+              t={t}
+              onViewBooking={setDetailedBooking}
+            />
+            <AppointmentSubCard
+              booking={displayList[1]}
+              locale={locale}
+              t={t}
+              onViewBooking={setDetailedBooking}
+            />
+          </>
+        )}
+
+        {/* Row 4: Add New Booking Button with Upward Dropdown */}
+        <div className="appt-card-footer shrink-0 pt-1">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="secondary"
+                size="md"
+                className="w-full h-11 text-xs font-semibold gap-2 border border-border shadow-sm hover:border-black/20"
+              >
+                <Plus className="h-4 w-4 text-ink-soft" />
+                <span>{t("addNewBooking")}</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              side="top"
+              align="center"
+              sideOffset={8}
+              className="w-56 p-1.5 shadow-xl origin-dropdown"
+            >
+              <DropdownMenuItem asChild className="h-11 px-3 cursor-pointer rounded-lg flex items-center gap-2.5 text-xs font-semibold hover:bg-ink/5">
+                <Link href="/book/test-drive" className="flex items-center gap-2.5 w-full">
+                  <Car className="h-4 w-4 text-accent" />
+                  <span>{t("testDrive")}</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild className="h-11 px-3 cursor-pointer rounded-lg flex items-center gap-2.5 text-xs font-semibold hover:bg-ink/5">
+                <Link href="/book/service" className="flex items-center gap-2.5 w-full">
+                  <Wrench className="h-4 w-4 text-accent" />
+                  <span>{t("service")}</span>
+                </Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </article>
+
+      {/* Modal Dialog with complete booking dossier details */}
+      <BookingDetailsDialog
+        booking={detailedBooking}
+        open={!!detailedBooking}
+        onOpenChange={(open) => !open && setDetailedBooking(null)}
+      />
+    </>
   );
 }
