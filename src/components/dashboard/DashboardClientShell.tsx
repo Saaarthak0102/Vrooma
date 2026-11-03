@@ -11,7 +11,6 @@ import { NextAppointmentCard } from "./NextAppointmentCard";
 import { SavedVehiclesCard } from "./SavedVehiclesCard";
 import { DashboardActionTile } from "./DashboardActionTile";
 import { RecentEnquiriesPanel } from "./RecentEnquiriesPanel";
-import { DashboardFootnote } from "./DashboardFootnote";
 import { DashboardViewAllPanel } from "./DashboardViewAllPanel";
 import { DashboardMobileSheet } from "./DashboardMobileSheet";
 import { useTranslations } from "next-intl";
@@ -112,7 +111,7 @@ export function DashboardClientShell({
       data-dashboard-desktop-shell="true"
       className="dashboard-desktop-shell min-h-full w-full"
     >
-      <Container className="h-full flex flex-col justify-between max-w-[1440px] px-4 sm:px-6 lg:px-8">
+      <Container className="h-full flex flex-col justify-between">
         {/* Top Greeting: always visible outside the stage */}
         <DashboardGreeting />
 
@@ -122,7 +121,7 @@ export function DashboardClientShell({
           <div ref={overviewRef} className="dashboard-overview-stage">
             {/* 4.2 Count Strip */}
             <DashboardCountStrip
-              bookingsCount={bookings.length}
+              bookingsCount={sortedUpcoming.length}
               savedCount={savedVehicles.length}
               enquiriesCount={enquiries.length}
               activeView={isOpen ? view : null}
@@ -131,9 +130,10 @@ export function DashboardClientShell({
 
             {/* Bento Grid */}
             <div className="dashboard-bento-grid mt-2">
-              {/* 4.3 Next Appointment (Cols 1-5, Rows 1-4 on Desktop) */}
+              {/* 4.3 Upcoming Appointments (Cols 1-5, Rows 1-4 on Desktop) */}
               <NextAppointmentCard
-                booking={nextBooking}
+                bookings={bookings}
+                upcomingBookings={sortedUpcoming.slice(0, 2)}
                 totalBookingsCount={bookings.length}
                 onViewAll={(el) => handleOpenView("bookings", el)}
                 style={{ "--i": 1 } as React.CSSProperties}
@@ -203,9 +203,6 @@ export function DashboardClientShell({
             />
           )}
         </div>
-
-        {/* Desktop Footnote: Replaces global footer in desktop viewport */}
-        <DashboardFootnote />
 
         {/* Mobile/Tablet Full-Height Bottom Sheet (Active when not desktop) */}
         {!isDesktop && (

@@ -60,13 +60,13 @@
 
 .btn {
   position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   border: none !important;
   background: transparent;
   padding: 0 !important;
-  margin: 0;
+  margin: 0 !important;
   text-decoration: none;
   cursor: pointer;
   user-select: none;
@@ -75,9 +75,9 @@
   -webkit-tap-highlight-color: transparent;
   font-family: inherit;
   font-weight: 600;
-  line-height: 1;
+  line-height: 1 !important;
   box-sizing: border-box;
-  vertical-align: middle;
+  vertical-align: middle !important;
   outline: none;
   white-space: nowrap;
 }
@@ -167,15 +167,18 @@
 
 .btn__surface {
   position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   width: 100%;
   height: 100%;
   border-radius: inherit;
   overflow: hidden;
   box-sizing: border-box;
   isolation: isolate;
+  line-height: 1 !important;
+  margin: 0 !important;
+  vertical-align: middle !important;
   transform: scale(1);
   transition: transform var(--btn-spring-dur) var(--btn-ease-spring),
               background-color var(--btn-hover-dur) ease,
@@ -215,16 +218,18 @@
    ========================================================================== */
 
 .btn__content {
-  display: inline-grid;
+  display: inline-grid !important;
   grid-template-columns: 1fr;
   grid-template-rows: 1fr;
-  align-items: center;
-  justify-items: center;
+  align-items: center !important;
+  justify-items: center !important;
   width: 100%;
   height: 100%;
   position: relative;
   z-index: 2;
   white-space: nowrap;
+  line-height: 1 !important;
+  margin: 0 !important;
 }
 
 .btn__label,
@@ -232,26 +237,37 @@
 .btn__success {
   grid-column: 1 / -1;
   grid-row: 1 / -1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   gap: 8px;
   width: 100%;
   height: 100%;
   transition: opacity 200ms ease, transform 200ms ease;
   white-space: nowrap;
+  line-height: 1 !important;
+  margin: 0 !important;
+}
+
+.btn__label > * {
+  line-height: 1 !important;
+  vertical-align: middle !important;
+  margin: 0;
 }
 
 .btn__label > span {
-  display: inline-flex;
-  align-items: center;
+  display: inline-flex !important;
+  align-items: center !important;
   gap: 8px;
   white-space: nowrap;
+  line-height: 1 !important;
+  vertical-align: middle !important;
 }
 
 .btn__label svg,
 .btn__label img {
   flex-shrink: 0;
+  vertical-align: middle !important;
 }
 
 /* Idle State */

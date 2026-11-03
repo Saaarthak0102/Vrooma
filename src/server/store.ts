@@ -50,6 +50,23 @@ class MemoryStore {
       consultant_name: "Rohit Verma",
       created_at: new Date().toISOString(),
     },
+    {
+      id: "book-sample-2",
+      user_id: "usr-buyer-1",
+      slot_id: "slot-srv-transport-nagar-1",
+      kind: "service",
+      status: "confirmed",
+      vehicle_info: {
+        model_name: "Brand X Service",
+        variant_name: "Periodic Maintenance (30k km)",
+      },
+      showroom_or_workshop_name: "Transport Nagar Workshop",
+      starts_at: new Date(new Date(Date.now() + 172800000).setHours(11, 30, 0, 0)).toISOString(),
+      ends_at: new Date(new Date(Date.now() + 172800000).setHours(13, 0, 0, 0)).toISOString(),
+      notes: "Routine synthetic oil service and brake inspection",
+      consultant_name: "Amit Sharma",
+      created_at: new Date().toISOString(),
+    },
   ];
   tradeInRequests: TradeInRequest[] = [];
   outbox: OutboxMessage[] = [];

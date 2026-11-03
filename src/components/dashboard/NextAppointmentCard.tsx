@@ -4,22 +4,127 @@ import React from "react";
 import { Booking } from "@/types/domain";
 import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useLocale, useTranslations } from "next-intl";
 import { bookingRef } from "@/lib/booking-ref";
 import { formatAppointmentDate } from "@/lib/date";
-import { MapPin, User, Calendar, Plus } from "lucide-react";
+import { MapPin, User, Calendar, Plus, Car, Wrench } from "lucide-react";
 import { notWired } from "@/components/dev/NotWired";
 import { cn } from "@/lib/utils";
 
 export interface NextAppointmentCardProps {
-  booking: Booking | null;
+  bookings?: Booking[];
+  upcomingBookings?: Booking[];
+  booking?: Booking | null;
   totalBookingsCount: number;
   onViewAll: (triggerElement: HTMLElement) => void;
   className?: string;
   style?: React.CSSProperties;
 }
 
+interface AppointmentSubCardProps {
+  booking: Booking;
+  locale: string;
+  t: any;
+}
+
+function AppointmentSubCard({ booking, locale, t }: AppointmentSubCardProps) {
+  const dateDetails = formatAppointmentDate(booking.starts_at, locale);
+  const isTestDrive = booking.kind === "test_drive";
+  const title = isTestDrive
+    ? `${booking.vehicle_info.model_name} ${booking.vehicle_info.variant_name || ""}`.trim()
+    : `${booking.vehicle_info.model_name} (${booking.vehicle_info.variant_name || "Service"})`;
+  const location = booking.showroom_or_workshop_name;
+  const advisor = booking.consultant_name;
+
+  return (
+    <div
+      style={{
+        backgroundColor: "color-mix(in srgb, var(--ink) 2%, white)",
+        containerType: "inline-size",
+      }}
+      className="appt-subcard rounded-xl border border-border p-3 sm:p-3.5 flex flex-col justify-between transition-colors hover:border-black/20 overflow-hidden"
+    >
+      {/* 1. Meta Line (Type chip, reference, status dot) */}
+      <div className="appt-meta-line flex items-center justify-between gap-2 shrink-0">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-accent-soft text-accent-ink border border-accent/20 truncate">
+            {isTestDrive ? t("testDrive") : t("service")}
+          </span>
+          <span className="text-[11px] font-mono font-medium text-ink-soft shrink-0">
+            {bookingRef(booking.id)}
+          </span>
+        </div>
+        <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-ink-soft shrink-0">
+          <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden="true" />
+          {t("confirmed")}
+        </span>
+      </div>
+
+      {/* 2. Main Line (Date numeral + Model title + relative time) */}
+      <div className="appt-main-line flex items-center gap-3 py-0.5 shrink-0 min-w-0">
+        <span className="appt-numeral font-black text-ink leading-none tabular-nums tracking-tighter shrink-0">
+          {dateDetails.dayNumeral}
+        </span>
+        <div
+          className="flex flex-col justify-center min-w-0 leading-tight"
+          title={`${title} · ${location}${advisor ? ` · ${advisor}` : ""}`}
+        >
+          <span className="appt-title font-bold text-ink truncate text-sm sm:text-base">
+            {title}
+          </span>
+          <span className="appt-subtitle text-xs text-ink-soft truncate mt-0.5">
+            {dateDetails.weekday}, {dateDetails.month} · {dateDetails.time} ·{" "}
+            <span className="font-semibold text-accent-ink">{dateDetails.relativeLabel}</span>
+          </span>
+        </div>
+      </div>
+
+      {/* 3. Location & Advisor Line */}
+      <div className="appt-location-line pt-1.5 border-t border-border flex items-center justify-between gap-2 text-xs text-ink-soft shrink-0">
+        <div className="flex items-center gap-1.5 min-w-0 truncate">
+          <MapPin className="h-3.5 w-3.5 text-accent-ink shrink-0" />
+          <span className="truncate">{location}</span>
+        </div>
+        {advisor && (
+          <div className="flex items-center gap-1.5 shrink-0">
+            <User className="h-3.5 w-3.5 text-accent-ink shrink-0" />
+            <span className="truncate">{advisor}</span>
+          </div>
+        )}
+      </div>
+
+      {/* 4. Action Buttons */}
+      <div className="appt-actions-line pt-2 flex gap-2 shrink-0">
+        <Button
+          variant="secondary"
+          size="sm"
+          className="flex-1 text-xs h-8"
+          onClick={notWired("Reschedule Booking", 4)}
+        >
+          {t("reschedule")}
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="flex-1 text-xs h-8 text-danger hover:bg-danger/10"
+          onClick={notWired("Cancel Booking", 4)}
+        >
+          {t("cancel")}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export function NextAppointmentCard({
+  bookings,
+  upcomingBookings,
   booking,
   totalBookingsCount,
   onViewAll,
@@ -29,8 +134,14 @@ export function NextAppointmentCard({
   const locale = useLocale();
   const t = useTranslations("dashboard");
 
-  const dateDetails = booking ? formatAppointmentDate(booking.starts_at, locale) : null;
-  const isTestDrive = booking?.kind === "test_drive";
+  // Determine top 2 confirmed upcoming bookings sorted soonest first
+  const now = new Date().getTime();
+  const candidateList = bookings || (booking ? [booking] : []);
+  const confirmedUpcoming = candidateList
+    .filter((b) => b.status === "confirmed" && new Date(b.starts_at).getTime() >= now)
+    .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());
+
+  const displayList = upcomingBookings || confirmedUpcoming.slice(0, 2);
 
   return (
     <article
@@ -41,10 +152,10 @@ export function NextAppointmentCard({
         className
       )}
     >
-      {/* Header Row */}
-      <div className="flex items-center justify-between shrink-0 pb-2 border-b border-border">
+      {/* Row 1: Header */}
+      <div className="appt-card-header flex items-center justify-between shrink-0 pb-2 border-b border-border">
         <span className="text-[12px] font-bold uppercase tracking-[0.08em] text-ink-mute">
-          {t("nextAppointment")}
+          {t("upcomingAppointments")}
         </span>
         <Button
           variant="link"
@@ -56,91 +167,65 @@ export function NextAppointmentCard({
         </Button>
       </div>
 
-      {!booking ? (
-        <div className="flex-1 flex flex-col items-center justify-center text-center py-6 space-y-3">
+      {/* Row 2 & 3: Sub-card slots */}
+      {displayList.length === 0 ? (
+        <div className="appt-empty-both flex-1 flex flex-col items-center justify-center text-center p-4 border border-dashed border-border rounded-xl space-y-2 min-h-0">
           <div className="h-10 w-10 rounded-full bg-stone-100 flex items-center justify-center text-ink-mute">
             <Calendar className="h-5 w-5" />
           </div>
-          <p className="text-sm font-medium text-ink-soft">{t("noUpcoming")}</p>
-          <Button asChild variant="primary" size="sm" className="text-xs">
-            <Link href="/book/test-drive">
-              <Plus className="h-3.5 w-3.5 mr-1" />
-              <span>{t("bookTestDriveBtn")}</span>
-            </Link>
-          </Button>
+          <div className="space-y-0.5">
+            <p className="text-sm font-semibold text-ink">{t("noUpcomingBookings")}</p>
+            <p className="text-xs text-ink-soft">{t("noUpcomingHint")}</p>
+          </div>
         </div>
+      ) : displayList.length === 1 ? (
+        <>
+          <AppointmentSubCard booking={displayList[0]} locale={locale} t={t} />
+          <div className="appt-empty-second flex-1 flex items-center justify-center text-center p-3 border border-dashed border-border rounded-xl min-h-0">
+            <span className="text-xs text-ink-mute font-medium">{t("noOtherUpcoming")}</span>
+          </div>
+        </>
       ) : (
-        <div className="flex-1 flex flex-col justify-between py-2 space-y-2.5">
-          {/* Chip, Reference & Status row */}
-          <div className="flex items-center justify-between gap-2 shrink-0">
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-accent-soft text-accent-ink border border-accent/20 truncate">
-                {isTestDrive ? t("testDrive") : t("service")}
-              </span>
-              <span className="text-xs font-mono font-medium text-ink-soft shrink-0">
-                {bookingRef(booking.id)}
-              </span>
-            </div>
-            <span className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-ink-soft shrink-0">
-              <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden="true" />
-              {booking.status}
-            </span>
-          </div>
+        <>
+          <AppointmentSubCard booking={displayList[0]} locale={locale} t={t} />
+          <AppointmentSubCard booking={displayList[1]} locale={locale} t={t} />
+        </>
+      )}
 
-          {/* Big Date Block */}
-          <div className="flex items-center gap-3.5 py-1 shrink-0">
-            <span className="appt-date-numeral font-black text-ink leading-none tabular-nums tracking-tighter">
-              {dateDetails?.dayNumeral}
-            </span>
-            <div className="flex flex-col justify-center min-w-0 leading-tight">
-              <span className="text-sm sm:text-base font-bold text-ink truncate">
-                {dateDetails?.weekday}, {dateDetails?.month} · {dateDetails?.time}
-              </span>
-              {dateDetails?.relativeLabel && (
-                <span className="text-xs font-semibold text-accent-ink mt-0.5">
-                  {dateDetails.relativeLabel}
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* Showroom & Advisor details separated by hairlines */}
-          <div className="border-t border-border divide-y divide-border text-xs text-ink-soft shrink-0">
-            <div className="py-2 flex items-center gap-2">
-              <MapPin className="h-3.5 w-3.5 text-accent-ink shrink-0" />
-              <span className="truncate">{booking.showroom_or_workshop_name}</span>
-            </div>
-            {booking.consultant_name && (
-              <div className="py-2 flex items-center gap-2">
-                <User className="h-3.5 w-3.5 text-accent-ink shrink-0" />
-                <span className="truncate">
-                  {t("assigned")}: {booking.consultant_name}
-                </span>
-              </div>
-            )}
-          </div>
-
-          {/* Action buttons at bottom */}
-          <div className="pt-2 border-t border-border grid grid-cols-2 gap-2 shrink-0">
+      {/* Row 4: Add New Booking Button with Upward Dropdown */}
+      <div className="appt-card-footer shrink-0 pt-1">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
             <Button
               variant="secondary"
-              size="sm"
-              className="w-full text-xs"
-              onClick={notWired("Reschedule Booking", 4)}
+              size="md"
+              className="w-full h-11 text-xs font-semibold gap-2 border border-border shadow-sm hover:border-black/20"
             >
-              {t("reschedule")}
+              <Plus className="h-4 w-4 text-ink-soft" />
+              <span>{t("addNewBooking")}</span>
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full text-xs text-danger hover:bg-danger/10"
-              onClick={notWired("Cancel Booking", 4)}
-            >
-              {t("cancel")}
-            </Button>
-          </div>
-        </div>
-      )}
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            side="top"
+            align="center"
+            sideOffset={8}
+            className="w-56 p-1.5 shadow-xl origin-dropdown"
+          >
+            <DropdownMenuItem asChild className="h-11 px-3 cursor-pointer rounded-lg flex items-center gap-2.5 text-xs font-semibold hover:bg-ink/5">
+              <Link href="/book/test-drive" className="flex items-center gap-2.5 w-full">
+                <Car className="h-4 w-4 text-accent" />
+                <span>{t("testDrive")}</span>
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild className="h-11 px-3 cursor-pointer rounded-lg flex items-center gap-2.5 text-xs font-semibold hover:bg-ink/5">
+              <Link href="/book/service" className="flex items-center gap-2.5 w-full">
+                <Wrench className="h-4 w-4 text-accent" />
+                <span>{t("service")}</span>
+              </Link>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     </article>
   );
 }

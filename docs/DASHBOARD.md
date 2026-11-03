@@ -49,3 +49,16 @@ Grid: 12 cols × 4 rows | gap: 12px (14px when height >= 900px)
 - **Ultra-compact (`max-height: 700px`):** Tile sub-lines hidden, saved thumbnails 52px, enquiry messages clamped to 2 lines.
 - **Text floors:** Labels 12px, body 14px, never smaller.
 
+---
+
+## 5. FOLLOW-UP SPECIFICATION & CHANGE LOG
+
+| File | Change | Why |
+|---|---|---|
+| `src/styles/dashboard.css` | 1. Change `.dashboard-desktop-shell` `padding-top` from `calc(var(--header-bottom) + 16px)` to `16px` (20px on `min-height: 900px`).<br>2. Set height to `calc(100svh - var(--header-bottom))` with `overflow: hidden; padding-bottom: 16px;`.<br>3. Remove `.site-footer` display:none override. | Eliminates ~96px excess gap under the sticky header so greeting sits at `var(--header-bottom) + 16px`. Allows desktop dashboard to fit exactly 1 viewport while page scrolls to reveal the standard `SiteFooter`. |
+| `src/components/dashboard/DashboardClientShell.tsx` | 1. Change `<Container>` to default width without `max-w-[1440px]`.<br>2. Remove `DashboardFootnote` and render `SiteFooter` at the page root.<br>3. Pass 2 upcoming bookings to `NextAppointmentCard`. | Aligns dashboard horizontally with the exact container margins of inner pages (x 109–1791 at 1920px). Restores the full site footer with wordmark reveal across all breakpoints. |
+| `src/components/layout/SiteHeader.tsx` & `src/styles/buttons.css` | 1. Change `hidden sm:block` and `hidden lg:block` to `hidden sm:flex items-center` and `hidden lg:flex items-center` in `SiteHeader`.<br>2. Enforce `display: inline-flex; align-items: center; vertical-align: middle; margin: 0; line-height: 1;` on `.btn`, `.btn__surface`, and `.btn__label`. | Fixes UserMenu trigger sitting 16px lower at rest than adjacent language toggle and CTA buttons, ensuring consistent vertical centering across rest and hover states. |
+| `src/components/dashboard/NextAppointmentCard.tsx` | 1. Rename label to "Upcoming appointments" (`dashboard.upcomingAppointments`).<br>2. Structure grid as `auto 1fr 1fr auto` for header, two equal sub-cards, and "Add new booking" button.<br>3. Implement roomy, medium, and dense height tiers.<br>4. Embed Reschedule and Cancel buttons per sub-card.<br>5. Add bottom "Add new booking" button opening origin-aware dropdown (`side="top"`). | Satisfies N4 requirement to display up to two upcoming appointments with granular actions, empty states, and upward dropdown booking trigger. |
+| `src/server/store.ts` | Add second upcoming demo service booking (`starts_at` on round slot grid) for `usr-buyer-1`. | Provides realistic data so both appointment sub-cards render in the overview. |
+| `messages/en.json` & `messages/hi.json` | Add i18n keys for `upcomingAppointments`, `addNewBooking`, `noOtherUpcoming`, `noUpcomingBookings`, `noUpcomingHint`. | Full bilingual localization in authentic Hindi and English. |
+

@@ -11,8 +11,8 @@ export default function RootNotFound() {
             The vehicle listing or page you requested could not be found.
           </p>
           <div className="pt-2">
-            <Button href="/" variant="primary" shape="pill" size="sm">
-              Return to Showroom
+            <Button asChild variant="primary" shape="pill" size="sm">
+              <a href="/">Return to Showroom</a>
             </Button>
           </div>
         </div>

@@ -36,24 +36,26 @@
 }
 
 /* ==========================================================================
-   DESKTOP APP-SHELL (>= 1100px wide AND >= 620px tall): NO PAGE SCROLL
+   DESKTOP APP-SHELL (>= 1100px wide AND >= 620px tall): NO PAGE SCROLL IN DASHBOARD REGION
    ========================================================================== */
 @media (min-width: 1100px) and (min-height: 620px) {
-  /* Hide the global site footer on dashboard overview in desktop viewports */
-  body:has([data-dashboard-desktop-shell]) .site-footer {
-    display: none !important;
-  }
-
-  /* Dashboard overview root page container: fills viewport with no page scroll */
+  /* Dashboard overview root page container: fills exactly one viewport below sticky header */
   .dashboard-desktop-shell {
-    height: 100svh;
-    max-height: 100svh;
+    height: calc(100svh - var(--header-bottom));
+    min-height: calc(100svh - var(--header-bottom));
+    max-height: calc(100svh - var(--header-bottom));
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    padding-top: calc(var(--header-bottom) + 16px);
-    padding-bottom: 12px;
+    padding-top: 16px;
+    padding-bottom: 16px;
     box-sizing: border-box;
+  }
+
+  @media (min-height: 900px) {
+    .dashboard-desktop-shell {
+      padding-top: 20px;
+    }
   }
 
   /* Stage container covering count strip + bento */
@@ -92,6 +94,14 @@
   .bento-appointment {
     grid-column: 1 / 6;
     grid-row: 1 / 5;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) minmax(0, 1fr) auto;
+    gap: 12px;
+  }
+
+  .appt-subcard {
+    min-height: 0;
+    overflow: hidden;
   }
 
   .bento-saved {
@@ -122,9 +132,6 @@
   .count-strip-value {
     font-size: 32px;
   }
-  .appt-date-numeral {
-    font-size: 56px;
-  }
   .saved-thumb {
     width: 64px;
     height: 48px;
@@ -138,11 +145,44 @@
     .greeting-title {
       font-size: 44px;
     }
-    .bento-appointment,
+    .bento-appointment {
+      gap: 12px;
+      padding: 24px;
+    }
+    .appt-subcard {
+      padding: 14px;
+    }
+    .appt-numeral {
+      font-size: 40px;
+    }
+    .appt-title {
+      font-size: 16px;
+    }
     .bento-saved,
     .bento-tile-test-drive .tile-surface,
     .bento-tile-service .tile-surface {
       padding: 24px;
+    }
+  }
+
+  /* Medium tier (700px - 899px tall) */
+  @media (min-height: 700px) and (max-height: 899px) {
+    .bento-appointment {
+      gap: 10px;
+      padding: 18px;
+    }
+    .appt-subcard {
+      padding: 10px 12px;
+    }
+    .appt-numeral {
+      font-size: 32px;
+    }
+    .appt-title {
+      font-size: 14px;
+    }
+    .appt-location-line {
+      border-top: none;
+      padding-top: 2px;
     }
   }
 
@@ -168,10 +208,6 @@
     .count-strip-value {
       font-size: 28px;
     }
-    .appt-date-numeral {
-      font-size: 44px;
-    }
-    .bento-appointment,
     .bento-saved,
     .bento-tile-test-drive .tile-surface,
     .bento-tile-service .tile-surface {
@@ -179,10 +215,44 @@
     }
   }
 
-  /* Ultra-compact density (<= 700px tall) */
-  @media (max-height: 700px) {
+  /* Dense / Ultra-compact tier (< 700px tall) */
+  @media (max-height: 699px) {
     .dashboard-bento-grid {
       gap: 8px;
+    }
+    .bento-appointment {
+      gap: 8px;
+      padding: 12px;
+    }
+    .appt-subcard {
+      flex-direction: row !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      padding: 8px 12px !important;
+      gap: 10px;
+    }
+    .appt-meta-line,
+    .appt-location-line {
+      display: none !important;
+    }
+    .appt-main-line {
+      flex: 1;
+      min-width: 0;
+    }
+    .appt-numeral {
+      font-size: 28px;
+    }
+    .appt-title {
+      font-size: 13px;
+    }
+    .appt-actions-line {
+      padding-top: 0 !important;
+      flex-shrink: 0;
+      gap: 6px;
+    }
+    .appt-actions-line .btn {
+      height: 32px !important;
+      padding: 0 10px !important;
     }
     .tile-subtitle {
       display: none !important;
@@ -200,15 +270,44 @@
   }
 }
 
+/* Sub-card actions container query: stack full width below 300px sub-card width */
+@container (max-width: 300px) {
+  .appt-actions-line {
+    flex-direction: column !important;
+  }
+  .appt-actions-line .btn {
+    width: 100% !important;
+  }
+}
+
 /* ==========================================================================
    TABLET & PHONE FALLBACK (< 1100px wide OR < 620px tall)
    ========================================================================== */
 @media not all and (min-width: 1100px) and (min-height: 620px) {
   .dashboard-desktop-shell {
     height: auto;
+    min-height: auto;
     overflow: visible;
-    padding-top: calc(var(--header-bottom) + 16px);
+    padding-top: 16px;
     padding-bottom: 32px;
+  }
+
+  .bento-appointment {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 16px;
+  }
+
+  .appt-subcard {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 14px;
+  }
+
+  .appt-numeral {
+    font-size: 36px;
   }
 
   .dashboard-stage-container {

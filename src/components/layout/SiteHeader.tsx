@@ -109,30 +109,34 @@ export function SiteHeader() {
 
             {/* Right: Locale toggle, UserMenu, Dark Pill CTA */}
             <div className="flex items-center gap-2.5">
-              <div className="hidden sm:block">
+              <div className="hidden sm:flex items-center">
                 <LocaleSwitcher />
               </div>
 
-              <UserMenu />
+              <div className="flex items-center">
+                <UserMenu />
+              </div>
 
-              <div className="hidden lg:block">
+              <div className="hidden lg:flex items-center">
                 <PillButton asChild variant="primary" showArrow className="h-10 text-xs px-4">
                   <Link href="/book/test-drive">{tCommon("bookTestDrive")}</Link>
                 </PillButton>
               </div>
 
               {/* Mobile Menu Button */}
-              <Button
-                variant="secondary"
-                size="icon"
-                shape="pill"
-                onClick={() => setMobileMenuOpen(true)}
-                className="md:hidden h-10 w-10 bg-white/80 border border-border shadow-sm text-ink"
-                aria-label="Open navigation menu"
-                aria-expanded={mobileMenuOpen}
-              >
-                <Menu className="h-5 w-5" />
-              </Button>
+              <div className="flex items-center md:hidden">
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  shape="pill"
+                  onClick={() => setMobileMenuOpen(true)}
+                  className="h-10 w-10 bg-white/80 border border-border shadow-sm text-ink"
+                  aria-label="Open navigation menu"
+                  aria-expanded={mobileMenuOpen}
+                >
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </div>
             </div>
           </div>
         </Container>

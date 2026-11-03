@@ -56,15 +56,15 @@ export function UserMenu() {
           variant="ghost"
           size="sm"
           shape="pill"
-          className="h-10 px-2 py-1 gap-2 font-semibold text-ink"
+          className="h-10 px-2.5 font-semibold text-ink inline-flex items-center justify-center m-0 align-middle"
         >
-          <Avatar className="h-7 w-7">
-            <AvatarFallback className="text-xs">{initials}</AvatarFallback>
+          <Avatar className="h-7 w-7 shrink-0 my-auto">
+            <AvatarFallback className="text-xs font-semibold">{initials}</AvatarFallback>
           </Avatar>
-          <span className="text-xs max-w-[100px] truncate hidden sm:inline text-ink">
+          <span className="text-xs max-w-[100px] truncate hidden sm:inline leading-none my-auto text-ink">
             {user.full_name.split(" ")[0]}
           </span>
-          <ChevronDown className="h-3.5 w-3.5 text-ink-mute ml-1" />
+          <ChevronDown className="h-3.5 w-3.5 text-ink-mute shrink-0 my-auto" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
