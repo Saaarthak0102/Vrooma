@@ -1,99 +1,148 @@
 import React from "react";
-import Image from "next/image";
 import { Link } from "@/i18n/navigation";
 import { Model } from "@/types/domain";
 import { formatINR, formatLakh } from "@/lib/money";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { newCarTag, hasAccentDot } from "@/lib/listing-tags";
+import { NotchCard } from "@/components/listing/NotchCard";
+import { NotchMedia } from "@/components/listing/NotchMedia";
+import { NotchTag } from "@/components/listing/NotchTag";
 import { Fuel, Gauge, ArrowRight } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 export interface CarCardProps {
   model: Model;
   citySlug?: string;
   className?: string;
+  hasActiveOffer?: boolean;
+  priority?: boolean;
 }
 
-export function CarCard({ model, citySlug = "lucknow", className }: CarCardProps) {
+export function CarCard({
+  model,
+  citySlug = "lucknow",
+  className = "",
+  hasActiveOffer = false,
+  priority = false,
+}: CarCardProps) {
+  const t = useTranslations("listing");
+
   const minPrice = model.min_price ?? 1095000;
-  // Estimate on-road from based on 10% RTO + insurance + handling (~17% over ex-showroom)
+  // Estimate on-road based on 10% RTO + insurance + handling (~17% over ex-showroom)
   const estimatedOnRoad = Math.round(minPrice * 1.17);
 
-  const mainFuel = model.variants?.[0]?.fuel || "petrol";
-  const mainTrans = model.variants?.[0]?.transmission || "automatic";
+  const mainVariant = model.variants?.[0];
+  const mainFuel = mainVariant?.fuel || "petrol";
+  const mainTrans = mainVariant?.transmission || "automatic";
+
+  // Resolve Tag
+  const tagResult = newCarTag({
+    isFeatured: model.is_featured,
+    hasActiveOffer,
+    createdAt: model.created_at,
+    bodyType: model.body_type,
+  });
+
+  const tagKey = typeof tagResult === "string" ? tagResult : tagResult.bodyType;
+  const tagLabel = t(`tag.${tagKey}` as any);
+  const showDot = hasAccentDot(tagResult);
+
+  // Rupee symbol 80% size and lighter per design spec
+  const formattedPriceNumber = formatINR(minPrice).replace("₹", "").trim();
 
   return (
-    <div
-      className={`group rounded-lg border border-border bg-white p-5 shadow-card hover:shadow-md transition-all duration-200 flex flex-col justify-between ${className}`}
-    >
-      <div>
-        {/* Top Badges */}
-        <div className="flex items-center justify-between mb-3">
-          <Badge variant="secondary" className="uppercase text-[10px] tracking-wider">
-            {model.body_type}
-          </Badge>
-          <span className="text-xs text-ink-mute font-medium">Lucknow Stock</span>
-        </div>
-
-        {/* Car Image with subtle hover elevation */}
-        <div className="relative aspect-[16/9] w-full overflow-hidden rounded-md bg-ink/[0.03] mb-4">
-          <Image
-            src={model.hero_image}
-            alt={model.name}
-            fill
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-            className="object-contain p-2 transition-transform duration-300 group-hover:scale-105"
-          />
-        </div>
-
-        {/* Vehicle Info */}
-        <h3 className="text-xl font-bold tracking-tight text-ink group-hover:text-accent-ink transition-colors">
-          {model.name}
-        </h3>
-        <p className="text-xs text-ink-soft line-clamp-1 mt-0.5 mb-3">{model.tagline}</p>
-
-        {/* Key Spec Chips */}
-        <div className="flex items-center gap-2 mb-4 flex-wrap">
-          <span className="inline-flex items-center gap-1 rounded-sm bg-ink/5 px-2 py-1 text-[11px] font-medium text-ink-soft capitalize">
-            <Fuel className="h-3 w-3 text-ink-mute" />
-            {mainFuel}
-          </span>
-          <span className="inline-flex items-center gap-1 rounded-sm bg-ink/5 px-2 py-1 text-[11px] font-medium text-ink-soft capitalize">
-            <Gauge className="h-3 w-3 text-ink-mute" />
-            {mainTrans}
-          </span>
-          {model.variants && (
-            <span className="rounded-sm bg-ink/5 px-2 py-1 text-[11px] font-medium text-ink-soft">
-              {model.variants.length} Variants
-            </span>
-          )}
-        </div>
+    <NotchCard className={`group ${className}`}>
+      {/* 1. Header row: Restyled quietly with 1px hairline border, mono 12px, 6px radius */}
+      <div className="flex items-center justify-between mb-3 text-xs">
+        <span className="font-mono text-xs px-2 py-0.5 border border-border rounded-[6px] text-ink-soft uppercase tracking-wider">
+          {model.body_type}
+        </span>
+        <span className="text-xs text-ink-mute font-medium inline-flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-accent inline-block" aria-hidden="true" />
+          <span>Lucknow Stock</span>
+        </span>
       </div>
 
-      {/* Pricing & CTA */}
+      {/* 2. Media: 16/10 aspect (4/3 on phones) with bottom-left cutout tab and bottom-right arrow notch */}
+      <NotchMedia
+        src={model.hero_image}
+        alt={`${model.name} ${mainVariant?.name || ""}`}
+        priority={priority}
+        tag={
+          <NotchTag
+            label={tagLabel}
+            hasAccentDot={showDot}
+          />
+        }
+      />
+
+      {/* 3. Vehicle Title & Variant */}
+      <div className="space-y-1 mb-2">
+        <h3 className="text-lg sm:text-xl font-semibold tracking-[-0.01em] text-ink line-clamp-2 text-balance leading-snug">
+          <Link href={`/cars/${model.slug}`} className="notch-card-title-link">
+            <span>{model.name}</span>
+            {mainVariant?.name && (
+              <span className="font-normal text-ink-soft ml-1.5">{mainVariant.name}</span>
+            )}
+          </Link>
+        </h3>
+        <p className="text-xs text-ink-soft line-clamp-1">{model.tagline}</p>
+      </div>
+
+      {/* 4. Key Spec Chips (elevated above stretched link) */}
+      <div className="notch-interactive flex items-center gap-2 mb-4 flex-wrap">
+        <span className="inline-flex items-center gap-1 rounded-md bg-ink/[0.04] px-2 py-1 text-[11px] font-medium text-ink-soft capitalize border border-border/50">
+          <Fuel className="h-3 w-3 text-ink-mute" />
+          {mainFuel}
+        </span>
+        <span className="inline-flex items-center gap-1 rounded-md bg-ink/[0.04] px-2 py-1 text-[11px] font-medium text-ink-soft capitalize border border-border/50">
+          <Gauge className="h-3 w-3 text-ink-mute" />
+          {mainTrans}
+        </span>
+        {model.variants && (
+          <span className="rounded-md bg-ink/[0.04] px-2 py-1 text-[11px] font-medium text-ink-soft border border-border/50">
+            {model.variants.length} Variants
+          </span>
+        )}
+      </div>
+
+      {/* 5. Pricing & Buttons pushed to bottom with margin-top: auto */}
       <div className="pt-3 border-t border-border mt-auto">
         <div className="mb-3">
-          <div className="flex items-baseline gap-1.5">
+          <div className="flex items-baseline gap-1.5 tabular-nums">
             <span className="text-xs text-ink-mute">Ex-showroom from</span>
-            <span className="text-lg font-extrabold text-ink">{formatINR(minPrice)}</span>
+            <span className="text-[22px] sm:text-2xl font-bold text-ink">
+              <span className="text-[0.8em] font-normal opacity-75 mr-0.5">₹</span>
+              {formattedPriceNumber}
+            </span>
           </div>
           <div className="text-[11px] text-accent-ink font-semibold">
             On-road from {formatLakh(estimatedOnRoad)} ({citySlug})
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
-          <Button asChild variant="secondary" size="sm" className="text-xs">
-            <Link href={`/cars/${model.slug}`}>View Variants</Link>
-          </Button>
-          <Button asChild variant="primary" size="sm" className="text-xs gap-1">
-            <Link href={`/book/test-drive?model=${model.slug}`}>
-              <span>Book Demo</span>
-              <ArrowRight className="h-3 w-3" />
-            </Link>
-          </Button>
+        {/* 6. Buttons with container queries */}
+        <div className="notch-card-actions">
+          <Link
+            href={`/cars/${model.slug}`}
+            className="notch-btn-secondary notch-interactive"
+          >
+            <span>View Variants</span>
+          </Link>
+
+          <Link
+            href={`/book/test-drive?model=${model.slug}`}
+            className="notch-btn-primary notch-interactive"
+          >
+            <span className="notch-btn-roll">
+              <span className="notch-btn-roll-text">Book Demo</span>
+              <span className="notch-btn-roll-text" aria-hidden="true">
+                Book Demo
+              </span>
+            </span>
+            <ArrowRight className="h-3.5 w-3.5 notch-btn-icon" />
+          </Link>
         </div>
       </div>
-    </div>
+    </NotchCard>
   );
 }
-

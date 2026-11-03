@@ -1,0 +1,471 @@
+/* Listing Card Cutout Tokens & Styles */
+:root {
+  --lc-surface: #FFFFFF;
+  --lc-radius: 16px;
+  --lc-media-inset: 8px;
+  --lc-media-radius: 12px;
+  --lc-notch-r: 14px;
+  --lc-tab-h: 36px;
+  --lc-arrow: 52px;
+  --lc-btn-radius: 12px;
+  --lc-ease: cubic-bezier(.22, 1, .36, 1);
+  --lc-dur: 450ms;
+  --lc-dur-btn: 300ms;
+}
+
+@media (max-width: 639px) {
+  :root {
+    --lc-tab-h: 34px;
+    --lc-arrow: 48px;
+    --lc-notch-r: 12px;
+  }
+}
+
+/* Card Root Container */
+.notch-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  background: var(--lc-surface);
+  border-radius: var(--lc-radius);
+  border: 1px solid var(--border);
+  padding: 16px;
+  container-type: inline-size;
+  container-name: notch-card;
+  transition: transform var(--lc-dur) var(--lc-ease), border-color var(--lc-dur) var(--lc-ease);
+  overflow: visible;
+  isolation: isolate;
+}
+
+@media (min-width: 640px) {
+  .notch-card {
+    padding: 20px;
+  }
+}
+
+/* Deep Lifted Shadow Pseudo-layer (Opacity animated, not box-shadow) */
+.notch-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 0 16px 36px -6px rgba(15, 23, 32, 0.12), 0 6px 16px -3px rgba(15, 23, 32, 0.06);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 0;
+  transition: opacity var(--lc-dur) var(--lc-ease);
+}
+
+/* 2px Accent Hairline on Bottom Edge (Origin Left, scaleX animated) */
+.notch-card::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: var(--accent);
+  border-bottom-left-radius: inherit;
+  border-bottom-right-radius: inherit;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--lc-dur) var(--lc-ease);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Hover effects for pointer fine */
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .notch-card:hover {
+    transform: translateY(-4px);
+    border-color: color-mix(in srgb, var(--accent) 28%, var(--border));
+  }
+  .notch-card:hover::before {
+    opacity: 1;
+  }
+  .notch-card:hover::after {
+    transform: scaleX(1);
+  }
+
+  /* Media Image Zoom */
+  .notch-card:hover .notch-media-img {
+    transform: scale(1.045);
+  }
+
+  /* Diagonal Light Sweep (one pass, 900ms, not looping) */
+  .notch-card:hover .notch-media-sweep {
+    transform: translateX(130%);
+    transition: transform 900ms ease;
+  }
+
+  /* Arrow Circle Turn Accent-ink */
+  .notch-card:not(.is-booked):hover .notch-arrow-circle {
+    background-color: var(--accent-ink);
+    color: #FFFFFF;
+  }
+
+  /* Arrow Icon Rotate -45deg -> 0deg (↗ -> →) */
+  .notch-card:hover .notch-arrow-icon {
+    transform: rotate(0deg);
+  }
+}
+
+/* Card Focus Ring via Title Link */
+.notch-card:has(.notch-card-title-link:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-color: color-mix(in srgb, var(--accent) 28%, var(--border));
+}
+
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .notch-card:has(.notch-card-title-link:focus-visible) {
+    transform: translateY(-4px);
+  }
+  .notch-card:has(.notch-card-title-link:focus-visible)::before {
+    opacity: 1;
+  }
+  .notch-card:has(.notch-card-title-link:focus-visible)::after {
+    transform: scaleX(1);
+  }
+}
+
+/* Stretched Link */
+.notch-card-title-link {
+  color: var(--ink);
+  text-decoration: none;
+}
+.notch-card-title-link::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  cursor: pointer;
+}
+
+/* Elevated interactive elements sitting above stretched link */
+.notch-interactive {
+  position: relative;
+  z-index: 2;
+}
+
+/* Media Container */
+.notch-media {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--lc-media-radius);
+  aspect-ratio: 16 / 10;
+  width: 100%;
+  background-color: #F4F4F5;
+  margin-bottom: 16px;
+  z-index: 0;
+}
+
+@media (max-width: 639px) {
+  .notch-media {
+    aspect-ratio: 4 / 3;
+  }
+}
+
+.notch-media-img {
+  object-fit: cover;
+  object-position: center bottom;
+  transition: transform 700ms var(--lc-ease);
+}
+
+/* Diagonal Light Sweep Layer */
+.notch-media-sweep {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.22) 50%,
+    transparent 70%
+  );
+  transform: translateX(-130%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Tag Notch Tab (Bottom-Left) */
+.notch-tag {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: var(--lc-tab-h);
+  background-color: var(--lc-surface);
+  border-top-right-radius: var(--lc-notch-r);
+  padding: 0 16px 0 0;
+  max-width: 62%;
+  display: flex;
+  align-items: center;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* Tag Concave Fillet 1 (Above Tab) */
+.notch-tag-filler-top {
+  position: absolute;
+  left: 0;
+  bottom: 100%;
+  width: var(--lc-notch-r);
+  height: var(--lc-notch-r);
+  pointer-events: none;
+  background: radial-gradient(
+    circle at 100% 0,
+    transparent var(--lc-notch-r),
+    var(--lc-surface) calc(var(--lc-notch-r) + 0.5px)
+  );
+}
+
+/* Tag Concave Fillet 2 (Right of Tab) */
+.notch-tag-filler-right {
+  position: absolute;
+  left: 100%;
+  bottom: 0;
+  width: var(--lc-notch-r);
+  height: var(--lc-notch-r);
+  pointer-events: none;
+  background: radial-gradient(
+    circle at 100% 0,
+    transparent var(--lc-notch-r),
+    var(--lc-surface) calc(var(--lc-notch-r) + 0.5px)
+  );
+}
+
+.notch-tag-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+}
+
+/* Arrow Notch (Bottom-Right) */
+.notch-arrow {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: var(--lc-arrow);
+  height: var(--lc-arrow);
+  background-color: var(--lc-surface);
+  border-top-left-radius: var(--lc-notch-r);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* Arrow Concave Fillet 1 (Above Arrow Notch) */
+.notch-arrow-filler-top {
+  position: absolute;
+  right: 0;
+  bottom: 100%;
+  width: var(--lc-notch-r);
+  height: var(--lc-notch-r);
+  pointer-events: none;
+  background: radial-gradient(
+    circle at 0 0,
+    transparent var(--lc-notch-r),
+    var(--lc-surface) calc(var(--lc-notch-r) + 0.5px)
+  );
+}
+
+/* Arrow Concave Fillet 2 (Left of Arrow Notch) */
+.notch-arrow-filler-left {
+  position: absolute;
+  right: 100%;
+  bottom: 0;
+  width: var(--lc-notch-r);
+  height: var(--lc-notch-r);
+  pointer-events: none;
+  background: radial-gradient(
+    circle at 0 0,
+    transparent var(--lc-notch-r),
+    var(--lc-surface) calc(var(--lc-notch-r) + 0.5px)
+  );
+}
+
+.notch-arrow-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 9999px;
+  background-color: var(--dark);
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color var(--lc-dur-btn) var(--lc-ease);
+}
+
+.notch-arrow-icon {
+  width: 18px;
+  height: 18px;
+  transform: rotate(-45deg);
+  transition: transform var(--lc-dur-btn) var(--lc-ease);
+}
+
+/* Booked State Overrides */
+.is-booked .notch-media-img {
+  filter: grayscale(0.55);
+}
+.is-booked .notch-arrow-circle {
+  background-color: #E2E8F0;
+  color: #94A3B8;
+}
+
+/* Touch Device Press Feedback */
+@media (hover: none) {
+  .notch-card:active .notch-arrow-circle {
+    background-color: var(--accent-ink);
+    color: #FFFFFF;
+  }
+}
+
+/* Container Queries for Responsive Action Buttons */
+@container notch-card (max-width: 339px) {
+  .notch-card-actions {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+  .notch-card-actions > * {
+    width: 100% !important;
+  }
+}
+
+@container notch-card (min-width: 340px) {
+  .notch-card-actions {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+}
+
+/* Button Primitives in Card */
+.notch-btn-primary,
+.notch-btn-secondary {
+  min-height: 44px;
+  border-radius: var(--lc-btn-radius);
+  font-size: 13px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 14px;
+  position: relative;
+  z-index: 2;
+  cursor: pointer;
+  text-decoration: none;
+  user-select: none;
+  transition: transform 150ms ease, border-color var(--lc-dur-btn) var(--lc-ease), box-shadow var(--lc-dur-btn) var(--lc-ease);
+}
+
+.notch-btn-primary:active,
+.notch-btn-secondary:active {
+  transform: scale(0.98);
+}
+
+/* Primary Button Text Roll */
+.notch-btn-primary {
+  background-color: var(--dark);
+  color: #FFFFFF;
+  border: 1px solid transparent;
+}
+
+.notch-btn-roll {
+  display: inline-flex;
+  flex-direction: column;
+  height: 1.25em;
+  overflow: hidden;
+  line-height: 1.25em;
+}
+
+.notch-btn-roll-text {
+  display: block;
+  transition: transform var(--lc-dur-btn) var(--lc-ease);
+}
+
+.notch-btn-primary .notch-btn-icon {
+  margin-left: 6px;
+  transition: transform var(--lc-dur-btn) var(--lc-ease);
+}
+
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .notch-btn-primary:hover .notch-btn-roll-text {
+    transform: translateY(-100%);
+  }
+  .notch-btn-primary:hover .notch-btn-icon {
+    transform: translateX(4px);
+  }
+  .notch-btn-primary:hover {
+    box-shadow: inset 0 0 0 1px var(--accent);
+  }
+}
+
+/* Secondary Button Left-to-Right Ink Sweep */
+.notch-btn-secondary {
+  background-color: transparent;
+  color: var(--ink);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.notch-btn-secondary::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-color: var(--ink);
+  opacity: 0.06;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--lc-dur-btn) var(--lc-ease);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.notch-btn-secondary > * {
+  position: relative;
+  z-index: 1;
+}
+
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .notch-btn-secondary:hover::before {
+    transform: scaleX(1);
+  }
+  .notch-btn-secondary:hover {
+    border-color: var(--ink-soft);
+  }
+}
+
+/* Reduced Motion Overrides */
+@media (prefers-reduced-motion: reduce) {
+  .notch-card,
+  .notch-card::before,
+  .notch-card::after,
+  .notch-media-img,
+  .notch-media-sweep,
+  .notch-arrow-circle,
+  .notch-arrow-icon,
+  .notch-btn-primary,
+  .notch-btn-secondary,
+  .notch-btn-roll-text,
+  .notch-btn-icon {
+    transform: none !important;
+    animation: none !important;
+    transition-duration: 150ms !important;
+  }
+  .notch-media-sweep {
+    display: none !important;
+  }
+}
+

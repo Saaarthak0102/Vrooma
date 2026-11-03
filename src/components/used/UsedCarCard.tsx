@@ -1,86 +1,115 @@
 import React from "react";
-import Image from "next/image";
 import { Link } from "@/i18n/navigation";
 import { UsedCar } from "@/types/domain";
 import { formatINR } from "@/lib/money";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { usedCarTag, hasAccentDot } from "@/lib/listing-tags";
+import { NotchCard } from "@/components/listing/NotchCard";
+import { NotchMedia } from "@/components/listing/NotchMedia";
+import { NotchTag } from "@/components/listing/NotchTag";
 import { MaskedReg } from "./MaskedReg";
 import { OwnerKmYearBadges } from "./OwnerKmYearBadges";
 import { ShieldCheck, ArrowRight, Ban } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 export interface UsedCarCardProps {
   car: UsedCar;
   className?: string;
+  priority?: boolean;
 }
 
-export function UsedCarCard({ car, className }: UsedCarCardProps) {
+export function UsedCarCard({ car, className = "", priority = false }: UsedCarCardProps) {
+  const t = useTranslations("listing");
   const isBooked = car.status === "booked";
   const mainImage = car.images[0] || "/images/placeholders/car-2.svg";
 
+  // Resolve Tag
+  const tagResult = usedCarTag({
+    listedAt: car.listed_at,
+    km: car.km,
+    owners: car.owners,
+    inspectionScore: car.inspection?.score,
+  });
+
+  const tagLabel = tagResult ? t(`tag.${tagResult}` as any) : null;
+  const showDot = tagResult ? hasAccentDot(tagResult) : false;
+
+  const formattedPriceNumber = formatINR(car.price).replace("₹", "").trim();
+
   return (
-    <div
-      className={`group rounded-lg border border-border bg-white p-5 shadow-card hover:shadow-md transition-all duration-200 flex flex-col justify-between ${
-        isBooked ? "opacity-90 bg-ink/[0.01]" : ""
-      } ${className}`}
+    <NotchCard
+      isBooked={isBooked}
+      className={`group ${className}`}
     >
-      <div>
-        {/* Top Badges */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-1.5">
-            <Badge variant="outline" className="font-mono text-[10px]">
-              {car.stock_id}
-            </Badge>
-            {car.certified && (
-              <Badge variant="accent" className="gap-1 text-[10px]">
-                <ShieldCheck className="h-3 w-3" />
-                <span>Certified</span>
-              </Badge>
-            )}
-          </div>
-          {isBooked ? (
-            <Badge variant="danger" className="text-[10px] gap-1">
-              <Ban className="h-3 w-3" />
-              <span>Booked</span>
-            </Badge>
-          ) : (
-            <span className="text-xs text-accent-ink font-semibold">Available</span>
+      {/* 1. Header row: Quiet hairline stock ID, Certified text with shield, status */}
+      <div className="flex items-center justify-between mb-3 text-xs">
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-xs px-2 py-0.5 border border-border rounded-[6px] text-ink-soft bg-transparent">
+            {car.stock_id}
+          </span>
+          {car.certified && (
+            <span className="inline-flex items-center gap-1 text-xs font-semibold text-accent-ink bg-transparent">
+              <ShieldCheck className="h-3.5 w-3.5" />
+              <span>Certified</span>
+            </span>
           )}
         </div>
-
-        {/* Car Image */}
-        <div className="relative aspect-[16/9] w-full overflow-hidden rounded-md bg-ink/[0.03] mb-4">
-          <Image
-            src={mainImage}
-            alt={`${car.model_name} ${car.variant_name}`}
-            fill
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-            className="object-contain p-2 transition-transform duration-300 group-hover:scale-105"
-          />
-        </div>
-
-        {/* Title & Variant */}
-        <h3 className="text-lg font-bold tracking-tight text-ink group-hover:text-accent-ink transition-colors">
-          {car.model_name} <span className="font-medium text-ink-soft">{car.variant_name}</span>
-        </h3>
-
-        {/* Masked Registration */}
-        <div className="mt-1.5 mb-3">
-          <MaskedReg regNo={car.reg_no_masked} />
-        </div>
-
-        {/* Badges: Year, Km, Owners */}
-        <div className="mb-4">
-          <OwnerKmYearBadges year={car.year} km={car.km} owners={car.owners} />
-        </div>
+        {isBooked ? (
+          <span className="inline-flex items-center gap-1 text-xs font-semibold text-danger">
+            <Ban className="h-3.5 w-3.5" />
+            <span>Booked</span>
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-accent-ink">
+            <span className="w-1.5 h-1.5 rounded-full bg-accent inline-block" aria-hidden="true" />
+            <span>Available</span>
+          </span>
+        )}
       </div>
 
-      {/* Pricing & CTA */}
+      {/* 2. Media: 16/10 aspect (4/3 on phones) with bottom-left cutout tag and bottom-right arrow notch */}
+      <NotchMedia
+        src={mainImage}
+        alt={`${car.model_name} ${car.variant_name}, ${car.year}`}
+        priority={priority}
+        isBooked={isBooked}
+        tag={
+          tagLabel ? (
+            <NotchTag
+              label={tagLabel}
+              hasAccentDot={showDot}
+            />
+          ) : undefined
+        }
+      />
+
+      {/* 3. Title & Variant */}
+      <div className="space-y-1 mb-2">
+        <h3 className="text-lg sm:text-xl font-semibold tracking-[-0.01em] text-ink line-clamp-2 text-balance leading-snug">
+          <Link href={`/used-cars/${car.stock_id}`} className="notch-card-title-link">
+            <span>{car.model_name}</span>{" "}
+            <span className="font-normal text-ink-soft">{car.variant_name}</span>
+          </Link>
+        </h3>
+      </div>
+
+      {/* 4. Masked Registration & Badges (Year, Km, Owners) */}
+      <div className="mt-1 mb-3 notch-interactive">
+        <MaskedReg regNo={car.reg_no_masked} />
+      </div>
+
+      <div className="mb-4 notch-interactive">
+        <OwnerKmYearBadges year={car.year} km={car.km} owners={car.owners} />
+      </div>
+
+      {/* 5. Pricing & Inspection score pushed to bottom with margin-top: auto */}
       <div className="pt-3 border-t border-border mt-auto">
         <div className="flex items-baseline justify-between mb-3">
           <div>
             <span className="text-xs text-ink-mute block">Price</span>
-            <span className="text-xl font-extrabold text-ink">{formatINR(car.price)}</span>
+            <span className="text-[22px] sm:text-2xl font-bold text-ink tabular-nums">
+              <span className="text-[0.8em] font-normal opacity-75 mr-0.5">₹</span>
+              {formattedPriceNumber}
+            </span>
           </div>
           <div className="text-right">
             <span className="text-[11px] text-ink-mute block">Inspection</span>
@@ -90,31 +119,38 @@ export function UsedCarCard({ car, className }: UsedCarCardProps) {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
-          <Button asChild variant="secondary" size="sm" className="text-xs">
-            <Link href={`/used-cars/${car.stock_id}`}>Report & Specs</Link>
-          </Button>
+        {/* 6. Buttons with container queries */}
+        <div className="notch-card-actions">
+          <Link
+            href={`/used-cars/${car.stock_id}`}
+            className="notch-btn-secondary notch-interactive"
+          >
+            <span>Report & specs</span>
+          </Link>
 
           {isBooked ? (
-            <Button
-              variant="outline"
-              size="sm"
+            <button
               disabled
-              className="text-xs opacity-60 cursor-not-allowed"
+              className="notch-btn-secondary notch-interactive opacity-60 cursor-not-allowed bg-ink/[0.03]"
             >
-              Booked
-            </Button>
+              <span>Booked</span>
+            </button>
           ) : (
-            <Button asChild variant="primary" size="sm" className="text-xs gap-1">
-              <Link href={`/book/test-drive?usedCar=${car.stock_id}`}>
-                <span>Book VIP View</span>
-                <ArrowRight className="h-3 w-3" />
-              </Link>
-            </Button>
+            <Link
+              href={`/book/test-drive?usedCar=${car.stock_id}`}
+              className="notch-btn-primary notch-interactive"
+            >
+              <span className="notch-btn-roll">
+                <span className="notch-btn-roll-text">Book VIP view</span>
+                <span className="notch-btn-roll-text" aria-hidden="true">
+                  Book VIP view
+                </span>
+              </span>
+              <ArrowRight className="h-3.5 w-3.5 notch-btn-icon" />
+            </Link>
           )}
         </div>
       </div>
-    </div>
+    </NotchCard>
   );
 }
-

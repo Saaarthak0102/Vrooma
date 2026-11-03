@@ -18,6 +18,7 @@ export const mockUsedCars: UsedCar[] = [
     reg_no_private: "UP32BC4120",
     showroom_id: "sr-hazratganj",
     certified: true,
+    listed_at: "2026-05-10T10:00:00.000Z",
     images: [
       "/images/placeholders/car-2.svg",
       "/images/placeholders/car-1.svg",
@@ -48,13 +49,14 @@ export const mockUsedCars: UsedCar[] = [
     transmission: "manual",
     year: 2021,
     km: 58600,
-    owners: 1,
+    owners: 2,
     price: 512000,
     status: "booked", // Exactly from brief: UC-1190 Booked
     reg_no_masked: "UP32 ** **** 5860",
     reg_no_private: "UP32DZ5860",
     showroom_id: "sr-gomtinagar",
     certified: true,
+    listed_at: "2026-05-02T10:00:00.000Z",
     images: [
       "/images/placeholders/car-3.svg",
       "/images/placeholders/car-1.svg",
@@ -82,13 +84,14 @@ export const mockUsedCars: UsedCar[] = [
     transmission: "automatic",
     year: 2023,
     km: 22400,
-    owners: 1,
+    owners: 2,
     price: 1045000,
     status: "available",
     reg_no_masked: "UP32 ** **** 2240",
     reg_no_private: "UP32EA2240",
     showroom_id: "sr-hazratganj",
     certified: true,
+    listed_at: "2026-06-01T10:00:00.000Z",
     images: [
       "/images/placeholders/car-1.svg",
       "/images/placeholders/car-2.svg",
@@ -122,6 +125,7 @@ export const mockUsedCars: UsedCar[] = [
     reg_no_private: "UP32FF3600",
     showroom_id: "sr-gomtinagar",
     certified: true,
+    listed_at: "2026-10-28T10:00:00.000Z",
     images: [
       "/images/placeholders/car-5.svg",
     ],
@@ -154,6 +158,7 @@ export const mockUsedCars: UsedCar[] = [
     reg_no_private: "UP32GH4950",
     showroom_id: "sr-kanpur-mall",
     certified: true,
+    listed_at: "2026-05-14T10:00:00.000Z",
     images: [
       "/images/placeholders/car-2.svg",
     ],
@@ -185,6 +190,7 @@ export const mockUsedCars: UsedCar[] = [
     reg_no_private: "UP32JK1820",
     showroom_id: "sr-hazratganj",
     certified: true,
+    listed_at: "2026-10-30T10:00:00.000Z",
     images: [
       "/images/placeholders/car-3.svg",
     ],
@@ -216,6 +222,7 @@ export const mockUsedCars: UsedCar[] = [
     reg_no_private: "UP32LM6750",
     showroom_id: "sr-gomtinagar",
     certified: true,
+    listed_at: "2026-05-04T10:00:00.000Z",
     images: [
       "/images/placeholders/car-1.svg",
     ],
@@ -247,6 +254,7 @@ export const mockUsedCars: UsedCar[] = [
     reg_no_private: "UP32EV1540",
     showroom_id: "sr-hazratganj",
     certified: true,
+    listed_at: "2026-05-22T10:00:00.000Z",
     images: [
       "/images/placeholders/car-4.svg",
     ],

@@ -247,6 +247,20 @@
     "deleteRequest": "Request Permanent Data Deletion"
   },
   "listing": {
+    "tag": {
+      "featured": "Featured",
+      "offer": "Offer",
+      "newArrival": "New arrival",
+      "justListed": "Just listed",
+      "lowKms": "Low kms",
+      "oneOwner": "One owner",
+      "inspected": "Inspected",
+      "sedan": "Sedan",
+      "suv": "SUV",
+      "hatchback": "Hatchback",
+      "ev": "EV",
+      "mpv": "MPV"
+    },
     "quickView": "Quick view",
     "details": "Details",
     "back": "Back",

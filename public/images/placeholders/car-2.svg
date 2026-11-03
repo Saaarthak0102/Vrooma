@@ -1,23 +1,41 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" width="100%" height="100%">
   <defs>
-    <linearGradient id="g_car-2_svg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#121A24" />
-      <stop offset="100%" stop-color="#1E293B" />
+    <!-- Light Studio Neutral Gradient -->
+    <linearGradient id="studio_car-2_svg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FDFDFD" />
+      <stop offset="55%" stop-color="#F4F4F5" />
+      <stop offset="100%" stop-color="#E4E4E7" />
     </linearGradient>
+    <linearGradient id="rim_grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#E2E8F0" />
+      <stop offset="100%" stop-color="#64748B" />
+    </linearGradient>
+    <radialGradient id="highlight" cx="50%" cy="25%" r="60%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.8" />
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
   </defs>
-  <rect width="800" height="450" rx="16" fill="url(#g_car-2_svg)" />
-  <!-- Studio lighting sheen -->
-  <ellipse cx="400" cy="380" rx="340" ry="40" fill="#0F1720" opacity="0.6" />
+
+  <!-- Studio backdrop -->
+  <rect width="800" height="450" fill="url(#studio_car-2_svg)" />
+  <rect width="800" height="450" fill="url(#highlight)" />
+
+  <!-- Soft Contact & Floor Shadow -->
+  <ellipse cx="400" cy="330" rx="310" ry="24" fill="#18181B" opacity="0.10" />
+  <ellipse cx="400" cy="332" rx="240" ry="14" fill="#18181B" opacity="0.16" />
+
   <!-- Car Silhouette -->
-  <path d="M 120 310 C 130 310 160 300 200 270 C 230 250 290 200 370 195 C 460 190 550 200 600 240 C 650 280 670 300 680 310 L 660 320 C 650 320 635 300 610 300 C 585 300 570 320 560 320 L 260 320 C 250 320 235 300 210 300 C 185 300 170 320 160 320 Z" fill="#2563EB" opacity="0.85" />
-  <!-- Roofline and Glass -->
-  <path d="M 280 235 C 330 205 400 200 510 205 C 550 225 570 245 575 250 L 290 250 Z" fill="#F8FAFC" opacity="0.25" />
-  <!-- Wheels -->
-  <circle cx="210" cy="315" r="32" fill="#0A0F14" stroke="#475569" stroke-width="4" />
-  <circle cx="210" cy="315" r="16" fill="#1E293B" />
-  <circle cx="610" cy="315" r="32" fill="#0A0F14" stroke="#475569" stroke-width="4" />
-  <circle cx="610" cy="315" r="16" fill="#1E293B" />
-  <!-- Details & Badge -->
-  <text x="400" y="80" text-anchor="middle" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="24" font-weight="600" letter-spacing="1.5">Model C - Compact SUV</text>
-  <text x="400" y="110" text-anchor="middle" fill="#94A3B8" font-family="system-ui, sans-serif" font-size="14">VROOMA AUTHORISED SHOWROOM</text>
+  <path d="M 130 310 C 140 290 170 240 215 225 C 260 210 320 180 430 180 C 530 180 585 200 630 235 C 660 260 675 285 680 310 L 665 318 C 655 318 640 298 610 298 C 580 298 565 318 555 318 L 265 318 C 255 318 240 298 210 298 C 180 298 165 318 155 318 Z" fill="#1E293B" />
+
+  <!-- Glass / Cabin Reflection -->
+  <path d="M 290 220 C 340 192 420 188 510 190 C 545 205 565 220 575 230 L 300 230 Z" fill="#64748B" opacity="0.45" />
+
+  <!-- Wheels (Front & Rear) -->
+  <circle cx="210" cy="315" r="32" fill="#18181B" stroke="#52525B" stroke-width="3" />
+  <circle cx="210" cy="315" r="20" fill="url(#rim_grad)" />
+  <circle cx="210" cy="315" r="8" fill="#18181B" />
+
+  <circle cx="610" cy="315" r="32" fill="#18181B" stroke="#52525B" stroke-width="3" />
+  <circle cx="610" cy="315" r="20" fill="url(#rim_grad)" />
+  <circle cx="610" cy="315" r="8" fill="#18181B" />
 </svg>

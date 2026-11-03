@@ -59,6 +59,7 @@ export interface Database {
           hero_image: string;
           gallery: Json;
           is_active: boolean;
+          is_featured: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -121,6 +122,7 @@ export interface Database {
           inspection: Json;
           certified: boolean;
           images: Json;
+          listed_at: string;
           created_at: string;
           updated_at: string;
         };

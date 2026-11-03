@@ -8,6 +8,7 @@ import { FilterSheet } from "@/components/cars/FilterSheet";
 import { SearchBox } from "@/components/cars/SearchBox";
 import { SortSelect } from "@/components/cars/SortSelect";
 import { mockModels } from "@/data/mock/models";
+import { mockOffers } from "@/data/mock/offers";
 
 export default function CarsPage() {
   const [search, setSearch] = useState("");
@@ -33,6 +34,18 @@ export default function CarsPage() {
       maxBudget: null,
     });
   };
+
+  const activeOfferModelIds = useMemo(() => {
+    const todayStr = new Date().toISOString().slice(0, 10);
+    return mockOffers
+      .filter(
+        (o) =>
+          o.active &&
+          o.model_id &&
+          (!o.valid_until || o.valid_until >= todayStr)
+      )
+      .map((o) => o.model_id as string);
+  }, []);
 
   const filteredModels = useMemo(() => {
     let list = [...mockModels];
@@ -120,9 +133,9 @@ export default function CarsPage() {
           models={filteredModels}
           citySlug={filters.city}
           onClearFilters={handleReset}
+          activeOfferModelIds={activeOfferModelIds}
         />
       </div>
     </PageShell>
   );
 }
-

@@ -19,12 +19,12 @@ INSERT INTO workshops (id, city_id, name, address, phone, bays, hours) VALUES
 ON CONFLICT DO NOTHING;
 
 -- 3. Models
-INSERT INTO models (id, slug, name, body_type, tagline, hero_image, is_active) VALUES
-  ('m0000001-0000-0000-0000-000000000001', 'model-h', 'Model H', 'sedan', 'The Benchmark of Executive Elegance & Refinement', '/images/placeholders/car-1.svg', true),
-  ('m0000001-0000-0000-0000-000000000002', 'model-c', 'Model C', 'suv', 'Dominant Presence with Class-Leading Technology', '/images/placeholders/car-2.svg', true),
-  ('m0000001-0000-0000-0000-000000000003', 'model-s', 'Model S', 'hatchback', 'Agile, Fuel-Efficient, Built for Urban Precision', '/images/placeholders/car-3.svg', true),
-  ('m0000001-0000-0000-0000-000000000004', 'model-x', 'Model X', 'ev', 'Next-Gen Electric Performance with 460km Range', '/images/placeholders/car-4.svg', true),
-  ('m0000001-0000-0000-0000-000000000005', 'model-t', 'Model T', 'suv', 'True 4x4 Capability Engineered for Unpaved Horizons', '/images/placeholders/car-5.svg', true)
+INSERT INTO models (id, slug, name, body_type, tagline, hero_image, is_active, is_featured) VALUES
+  ('m0000001-0000-0000-0000-000000000001', 'model-h', 'Model H', 'sedan', 'The Benchmark of Executive Elegance & Refinement', '/images/placeholders/car-1.svg', true, true),
+  ('m0000001-0000-0000-0000-000000000002', 'model-c', 'Model C', 'suv', 'Dominant Presence with Class-Leading Technology', '/images/placeholders/car-2.svg', true, false),
+  ('m0000001-0000-0000-0000-000000000003', 'model-s', 'Model S', 'hatchback', 'Agile, Fuel-Efficient, Built for Urban Precision', '/images/placeholders/car-3.svg', true, false),
+  ('m0000001-0000-0000-0000-000000000004', 'model-x', 'Model X', 'ev', 'Next-Gen Electric Performance with 460km Range', '/images/placeholders/car-4.svg', true, false),
+  ('m0000001-0000-0000-0000-000000000005', 'model-t', 'Model T', 'suv', 'True 4x4 Capability Engineered for Unpaved Horizons', '/images/placeholders/car-5.svg', true, false)
 ON CONFLICT (slug) DO NOTHING;
 
 -- 4. Variants (Include NEW-H-02 Model H ZX Automatic Petrol ₹12,45,000)

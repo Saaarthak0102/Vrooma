@@ -23,12 +23,11 @@ export function SimilarCars({ currentModelId, models }: SimilarCarsProps) {
           </p>
         </div>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
         {similar.map((model) => (
-          <CarCard key={model.id} model={model} />
+          <CarCard key={model.id} model={model} priority={false} />
         ))}
       </div>
     </div>
   );
 }
-

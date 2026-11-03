@@ -247,6 +247,20 @@
     "deleteRequest": "स्थायी डेटा हटाने का अनुरोध करें"
   },
   "listing": {
+    "tag": {
+      "featured": "विशेष",
+      "offer": "ऑफ़र",
+      "newArrival": "नया आगमन",
+      "justListed": "अभी जुड़ा",
+      "lowKms": "कम किमी",
+      "oneOwner": "एक मालिक",
+      "inspected": "जाँचा हुआ",
+      "sedan": "सेडान",
+      "suv": "एसयूवी",
+      "hatchback": "हैचबैक",
+      "ev": "ईवी",
+      "mpv": "एमपीवी"
+    },
     "quickView": "त्वरित जानकारी",
     "details": "विवरण",
     "back": "वापस",

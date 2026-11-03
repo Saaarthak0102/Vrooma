@@ -123,9 +123,9 @@ export default function UsedCarsPage() {
             }
           />
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredCars.map((car) => (
-              <UsedCarCard key={car.id} car={car} />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
+            {filteredCars.map((car, idx) => (
+              <UsedCarCard key={car.id} car={car} priority={idx < 3} />
             ))}
           </div>
         )}
@@ -133,4 +133,3 @@ export default function UsedCarsPage() {
     </PageShell>
   );
 }
-

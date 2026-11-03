@@ -87,6 +87,8 @@ export interface Model {
   hero_image: string;
   gallery: string[];
   is_active: boolean;
+  is_featured?: boolean;
+  created_at?: string;
   min_price?: number;
   max_price?: number;
   variants?: Variant[];
@@ -144,6 +146,8 @@ export interface UsedCar {
   inspection: Inspection;
   certified: boolean;
   images: string[];
+  listed_at?: string;
+  created_at?: string;
 }
 
 export interface DemoCar {
