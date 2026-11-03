@@ -107,6 +107,7 @@ export function HeroScene({ data }: HeroSceneProps) {
     const rows = ".hero-accordion-row";
     const confChips = ".hero-confirmation-chip";
 
+    const screenHome = "#screen-home";
     const screenPrice = "#screen-price";
     const screenSlots = "#screen-slots";
     const screenUsed = "#screen-used";
@@ -117,10 +118,11 @@ export function HeroScene({ data }: HeroSceneProps) {
     gsap.set(rows, { opacity: 0, x: -40, filter: "blur(8px)" });
     gsap.set(confChips, { scale: 0.6, opacity: 0 });
 
-    gsap.set(screenPrice, { opacity: 0, y: 12 });
-    gsap.set(screenSlots, { opacity: 0, y: 12 });
-    gsap.set(screenUsed, { opacity: 0, y: 12 });
-    gsap.set(screenService, { opacity: 0, y: 12 });
+    gsap.set(screenHome, { autoAlpha: 1, y: 0 });
+    gsap.set(screenPrice, { autoAlpha: 0, y: 12 });
+    gsap.set(screenSlots, { autoAlpha: 0, y: 12 });
+    gsap.set(screenUsed, { autoAlpha: 0, y: 12 });
+    gsap.set(screenService, { autoAlpha: 0, y: 12 });
 
     // Initial route draw near accent phrase
     const routePath = "#hero-svg-route";
@@ -204,34 +206,35 @@ export function HeroScene({ data }: HeroSceneProps) {
       );
 
     // 0.26-1.00: 4 equal steps (0.185 each)
-    // Step 0: Row 0 open by default, cross-fade to screenPrice (0.26 - 0.445)
+    // Step 0: Row 0 open by default, cross-fade from screenHome to screenPrice (0.26 - 0.445)
     tl.to("#row-desc-0", { height: "auto", opacity: 1, duration: 0.08 }, 0.26)
       .to("#row-icon-0", { color: "var(--accent-ink)", duration: 0.08 }, 0.26)
-      .to(screenPrice, { opacity: 1, y: 0, duration: 0.06 }, 0.26);
+      .to(screenHome, { autoAlpha: 0, y: -12, duration: 0.05, ease: "power2.inOut" }, 0.26)
+      .to(screenPrice, { autoAlpha: 1, y: 0, duration: 0.05, ease: "power2.inOut" }, 0.26);
 
     // Step 1: Row 1 opens, Row 0 closes, cross-fade to screenSlots (0.445 - 0.63)
     tl.to("#row-desc-0", { height: 0, opacity: 0, duration: 0.06 }, 0.445)
       .to("#row-icon-0", { color: "var(--ink-mute)", duration: 0.06 }, 0.445)
       .to("#row-desc-1", { height: "auto", opacity: 1, duration: 0.08 }, 0.45)
       .to("#row-icon-1", { color: "var(--accent-ink)", duration: 0.08 }, 0.45)
-      .to(screenPrice, { opacity: 0, y: -12, duration: 0.05 }, 0.445)
-      .to(screenSlots, { opacity: 1, y: 0, duration: 0.06 }, 0.455);
+      .to(screenPrice, { autoAlpha: 0, y: -12, duration: 0.05, ease: "power2.inOut" }, 0.445)
+      .to(screenSlots, { autoAlpha: 1, y: 0, duration: 0.05, ease: "power2.inOut" }, 0.445);
 
     // Step 2: Row 2 opens, Row 1 closes, cross-fade to screenUsed (0.63 - 0.815)
     tl.to("#row-desc-1", { height: 0, opacity: 0, duration: 0.06 }, 0.63)
       .to("#row-icon-1", { color: "var(--ink-mute)", duration: 0.06 }, 0.63)
       .to("#row-desc-2", { height: "auto", opacity: 1, duration: 0.08 }, 0.635)
       .to("#row-icon-2", { color: "var(--accent-ink)", duration: 0.08 }, 0.635)
-      .to(screenSlots, { opacity: 0, y: -12, duration: 0.05 }, 0.63)
-      .to(screenUsed, { opacity: 1, y: 0, duration: 0.06 }, 0.64);
+      .to(screenSlots, { autoAlpha: 0, y: -12, duration: 0.05, ease: "power2.inOut" }, 0.63)
+      .to(screenUsed, { autoAlpha: 1, y: 0, duration: 0.05, ease: "power2.inOut" }, 0.63);
 
     // Step 3: Row 3 opens, Row 2 closes, cross-fade to screenService (0.815 - 0.94)
     tl.to("#row-desc-2", { height: 0, opacity: 0, duration: 0.06 }, 0.815)
       .to("#row-icon-2", { color: "var(--ink-mute)", duration: 0.06 }, 0.815)
       .to("#row-desc-3", { height: "auto", opacity: 1, duration: 0.08 }, 0.82)
       .to("#row-icon-3", { color: "var(--accent-ink)", duration: 0.08 }, 0.82)
-      .to(screenUsed, { opacity: 0, y: -12, duration: 0.05 }, 0.815)
-      .to(screenService, { opacity: 1, y: 0, duration: 0.06 }, 0.825);
+      .to(screenUsed, { autoAlpha: 0, y: -12, duration: 0.05, ease: "power2.inOut" }, 0.815)
+      .to(screenService, { autoAlpha: 1, y: 0, duration: 0.05, ease: "power2.inOut" }, 0.815);
 
     // 0.94-1.00: Translate up 0vh and hand off to WhyVrooma (maintain safe-top headroom)
     tl.to(
@@ -258,7 +261,7 @@ export function HeroScene({ data }: HeroSceneProps) {
         <div className="stage-inner">
           {/* H1 Headline across top */}
           <div id="hero-h1-group" data-layout="hero:h1" data-layout-kind="text" className="absolute top-2 left-0 max-w-4xl pointer-events-auto">
-            <h1 className="text-3xl sm:text-4xl lg:text-[clamp(2.3rem,4svh,3.6rem)] font-medium tracking-tight text-ink leading-[1.05]">
+            <h1 className="text-3xl sm:text-4xl lg:text-[clamp(2.3rem,4svh,calc(3.6rem+2px))] font-medium tracking-tight text-ink leading-[1.05]">
               <Words text="Vrooma: your next car," />{" "}
               <span className="inline-block relative">
                 <Accent tone="mute">booked in minutes</Accent>
@@ -284,16 +287,16 @@ export function HeroScene({ data }: HeroSceneProps) {
             id="hero-body-group"
             data-layout="hero:body"
             data-layout-kind="text"
-            className="absolute top-[clamp(185px,23svh,220px)] left-[52%] max-w-[380px] pointer-events-auto space-y-3.5"
+            className="absolute top-[clamp(185px,23svh,220px)] left-[52%] max-w-[400px] pointer-events-auto space-y-3.5"
           >
-            <p className="text-xs sm:text-sm text-ink-soft leading-relaxed font-normal">
+            <p className="fs-body text-ink-soft leading-relaxed font-normal">
               Real on-road prices, EMI and test-drive slots for Brand X in Lucknow. A named consultant replies within 5 minutes.
             </p>
             <div className="flex items-center gap-3">
-              <PillButton asChild variant="primary" showArrow className="h-10 px-6 text-xs">
+              <PillButton asChild variant="primary" showArrow className="h-11 px-6 fs-small">
                 <Link href="/book/test-drive">Book a test drive</Link>
               </PillButton>
-              <PillButton asChild variant="secondary" className="h-10 px-5 text-xs">
+              <PillButton asChild variant="secondary" className="h-11 px-5 fs-small">
                 <Link href="/cars">Browse cars</Link>
               </PillButton>
             </div>
@@ -311,10 +314,10 @@ export function HeroScene({ data }: HeroSceneProps) {
                   <Clock className="h-3.5 w-3.5" />
                 </div>
                 <div className="text-left">
-                  <span className="text-[10px] uppercase font-bold text-ink-mute tracking-wider block">
+                  <span className="fs-micro uppercase font-bold text-ink-mute tracking-wider block">
                     Next Free Slot
                   </span>
-                  <span className="text-xs font-bold text-ink">
+                  <span className="fs-small font-bold text-ink">
                     {liveSlot
                       ? `${liveSlot.timeFormatted} · ${liveSlot.showroomName}`
                       : "Today, 4:00 PM · Hazratganj"}
@@ -331,16 +334,16 @@ export function HeroScene({ data }: HeroSceneProps) {
             className="hero-floater-chip absolute top-[clamp(120px,16svh,150px)] right-0 z-30 pointer-events-auto"
           >
             <Floater duration={4.2} deltaY={10} delay={0.6}>
-              <div className="glass-card px-4 py-3 rounded-2xl shadow-card border border-white/80 max-w-[210px]">
-                <span className="text-[10px] font-bold uppercase text-accent-ink tracking-wider block">
+              <div className="glass-card px-4 py-3 rounded-2xl shadow-card border border-white/80 max-w-[230px]">
+                <span className="fs-micro font-bold uppercase text-accent-ink tracking-wider block">
                   Lucknow On-Road
                 </span>
-                <span className="text-sm font-black text-ink block mt-0.5">
+                <span className="text-base font-black text-ink block mt-0.5">
                   {data.heroModel.teaserOnRoad
                     ? `From ${formatINR(data.heroModel.teaserOnRoad)}`
                     : "Contact showroom"}
                 </span>
-                <span className="text-[9px] text-ink-mute block mt-1 leading-tight">
+                <span className="fs-micro text-ink-mute block mt-1 leading-tight">
                   {data.heroModel.validUntil
                     ? `Valid until ${data.heroModel.validUntil} · Prices may change`
                     : "Subject to government RTO"}
@@ -384,9 +387,9 @@ export function HeroScene({ data }: HeroSceneProps) {
             style={{ transform: "rotate(-2deg)" }}
           >
             <div data-layout="hero:phone" data-layout-kind="phone" className="pointer-events-auto relative">
-              <PhoneMockup className="w-[clamp(260px,26svh,320px)]">
+              <PhoneMockup className="w-[var(--phone-w)]">
                 {/* Screen Home: visible at load (progress 0) */}
-                <div id="screen-home" className="absolute inset-0 p-3 pt-8">
+                <div id="screen-home" className="absolute inset-0 p-3 pt-8 bg-[#EEF0F3] z-10" aria-hidden="true">
                   <PhoneScreenHome
                     modelName={data.heroModel.name}
                     variantName={data.heroModel.variantName}
@@ -397,7 +400,7 @@ export function HeroScene({ data }: HeroSceneProps) {
                   />
                 </div>
                 {/* Screen 0: Price Screen */}
-                <div id="screen-price" className="absolute inset-0 p-3 pt-8">
+                <div id="screen-price" className="absolute inset-0 p-3 pt-8 bg-[#EEF0F3] z-20" aria-hidden="true">
                   <PhoneScreenPrice
                     variantName={`${data.heroModel.name} ${data.heroModel.variantName}`}
                     exShowroom={data.heroModel.exShowroom}
@@ -406,14 +409,14 @@ export function HeroScene({ data }: HeroSceneProps) {
                   />
                 </div>
                 {/* Screen 1: Slots Screen */}
-                <div id="screen-slots" className="absolute inset-0 p-3 pt-8">
+                <div id="screen-slots" className="absolute inset-0 p-3 pt-8 bg-[#EEF0F3] z-30" aria-hidden="true">
                   <PhoneScreenSlots
                     carName={`${data.heroModel.name} ${data.heroModel.variantName}`}
                     showroomName={data.locations[0]?.name ?? "Hazratganj Flagship"}
                   />
                 </div>
                 {/* Screen 2: Used Car Screen */}
-                <div id="screen-used" className="absolute inset-0 p-3 pt-8">
+                <div id="screen-used" className="absolute inset-0 p-3 pt-8 bg-[#EEF0F3] z-40" aria-hidden="true">
                   <PhoneScreenUsed
                     stockId={data.usedSample?.stock_id ?? "UC-1182"}
                     modelName={data.usedSample?.model_name ?? "Model C"}
@@ -427,7 +430,7 @@ export function HeroScene({ data }: HeroSceneProps) {
                   />
                 </div>
                 {/* Screen 3: Service Screen */}
-                <div id="screen-service" className="absolute inset-0 p-3 pt-8">
+                <div id="screen-service" className="absolute inset-0 p-3 pt-8 bg-[#EEF0F3] z-50" aria-hidden="true">
                   <PhoneScreenService
                     workshopName={data.locations.find((l) => l.type === "workshop")?.name ?? "Central Workshop Transport Nagar"}
                     baysAvailable={16}
@@ -446,14 +449,14 @@ export function HeroScene({ data }: HeroSceneProps) {
             <div className="space-y-4">
               {/* H2 Title */}
               <div id="hero-h2-group" data-layout="hero:h2" data-layout-kind="text" className="pt-2">
-                <h2 className="text-2xl sm:text-3xl lg:text-[clamp(1.75rem,3.2svh,2.6rem)] font-medium tracking-tight text-ink leading-[1.1]">
+                <h2 className="text-2xl sm:text-3xl lg:text-[clamp(1.75rem,3.2svh,calc(2.6rem+2px))] font-medium tracking-tight text-ink leading-[1.1]">
                   Everything you&apos;d call us for,{" "}
                   <Accent tone="accent">in a few taps</Accent>
                 </h2>
               </div>
 
-              {/* Accordion Rows Container (48px gap from H2) */}
-              <div className="hero-accordion-container space-y-2 pt-12">
+              {/* Accordion Rows Container */}
+              <div className="hero-accordion-container space-y-2 pt-[clamp(20px,3.2svh,40px)]">
                 {accordionSteps.map((step, idx) => {
                   const Icon = step.icon;
                   return (
@@ -470,12 +473,12 @@ export function HeroScene({ data }: HeroSceneProps) {
                         >
                           <Icon className="h-4 w-4" />
                         </div>
-                        <h4 className="text-xs sm:text-sm font-bold text-ink">{step.title}</h4>
+                        <h4 className="fs-body font-bold text-ink">{step.title}</h4>
                       </div>
                       {/* Scrubbed height tween target on desktop */}
                       <div
                         id={`row-desc-${idx}`}
-                        className="overflow-hidden h-0 opacity-0 pl-11 text-xs text-ink-soft leading-relaxed"
+                        className="overflow-hidden h-0 opacity-0 pl-11 fs-body text-ink-soft leading-relaxed"
                       >
                         <p className="pt-2">{step.desc}</p>
                       </div>
@@ -493,7 +496,7 @@ export function HeroScene({ data }: HeroSceneProps) {
                 className="hero-confirmation-chip glass-card px-3.5 py-2 rounded-pill flex items-center gap-2 border border-accent/30 shadow-sm bg-accent/10"
               >
                 <CheckCircle2 className="h-4 w-4 text-accent-ink" />
-                <span className="text-xs font-bold text-accent-ink">Booked</span>
+                <span className="fs-small font-bold text-accent-ink">Booked</span>
               </div>
               <div
                 data-layout="hero:conf-chip-1"
@@ -501,7 +504,7 @@ export function HeroScene({ data }: HeroSceneProps) {
                 className="hero-confirmation-chip glass-card px-3.5 py-2 rounded-pill flex items-center gap-2 border border-white shadow-sm"
               >
                 <PhoneCall className="h-3.5 w-3.5 text-ink-mute" />
-                <span className="text-xs text-ink-soft font-semibold">
+                <span className="fs-small text-ink-soft font-semibold">
                   Consultant will contact you within 5 minutes
                 </span>
               </div>
@@ -520,14 +523,14 @@ export function HeroScene({ data }: HeroSceneProps) {
             Vrooma: your next car,{" "}
             <Accent tone="mute">booked in minutes</Accent>
           </h1>
-          <p className="text-sm sm:text-base text-ink-soft leading-relaxed">
+          <p className="fs-body text-ink-soft leading-relaxed">
             Real on-road prices, EMI and test-drive slots for Brand X in Lucknow. A named consultant replies within 5 minutes.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 pt-2">
-            <PillButton asChild variant="primary" showArrow className="w-full sm:w-auto h-11 text-xs">
+            <PillButton asChild variant="primary" showArrow className="w-full sm:w-auto h-11 fs-small">
               <Link href="/book/test-drive">Book a test drive</Link>
             </PillButton>
-            <PillButton asChild variant="secondary" className="w-full sm:w-auto h-11 text-xs">
+            <PillButton asChild variant="secondary" className="w-full sm:w-auto h-11 fs-small">
               <Link href="/cars">Browse cars</Link>
             </PillButton>
           </div>
@@ -535,13 +538,13 @@ export function HeroScene({ data }: HeroSceneProps) {
 
         {/* Mobile Chips */}
         <div className="flex flex-wrap gap-2.5">
-          <div className="glass-card px-3.5 py-2 rounded-pill flex items-center gap-2 text-xs">
+          <div className="glass-card px-3.5 py-2 rounded-pill flex items-center gap-2 fs-small">
             <Clock className="h-3.5 w-3.5 text-accent-ink" />
             <span className="font-semibold text-ink">
               {liveSlot ? liveSlot.timeFormatted : "Today, 4:00 PM"}
             </span>
           </div>
-          <div className="glass-card px-3.5 py-2 rounded-pill flex items-center gap-2 text-xs">
+          <div className="glass-card px-3.5 py-2 rounded-pill flex items-center gap-2 fs-small">
             <span className="text-accent-ink font-bold">On-road from:</span>
             <span className="font-bold text-ink">
               {data.heroModel.teaserOnRoad ? formatINR(data.heroModel.teaserOnRoad) : "Contact showroom"}
@@ -586,7 +589,7 @@ export function HeroScene({ data }: HeroSceneProps) {
                     onClick={() => setMobileStep(idx)}
                     aria-expanded={isExpanded}
                     aria-controls={`mobile-row-content-${idx}`}
-                    className="w-full p-4 flex items-center justify-between text-left gap-3 focus:outline-none"
+                    className="w-full p-4 flex items-center justify-between text-left gap-3 focus:outline-none min-h-[44px]"
                   >
                     <div className="flex items-center gap-3">
                       <div
@@ -596,7 +599,7 @@ export function HeroScene({ data }: HeroSceneProps) {
                       >
                         <Icon className="h-4 w-4" />
                       </div>
-                      <span className="text-xs font-bold text-ink">{step.title}</span>
+                      <span className="fs-small sm:fs-body font-bold text-ink">{step.title}</span>
                     </div>
                     <ChevronDown
                       className={`h-4 w-4 text-ink-mute transition-transform duration-200 ${
@@ -608,7 +611,7 @@ export function HeroScene({ data }: HeroSceneProps) {
                   {/* CSS Grid-based smooth accordion reveal */}
                   <div
                     id={`mobile-row-content-${idx}`}
-                    className="grid transition-[grid-template-rows] duration-200 ease-out px-4 text-xs text-ink-soft"
+                    className="grid transition-[grid-template-rows] duration-200 ease-out px-4 fs-body text-ink-soft"
                     style={{ gridTemplateRows: isExpanded ? "1fr" : "0fr" }}
                   >
                     <div className="overflow-hidden pb-4">
@@ -622,22 +625,51 @@ export function HeroScene({ data }: HeroSceneProps) {
 
           {/* Mobile Phone Mockup reflecting active accordion step */}
           <div className="pt-4 flex justify-center">
-            <PhoneMockup className="w-[280px]">
-              {mobileStep === 0 && (
+            <PhoneMockup className="w-[min(78vw,320px)]">
+              {/* Screen 0: Price */}
+              <div
+                className={`absolute inset-0 p-3 pt-8 bg-[#EEF0F3] transition-all duration-200 ease-in-out ${
+                  mobileStep === 0
+                    ? "opacity-100 visible z-20 pointer-events-auto"
+                    : "opacity-0 invisible z-10 pointer-events-none"
+                }`}
+                aria-hidden={mobileStep !== 0}
+                inert={mobileStep !== 0}
+              >
                 <PhoneScreenPrice
                   variantName={`${data.heroModel.name} ${data.heroModel.variantName}`}
                   exShowroom={data.heroModel.exShowroom}
                   total={data.heroModel.teaserOnRoad ?? 1459450}
                   validUntil={data.heroModel.validUntil ?? "31 Dec 2026"}
                 />
-              )}
-              {mobileStep === 1 && (
+              </div>
+
+              {/* Screen 1: Slots */}
+              <div
+                className={`absolute inset-0 p-3 pt-8 bg-[#EEF0F3] transition-all duration-200 ease-in-out ${
+                  mobileStep === 1
+                    ? "opacity-100 visible z-20 pointer-events-auto"
+                    : "opacity-0 invisible z-10 pointer-events-none"
+                }`}
+                aria-hidden={mobileStep !== 1}
+                inert={mobileStep !== 1}
+              >
                 <PhoneScreenSlots
                   carName={`${data.heroModel.name} ${data.heroModel.variantName}`}
                   showroomName={data.locations[0]?.name ?? "Hazratganj Flagship"}
                 />
-              )}
-              {mobileStep === 2 && (
+              </div>
+
+              {/* Screen 2: Used */}
+              <div
+                className={`absolute inset-0 p-3 pt-8 bg-[#EEF0F3] transition-all duration-200 ease-in-out ${
+                  mobileStep === 2
+                    ? "opacity-100 visible z-20 pointer-events-auto"
+                    : "opacity-0 invisible z-10 pointer-events-none"
+                }`}
+                aria-hidden={mobileStep !== 2}
+                inert={mobileStep !== 2}
+              >
                 <PhoneScreenUsed
                   stockId={data.usedSample?.stock_id ?? "UC-1182"}
                   modelName={data.usedSample?.model_name ?? "Model C"}
@@ -649,13 +681,23 @@ export function HeroScene({ data }: HeroSceneProps) {
                   regMasked={data.usedSample?.reg_no_masked ?? "UP32 ** **** 4120"}
                   score={data.usedSample?.inspection?.score ?? 94}
                 />
-              )}
-              {mobileStep === 3 && (
+              </div>
+
+              {/* Screen 3: Service */}
+              <div
+                className={`absolute inset-0 p-3 pt-8 bg-[#EEF0F3] transition-all duration-200 ease-in-out ${
+                  mobileStep === 3
+                    ? "opacity-100 visible z-20 pointer-events-auto"
+                    : "opacity-0 invisible z-10 pointer-events-none"
+                }`}
+                aria-hidden={mobileStep !== 3}
+                inert={mobileStep !== 3}
+              >
                 <PhoneScreenService
                   workshopName={data.locations.find((l) => l.type === "workshop")?.name ?? "Central Workshop Transport Nagar"}
                   baysAvailable={16}
                 />
-              )}
+              </div>
             </PhoneMockup>
           </div>
         </div>

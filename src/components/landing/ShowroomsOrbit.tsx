@@ -16,14 +16,14 @@ export interface ShowroomsOrbitProps {
   data: LandingData;
 }
 
-// 6 Target percentage positions on the stage
+// 6 Target percentage positions on the stage: 3 rows evenly spaced, 2 vertical bands
 const CHIP_TARGETS = [
-  { top: "16%", left: "2%" },
-  { top: "40%", left: "1%" },
-  { top: "64%", left: "3%" },
-  { top: "16%", left: "73%" },
-  { top: "40%", left: "74%" },
-  { top: "64%", left: "72%" },
+  { top: "24%", left: "2%" },
+  { top: "43%", left: "1%" },
+  { top: "62%", left: "2%" },
+  { top: "24%", left: "74%" },
+  { top: "43%", left: "75%" },
+  { top: "62%", left: "74%" },
 ];
 
 export function ShowroomsOrbit({ data }: ShowroomsOrbitProps) {
@@ -128,10 +128,10 @@ export function ShowroomsOrbit({ data }: ShowroomsOrbitProps) {
             data-layout-kind="text"
             className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-xl text-center origin-center z-20 pointer-events-auto"
           >
-            <span className="text-[10px] font-bold uppercase tracking-wider text-accent-ink">
+            <span className="fs-micro font-bold uppercase tracking-wider text-accent-ink">
               Our Territory
             </span>
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-medium tracking-tight text-ink leading-[1.15] mt-1 text-balance">
+            <h2 className="text-2xl sm:text-3xl lg:text-[clamp(2.25rem,3.5svh,calc(2.5rem+2px))] font-medium tracking-tight text-ink leading-[1.15] mt-1 text-balance">
               Close to you, <br />
               <Accent tone="mute">wherever</Accent> you are
             </h2>
@@ -142,7 +142,7 @@ export function ShowroomsOrbit({ data }: ShowroomsOrbitProps) {
             id="orbit-orb"
             data-layout="orbit:orb"
             data-layout-kind="orb"
-            className="relative h-[clamp(260px,46svh,380px)] aspect-square rounded-full flex items-center justify-center pointer-events-none z-10"
+            className="relative h-[clamp(240px,40svh,340px)] aspect-square rounded-full flex items-center justify-center pointer-events-none z-10"
           >
             <div className="absolute inset-0 rounded-full bg-white/70 border border-white/80 shadow-[0_20px_50px_rgba(15,23,32,0.06)] backdrop-blur-md overflow-hidden flex items-center justify-center">
               {/* Geometric map grid and radar circles */}
@@ -175,20 +175,20 @@ export function ShowroomsOrbit({ data }: ShowroomsOrbitProps) {
                 key={loc.id}
                 data-layout={`orbit:chip-${idx}`}
                 data-layout-kind="chip"
-                className="orbit-location-chip absolute z-30 pointer-events-auto max-w-[min(340px,24%)]"
+                className="orbit-location-chip absolute z-30 pointer-events-auto max-w-[min(360px,24vw)]"
                 style={{ top: target.top, left: target.left }}
               >
                 <Floater duration={3.4 + idx * 0.3} deltaY={idx % 2 === 0 ? 8 : -8}>
                   <Link
                     href={`/showrooms#${loc.slug}`}
-                    className="glass-card px-3.5 py-2 rounded-pill flex items-center gap-2 border border-white/90 shadow-card hover:border-accent hover:shadow-md transition-all text-xs text-ink block"
+                    className="glass-card px-3.5 py-2 rounded-pill flex items-center gap-2 border border-white/90 shadow-card hover:border-accent hover:shadow-md transition-all text-ink block"
                   >
                     <div className="h-6 w-6 rounded-full bg-accent/15 text-accent-ink flex items-center justify-center shrink-0">
                       <Icon className="h-3.5 w-3.5" />
                     </div>
                     <div className="text-left min-w-0">
-                      <span className="font-bold text-ink block leading-tight whitespace-normal">{loc.name}</span>
-                      <span className="text-[9px] text-ink-mute uppercase font-semibold">{loc.city}</span>
+                      <span className="font-bold text-ink block leading-tight text-balance whitespace-normal text-xs sm:text-sm">{loc.name}</span>
+                      <span className="fs-micro text-ink-mute uppercase font-semibold">{loc.city}</span>
                     </div>
                   </Link>
                 </Floater>
@@ -201,23 +201,23 @@ export function ShowroomsOrbit({ data }: ShowroomsOrbitProps) {
             id="orbit-note-card"
             data-layout="orbit:note-card"
             data-layout-kind="card"
-            className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[min(960px,calc(100%-180px))] z-30 pointer-events-auto"
+            className="absolute bottom-6 left-1/2 -translate-x-1/2 w-full max-w-[min(960px,calc(100%-48px))] max-h-[26svh] z-30 pointer-events-auto"
           >
-            <GlassCard className="p-4 sm:p-5 rounded-3xl border border-white/90 shadow-elevated space-y-3">
-              <p className="text-xs sm:text-sm text-ink-soft leading-relaxed text-center">
+            <GlassCard className="p-3.5 sm:p-4 rounded-3xl border border-white/90 shadow-elevated space-y-2">
+              <p className="fs-small sm:fs-body text-ink-soft leading-relaxed text-center">
                 Vrooma is an authorised Brand X dealer in Lucknow & Kanpur, operating{" "}
                 <strong className="text-ink font-semibold">{stats.showrooms} showrooms</strong>,{" "}
                 <strong className="text-ink font-semibold">{stats.workshops} workshops</strong>, and a dedicated certified used-car yard with a specialized team of{" "}
                 <strong className="text-ink font-semibold">{stats.staff} staff</strong>.
               </p>
 
-              {/* Stats Row Counting Up */}
-              <div className="grid grid-cols-4 gap-4 pt-2.5 border-t border-border/80 text-center">
+              {/* Stats Row Counting Up: Exactly 4 stats in one line */}
+              <div className="grid grid-cols-4 gap-4 pt-2 border-t border-border/80 text-center">
                 <div className="orbit-stat-item">
                   <span className="text-xl sm:text-2xl font-black text-ink block">
                     <CountUp value={stats.showrooms} />
                   </span>
-                  <span className="text-[10px] text-ink-mute uppercase font-bold tracking-wider">
+                  <span className="fs-micro text-ink-mute uppercase font-bold tracking-wider">
                     Showrooms
                   </span>
                 </div>
@@ -225,7 +225,7 @@ export function ShowroomsOrbit({ data }: ShowroomsOrbitProps) {
                   <span className="text-xl sm:text-2xl font-black text-ink block">
                     <CountUp value={stats.workshops} />
                   </span>
-                  <span className="text-[10px] text-ink-mute uppercase font-bold tracking-wider">
+                  <span className="fs-micro text-ink-mute uppercase font-bold tracking-wider">
                     Workshops
                   </span>
                 </div>
@@ -233,7 +233,7 @@ export function ShowroomsOrbit({ data }: ShowroomsOrbitProps) {
                   <span className="text-xl sm:text-2xl font-black text-ink block">
                     <CountUp value={stats.usedCars} />
                   </span>
-                  <span className="text-[10px] text-ink-mute uppercase font-bold tracking-wider">
+                  <span className="fs-micro text-ink-mute uppercase font-bold tracking-wider">
                     Used In Stock
                   </span>
                 </div>
@@ -241,31 +241,7 @@ export function ShowroomsOrbit({ data }: ShowroomsOrbitProps) {
                   <span className="text-xl sm:text-2xl font-black text-ink block">
                     ~<CountUp value={stats.newCarsYear} />
                   </span>
-                  <span className="text-[10px] text-ink-mute uppercase font-bold tracking-wider">
-                    Showrooms
-                  </span>
-                </div>
-                <div className="orbit-stat-item">
-                  <span className="text-2xl font-black text-ink block">
-                    <CountUp value={stats.workshops} />
-                  </span>
-                  <span className="text-[10px] text-ink-mute uppercase font-bold tracking-wider">
-                    Workshops
-                  </span>
-                </div>
-                <div className="orbit-stat-item">
-                  <span className="text-2xl font-black text-ink block">
-                    <CountUp value={stats.usedCars} />
-                  </span>
-                  <span className="text-[10px] text-ink-mute uppercase font-bold tracking-wider">
-                    Used In Stock
-                  </span>
-                </div>
-                <div className="orbit-stat-item">
-                  <span className="text-2xl font-black text-ink block">
-                    ~<CountUp value={stats.newCarsYear} />
-                  </span>
-                  <span className="text-[10px] text-ink-mute uppercase font-bold tracking-wider">
+                  <span className="fs-micro text-ink-mute uppercase font-bold tracking-wider">
                     Cars / Year
                   </span>
                 </div>
@@ -278,17 +254,17 @@ export function ShowroomsOrbit({ data }: ShowroomsOrbitProps) {
         <div className="space-y-6">
           <Reveal>
             <div className="space-y-2">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-accent-ink">
+              <span className="fs-micro font-bold uppercase tracking-wider text-accent-ink">
                 Our Territory
               </span>
-              <h2 className="text-2xl sm:text-3xl font-medium tracking-tight text-ink">
+              <h2 className="text-2xl sm:text-3xl font-medium tracking-tight text-ink leading-tight text-balance">
                 Close to you, <Accent tone="mute">wherever</Accent> you are
               </h2>
             </div>
           </Reveal>
 
           {/* Static Mobile Orb disc */}
-          <div className="h-44 w-44 mx-auto rounded-full bg-white/80 border border-border flex items-center justify-center p-4 shadow-sm">
+          <div className="w-[min(70vw,280px)] h-[min(70vw,280px)] mx-auto rounded-full bg-white/80 border border-border flex items-center justify-center p-4 shadow-sm">
             <svg className="w-full h-full opacity-60" viewBox="0 0 200 200" fill="none">
               <circle cx="100" cy="100" r="90" stroke="var(--border)" strokeWidth="1" />
               <circle cx="100" cy="100" r="50" stroke="var(--border)" strokeWidth="1" />
@@ -296,49 +272,49 @@ export function ShowroomsOrbit({ data }: ShowroomsOrbitProps) {
             </svg>
           </div>
 
-          {/* 2-Column Mobile Grid of Locations */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          {/* 2-Column Mobile Grid of Locations (1 column below 380px) */}
+          <div className="grid grid-cols-1 min-[380px]:grid-cols-2 gap-2.5">
             {locations.slice(0, 6).map((loc) => {
               const Icon = getLocationIcon(loc.type);
               return (
                 <Link
                   key={loc.id}
                   href={`/showrooms#${loc.slug}`}
-                  className="glass-card p-3 rounded-xl flex items-center gap-2.5 border border-white text-xs hover:border-accent transition-colors"
+                  className="glass-card p-3 rounded-xl flex items-center gap-2.5 border border-white text-xs hover:border-accent transition-colors min-h-[44px]"
                 >
                   <div className="h-6 w-6 rounded-full bg-accent/15 text-accent-ink flex items-center justify-center shrink-0">
-                    <Icon className="h-3 w-3" />
+                    <Icon className="h-3.5 w-3.5" />
                   </div>
                   <div>
                     <span className="font-bold text-ink block leading-tight">{loc.name}</span>
-                    <span className="text-[9px] text-ink-mute uppercase">{loc.city}</span>
+                    <span className="fs-micro text-ink-mute uppercase">{loc.city}</span>
                   </div>
                 </Link>
               );
             })}
           </div>
 
-          {/* Note Card Below */}
-          <GlassCard className="p-5 space-y-4">
-            <p className="text-xs text-ink-soft leading-relaxed">
+          {/* Note Card Below with 2x2 stats */}
+          <GlassCard className="p-4 sm:p-5 space-y-3">
+            <p className="fs-small text-ink-soft leading-relaxed">
               Vrooma is an authorised Brand X dealer in Lucknow & Kanpur, operating {stats.showrooms} showrooms, {stats.workshops} workshops, and a team of {stats.staff} professionals.
             </p>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center border-t border-border pt-3">
+            <div className="grid grid-cols-2 gap-3 text-center border-t border-border pt-3">
               <div>
                 <span className="text-lg font-black text-ink block">{stats.showrooms}</span>
-                <span className="text-[9px] text-ink-mute uppercase">Showrooms</span>
+                <span className="fs-micro text-ink-mute uppercase">Showrooms</span>
               </div>
               <div>
                 <span className="text-lg font-black text-ink block">{stats.workshops}</span>
-                <span className="text-[9px] text-ink-mute uppercase">Workshops</span>
+                <span className="fs-micro text-ink-mute uppercase">Workshops</span>
               </div>
               <div>
                 <span className="text-lg font-black text-ink block">{stats.usedCars}</span>
-                <span className="text-[9px] text-ink-mute uppercase">Used In Stock</span>
+                <span className="fs-micro text-ink-mute uppercase">Used In Stock</span>
               </div>
               <div>
                 <span className="text-lg font-black text-ink block">~{stats.newCarsYear.toLocaleString("en-IN")}</span>
-                <span className="text-[9px] text-ink-mute uppercase">Cars / Year</span>
+                <span className="fs-micro text-ink-mute uppercase">Cars / Year</span>
               </div>
             </div>
           </GlassCard>

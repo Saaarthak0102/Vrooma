@@ -101,25 +101,25 @@ export function BookingSteps({ data }: BookingStepsProps) {
             data-layout-kind="text"
             className="text-left max-w-sm sm:max-w-md lg:max-w-[420px] pointer-events-auto"
           >
-            <span className="text-[10px] font-bold uppercase tracking-wider text-accent-ink">
+            <span className="fs-micro font-bold uppercase tracking-wider text-accent-ink">
               Transparent Workflow
             </span>
-            <h2 className="text-xl sm:text-2xl lg:text-3xl font-medium tracking-tight text-ink leading-tight mt-1 text-balance">
+            <h2 className="text-xl sm:text-2xl lg:text-[calc(1.875rem+2px)] font-medium tracking-tight text-ink leading-tight mt-1 text-balance">
               Join Vrooma and simplify{" "}
               <Accent tone="accent">your car buying</Accent>
             </h2>
           </div>
 
           {/* 3-Column Center Stage (Left Steps, Center Phone, Right Dark EMI) */}
-          <div className="grid grid-cols-12 gap-5 lg:gap-6 items-center mt-1 sm:mt-2 mb-auto pointer-events-auto">
+          <div className="grid grid-cols-12 gap-8 lg:gap-12 items-start mt-1 sm:mt-2 mb-auto pointer-events-auto">
             {/* Left GlassCard: Easy Booking 3 Steps */}
             <div id="booking-left-card" data-layout="booking:card-steps" data-layout-kind="card" className="col-span-4">
               <GlassCard className="p-4 sm:p-5 rounded-3xl border border-white/90 shadow-elevated space-y-3">
                 <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-accent-ink">
+                  <span className="fs-micro font-bold uppercase tracking-wider text-accent-ink">
                     3-Step Journey
                   </span>
-                  <h3 className="text-sm sm:text-base font-bold text-ink">Easy booking</h3>
+                  <h3 className="fs-title font-bold text-ink">Easy booking</h3>
                 </div>
 
                 <div className="space-y-2.5">
@@ -128,8 +128,8 @@ export function BookingSteps({ data }: BookingStepsProps) {
                       1
                     </div>
                     <div>
-                      <h4 className="text-xs font-bold text-ink">Pick a car</h4>
-                      <p className="text-[11px] text-ink-soft mt-0.5">
+                      <h4 className="fs-small font-bold text-ink">Pick a car</h4>
+                      <p className="fs-small text-ink-soft mt-0.5">
                         New or certified used with official on-road price breakups.
                       </p>
                     </div>
@@ -140,8 +140,8 @@ export function BookingSteps({ data }: BookingStepsProps) {
                       2
                     </div>
                     <div>
-                      <h4 className="text-xs font-bold text-ink">Choose a slot</h4>
-                      <p className="text-[11px] text-ink-soft mt-0.5">
+                      <h4 className="fs-small font-bold text-ink">Choose a slot</h4>
+                      <p className="fs-small text-ink-soft mt-0.5">
                         Real showroom and workshop times. Zero phone tag.
                       </p>
                     </div>
@@ -152,8 +152,8 @@ export function BookingSteps({ data }: BookingStepsProps) {
                       3
                     </div>
                     <div>
-                      <h4 className="text-xs font-bold text-ink">Drive</h4>
-                      <p className="text-[11px] text-ink-soft mt-0.5">
+                      <h4 className="fs-small font-bold text-ink">Drive</h4>
+                      <p className="fs-small text-ink-soft mt-0.5">
                         Your certified relationship manager meets you with keys ready.
                       </p>
                     </div>
@@ -163,7 +163,7 @@ export function BookingSteps({ data }: BookingStepsProps) {
                 <div className="pt-1.5 border-t border-border/80">
                   <Link
                     href="/book/test-drive"
-                    className="text-xs font-bold text-accent-ink hover:underline inline-flex items-center gap-1.5"
+                    className="fs-small font-bold text-accent-ink hover:underline inline-flex items-center gap-1.5"
                   >
                     <span>Book demo drive online</span>
                     <ArrowRight className="h-3.5 w-3.5" />
@@ -172,9 +172,9 @@ export function BookingSteps({ data }: BookingStepsProps) {
               </GlassCard>
             </div>
 
-            {/* Center Phone Mockup */}
-            <div id="booking-phone" data-layout="booking:phone" data-layout-kind="phone" className="col-span-4 flex justify-center">
-              <PhoneMockup className="!h-[clamp(230px,36svh,330px)] !w-auto aspect-[9/19.5]">
+            {/* Center Phone Mockup (Standard size --phone-w, aligned to cards top, bleeds off bottom cleanly) */}
+            <div id="booking-phone" data-layout="booking:phone" data-layout-kind="phone" className="col-span-4 flex justify-center items-start">
+              <PhoneMockup className="w-[var(--phone-w)] !h-auto">
                 <PhoneScreenHome
                   modelName={heroModel.name}
                   variantName={heroModel.variantName}
@@ -191,21 +191,21 @@ export function BookingSteps({ data }: BookingStepsProps) {
               <div className="rounded-2xl sm:rounded-3xl bg-dark text-white p-3.5 sm:p-4 shadow-2xl border border-white/10 space-y-2">
                 <div className="flex items-center justify-between">
                   <div>
-                    <span className="text-[10px] uppercase font-bold text-accent tracking-wider">
+                    <span className="fs-micro uppercase font-bold text-accent tracking-wider">
                       Instant Financing
                     </span>
-                    <h3 className="text-sm sm:text-base font-bold text-white">Plan your EMI</h3>
+                    <h3 className="fs-title font-bold text-white">Plan your EMI</h3>
                   </div>
-                  <span className="text-[10px] bg-white/10 text-slate-300 px-2 py-0.5 rounded font-medium">
+                  <span className="fs-micro bg-white/10 text-slate-300 px-2 py-0.5 rounded font-medium">
                     {emiDefaults.label}
                   </span>
                 </div>
 
                 {/* Sliders */}
-                <div className="space-y-1.5 text-xs">
+                <div className="space-y-1.5 fs-small">
                   {/* Loan Amount Slider */}
                   <div className="space-y-1">
-                    <div className="flex justify-between text-[11px]">
+                    <div className="flex justify-between fs-small">
                       <span className="text-slate-400">Loan Amount</span>
                       <span className="font-bold text-white">{formatINR(loanAmount)}</span>
                     </div>
@@ -222,7 +222,7 @@ export function BookingSteps({ data }: BookingStepsProps) {
 
                   {/* Tenure Slider */}
                   <div className="space-y-1">
-                    <div className="flex justify-between text-[11px]">
+                    <div className="flex justify-between fs-small">
                       <span className="text-slate-400">Tenure</span>
                       <span className="font-bold text-white">
                         {tenureMonths} Months ({Math.round(tenureMonths / 12)} yrs)
@@ -241,36 +241,36 @@ export function BookingSteps({ data }: BookingStepsProps) {
 
                   {/* Interest Rate */}
                   <div className="flex items-center justify-between pt-0.5">
-                    <span className="text-slate-400 text-[11px]">Interest Rate (p.a.)</span>
+                    <span className="text-slate-400 fs-small">Interest Rate (p.a.)</span>
                     <div className="flex items-center gap-1 text-white font-bold">
                       <span>{ratePct}%</span>
-                      <span className="text-[9px] text-slate-400 font-normal">(indicative)</span>
+                      <span className="fs-micro text-slate-400 font-normal">(indicative)</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Monthly EMI Result */}
                 <div className="rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 p-2 text-center">
-                  <span className="text-[10px] text-slate-400 uppercase tracking-wider block">
+                  <span className="fs-micro text-slate-400 uppercase tracking-wider block">
                     Estimated Monthly Instalment
                   </span>
                   <span
                     aria-live="polite"
                     className="text-lg sm:text-xl font-black text-accent block mt-0.5"
                   >
-                    {formatINR(monthlyEmi)} <span className="text-xs font-normal text-slate-300">/ month</span>
+                    {formatINR(monthlyEmi)} <span className="fs-micro font-normal text-slate-300">/ month</span>
                   </span>
                 </div>
 
                 {/* CTAs */}
                 <div className="space-y-1 pt-0.5">
-                  <PillButton asChild variant="secondary" showArrow className="w-full justify-center text-xs h-8 bg-white text-dark hover:bg-slate-100">
+                  <PillButton asChild variant="secondary" showArrow className="w-full justify-center fs-small h-9 bg-white text-dark hover:bg-slate-100">
                     <Link href="/cars">Explore cars</Link>
                   </PillButton>
                   <div className="text-center">
                     <Link
                       href="/emi-calculator"
-                      className="text-[11px] text-slate-400 hover:text-white transition-colors underline"
+                      className="fs-micro text-slate-400 hover:text-white transition-colors underline"
                     >
                       View full amortisation schedule
                     </Link>
@@ -288,7 +288,7 @@ export function BookingSteps({ data }: BookingStepsProps) {
       <div className="lg:hidden w-full px-4 sm:px-6 space-y-6 text-left">
         <Reveal>
           <div className="space-y-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-accent-ink">
+            <span className="fs-micro font-bold uppercase tracking-wider text-accent-ink">
               Transparent Workflow
             </span>
             <h2 className="text-2xl sm:text-3xl font-medium tracking-tight text-ink">
@@ -299,8 +299,8 @@ export function BookingSteps({ data }: BookingStepsProps) {
 
         {/* Mobile Steps */}
         <GlassCard className="p-5 space-y-3">
-          <h3 className="text-sm font-bold text-ink">3 Simple Steps</h3>
-          <div className="space-y-2.5 text-xs">
+          <h3 className="fs-title font-bold text-ink">3 Simple Steps</h3>
+          <div className="space-y-2.5 fs-small">
             <div className="flex gap-2.5">
               <span className="font-bold text-dark">1.</span>
               <span className="text-ink-soft">Pick a car - new or certified used</span>
@@ -316,18 +316,32 @@ export function BookingSteps({ data }: BookingStepsProps) {
           </div>
         </GlassCard>
 
+        {/* Mobile Centered Phone Mockup */}
+        <div className="flex justify-center my-2">
+          <PhoneMockup className="w-[min(78vw,320px)] mx-auto !h-auto">
+            <PhoneScreenHome
+              modelName={heroModel.name}
+              variantName={heroModel.variantName}
+              onRoadPrice={heroModel.teaserOnRoad}
+              validUntil={heroModel.validUntil ?? "31 Dec 2026"}
+              nextSlotTime={data.nextSlot?.timeFormatted ?? "Today, 4:00 PM"}
+              nextShowroom={data.nextSlot?.showroomName ?? "Hazratganj Flagship"}
+            />
+          </PhoneMockup>
+        </div>
+
         {/* Mobile EMI Calculator */}
         <div className="rounded-2xl bg-dark text-white p-5 space-y-4">
           <div className="flex justify-between items-center">
-            <h3 className="text-sm font-bold text-white">Plan your EMI</h3>
-            <span className="text-[9px] text-slate-400 bg-white/10 px-2 py-0.5 rounded">
+            <h3 className="fs-title font-bold text-white">Plan your EMI</h3>
+            <span className="fs-micro text-slate-400 bg-white/10 px-2 py-0.5 rounded">
               indicative
             </span>
           </div>
 
-          <div className="space-y-3 text-xs">
+          <div className="space-y-3 fs-small">
             <div className="space-y-1">
-              <div className="flex justify-between text-[11px]">
+              <div className="flex justify-between fs-small">
                 <span className="text-slate-400">Loan: {formatINR(loanAmount)}</span>
               </div>
               <input
@@ -337,12 +351,12 @@ export function BookingSteps({ data }: BookingStepsProps) {
                 step={25000}
                 value={loanAmount}
                 onChange={(e) => setLoanAmount(Number(e.target.value))}
-                className="w-full accent-accent h-1.5 bg-white/20 rounded-lg appearance-none"
+                className="w-full accent-accent h-2 bg-white/20 rounded-lg appearance-none cursor-pointer"
               />
             </div>
 
             <div className="space-y-1">
-              <div className="flex justify-between text-[11px]">
+              <div className="flex justify-between fs-small">
                 <span className="text-slate-400">Tenure: {tenureMonths} Months</span>
               </div>
               <input
@@ -352,18 +366,18 @@ export function BookingSteps({ data }: BookingStepsProps) {
                 step={12}
                 value={tenureMonths}
                 onChange={(e) => setTenureMonths(Number(e.target.value))}
-                className="w-full accent-accent h-1.5 bg-white/20 rounded-lg appearance-none"
+                className="w-full accent-accent h-2 bg-white/20 rounded-lg appearance-none cursor-pointer"
               />
             </div>
 
             <div className="rounded-xl bg-white/10 p-3 text-center">
-              <span className="text-[9px] text-slate-300 block uppercase">Estimated EMI</span>
+              <span className="fs-micro text-slate-300 block uppercase">Estimated EMI</span>
               <span aria-live="polite" className="text-xl font-black text-accent block mt-0.5">
                 {formatINR(monthlyEmi)} / month
               </span>
             </div>
 
-            <PillButton asChild variant="secondary" showArrow className="w-full bg-white text-dark h-10 text-xs">
+            <PillButton asChild variant="secondary" showArrow className="w-full bg-white text-dark min-h-[44px] h-11 fs-small">
               <Link href="/cars">Explore cars</Link>
             </PillButton>
           </div>

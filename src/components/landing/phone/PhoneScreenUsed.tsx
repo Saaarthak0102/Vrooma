@@ -26,46 +26,46 @@ export function PhoneScreenUsed({
   score = 94,
 }: PhoneScreenUsedProps) {
   return (
-    <div className="flex flex-col h-full text-ink text-left space-y-2.5 pt-1">
+    <div className="flex flex-col h-full text-ink text-left space-y-2 pt-1">
       <div>
         <div className="flex items-center justify-between">
-          <span className="text-[10px] font-semibold text-accent-ink uppercase tracking-wider">
+          <span className="text-[clamp(12px,3.8cqw,13px)] font-semibold text-accent-ink uppercase tracking-wider block">
             Certified Pre-Owned
           </span>
-          <span className="text-[9px] font-mono font-bold bg-ink/5 px-1.5 py-0.5 rounded text-ink-mute">
+          <span className="text-[clamp(12px,3.5cqw,13px)] font-mono font-bold bg-ink/5 px-1.5 py-0.5 rounded text-ink-mute">
             {stockId}
           </span>
         </div>
-        <h4 className="text-xs font-extrabold text-ink leading-tight">
+        <h4 className="text-[clamp(13px,4.5cqw,16px)] font-extrabold text-ink leading-tight">
           {modelName} {variantName}
         </h4>
-        <span className="text-[9px] font-mono text-ink-mute block">{regMasked}</span>
+        <span className="text-[clamp(12px,3.5cqw,13px)] font-mono text-ink-mute block">{regMasked}</span>
       </div>
 
-      <div className="rounded-xl bg-white p-2.5 border border-border shadow-sm space-y-2">
+      <div className="rounded-xl bg-white p-2.5 border border-border shadow-sm space-y-1.5">
         <div className="grid grid-cols-3 gap-1 text-center py-1 bg-ink/[0.02] rounded-lg">
           <div>
-            <span className="text-[8px] text-ink-mute uppercase block">Year</span>
-            <span className="text-[11px] font-bold text-ink">{year}</span>
+            <span className="text-[clamp(12px,3.4cqw,12.5px)] text-ink-mute uppercase block">Year</span>
+            <span className="text-[clamp(12px,3.8cqw,14px)] font-bold text-ink">{year}</span>
           </div>
           <div>
-            <span className="text-[8px] text-ink-mute uppercase block">Driven</span>
-            <span className="text-[11px] font-bold text-ink">{km.toLocaleString("en-IN")} km</span>
+            <span className="text-[clamp(12px,3.4cqw,12.5px)] text-ink-mute uppercase block">Driven</span>
+            <span className="text-[clamp(12px,3.8cqw,14px)] font-bold text-ink truncate block">{km.toLocaleString("en-IN")} km</span>
           </div>
           <div>
-            <span className="text-[8px] text-ink-mute uppercase block">Owner</span>
-            <span className="text-[11px] font-bold text-ink">{owners}</span>
+            <span className="text-[clamp(12px,3.4cqw,12.5px)] text-ink-mute uppercase block">Owner</span>
+            <span className="text-[clamp(12px,3.8cqw,14px)] font-bold text-ink">{owners}</span>
           </div>
         </div>
 
         <div className="flex items-center justify-between pt-1">
           <div>
-            <span className="text-[9px] text-ink-mute block">Price (Certified)</span>
-            <span className="text-sm font-black text-ink">{formatINR(price)}</span>
+            <span className="text-[clamp(12px,3.5cqw,13px)] text-ink-mute block leading-tight">Price (Certified)</span>
+            <span className="text-[clamp(13px,4.5cqw,16px)] font-black text-ink">{formatINR(price)}</span>
           </div>
           <div className="text-right">
-            <span className="text-[9px] text-ink-mute block">Inspection</span>
-            <span className="text-xs font-extrabold text-emerald-600 flex items-center gap-1">
+            <span className="text-[clamp(12px,3.5cqw,13px)] text-ink-mute block leading-tight">Inspection</span>
+            <span className="text-[clamp(12px,4cqw,14px)] font-extrabold text-emerald-600 flex items-center gap-1 justify-end">
               <ShieldCheck className="h-3.5 w-3.5" />
               {score}/100
             </span>
@@ -73,13 +73,13 @@ export function PhoneScreenUsed({
         </div>
       </div>
 
-      <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-2 space-y-1">
-        <div className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-800">
-          <CheckCircle2 className="h-3 w-3 text-emerald-600" />
-          <span>140-Point Rigorous Check Passed</span>
+      <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-2 space-y-0.5">
+        <div className="flex items-center gap-1.5 text-[clamp(12px,3.6cqw,13px)] font-bold text-emerald-800">
+          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+          <span>140-Point Rigorous Check</span>
         </div>
-        <p className="text-[8.5px] text-emerald-700 leading-tight">
-          First owner, full authorized dealership service logs verified. Registration masked for privacy.
+        <p className="text-[clamp(12px,3.4cqw,12.5px)] text-emerald-700 leading-tight">
+          First owner, full service logs verified. Masked plate.
         </p>
       </div>
     </div>

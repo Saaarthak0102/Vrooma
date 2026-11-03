@@ -116,3 +116,62 @@ Audit executed across all 5 mandatory viewports (1920x980, 1536x730, 1440x800, 1
   ```
 - **Timing & Rationale:** Cards slide in between progress 0.50 and 0.95 (duration 0.45). This scrubbed tween starts at progress 0.50 and runs for duration 0.27 (matching exactly 60% of the cards slide-in duration) with `ease: "none"`. It cleanly fades out the green badge, eyebrow, and heading to `opacity: 0` so that no text remains visible behind or between the cards at rest states (progress 0.55 to 1.0).
 
+
+
+---
+
+## 5. ROUND 2: LANDING FIXES & PHONE-FIRST ADAPTATIONS
+
+### 5.1 FONT SIZES AUDIT & TOKEN MAPPING
+
+| Role | Previous Landing Sizes | New Token / Size | Scope & Components |
+|---|---|---|---|
+| **Micro** | `text-[9px]` (9px), `text-[10px]` (10px), `text-[11px]` (11px) | `var(--fs-micro)` = **14px** | Eyebrows, stat labels, captions, validity lines, "Prices may change", masked plate chips, footnotes |
+| **Small UI** | `text-xs` (12px), `text-[13px]` (13px) | `var(--fs-small)` = **15px** (desktop) / **15px** (mobile) | Chip subtitles, card sub-copy, footnotes, accordion subtitles, EMI slider labels |
+| **Body** | `text-xs` (12px), `text-sm` (14px), `text-base` (16px) | `var(--fs-body)` = **17px** | Card body text, row descriptions, note card narrative, buttons |
+| **Row/Card Titles** | `text-sm` (14px), `text-base` (16px), `text-lg` (18px) | `var(--fs-title)` = **21px** | Accordion row titles, GlassCard headings, EMI calculator title, inspection dossier title |
+| **H1/H2 Headings** | Hero H1: `clamp(2.3rem, 4svh, 3.6rem)`<br>Hero H2: `clamp(1.75rem, 3.2svh, 2.6rem)`<br>WhyVrooma H2: `clamp(2.25rem, 4svh, 3.2rem)`<br>Orbit H2: `clamp(2.25rem, 3.5svh, 2.5rem)`<br>Pricing H2: `text-4xl sm:text-5xl`<br>Inspected H2: `text-3xl sm:text-4xl lg:text-5xl`<br>Booking H2: `text-xl sm:text-2xl lg:text-3xl`<br>Final H2: `text-3xl sm:text-4xl lg:text-5xl` | Raised upper limit of clamp by **+2px**: <br>• Hero H1: `clamp(2.3rem, 4svh, calc(3.6rem + 2px))`<br>• Hero H2: `clamp(1.75rem, 3.2svh, calc(2.6rem + 2px))`<br>• WhyVrooma H2: `clamp(2.25rem, 4svh, calc(3.2rem + 2px))`<br>• Orbit H2: `clamp(2.25rem, 3.5svh, calc(2.5rem + 2px))`<br>• Pricing H2: `calc(3rem + 2px)`<br>• Inspected H2: `calc(3rem + 2px)`<br>• Booking H2: `calc(1.875rem + 2px)`<br>• Final H2: `calc(3rem + 2px)` | All pinned & static landing headers; preserves editorial scale while respecting 2px upper clamp limit |
+| **Phone Mockup Screens** | `text-[9px]`, `text-[10px]`, `text-[11px]`, `text-xs` | Container query `cqw` with strict floor `clamp(12px, 3.6cqw, 14px)` | Text rendered inside `PhoneScreenHome`, `Price`, `Slots`, `Used`, `Service` renders at $\ge 12$px at every phone mockup size |
+| **Mobile Form Inputs** | `text-xs` (12px) | `16px !important` (`@media (max-width: 767px)`) | All text/email/number form inputs and selectors; halts automatic iOS mobile Safari zoom |
+
+---
+
+### 5.2 NUMERIC TWEEN EDITS LOG
+
+`file | tween / target | before -> after | reason`
+- `src/components/landing/HeroScene.tsx` | `#screen-home` fade out at timeline `0.26` | Added `autoAlpha: 0, y: -12, duration: 0.05, ease: "power2.inOut"` | Fades out Home screen when Row 0 Price screen enters (`autoAlpha: 1`), resolving the multi-screen text overprint defect (F3). Fades back IN when scrolling back up.
+- `src/components/landing/HeroScene.tsx` | `#screen-price`, `#screen-slots`, `#screen-used`, `#screen-service` tweens | `opacity` -> `autoAlpha`, duration `0.06` -> `0.05` | AutoAlpha ensures `visibility: hidden` when screen opacity is 0. 0.05 duration restricts screen cross-fade overlap to <=27% of step timeline (0.185).
+- `src/components/landing/ShowroomsOrbit.tsx` | `CHIP_TARGETS[0-5]` end coordinates | `[{ top: "16%", left: "2%" }, { top: "40%", left: "1%" }, { top: "64%", left: "3%" }, { top: "16%", left: "73%" }, { top: "40%", left: "74%" }, { top: "64%", left: "72%" }]` -> `[{ top: "24%", left: "2%" }, { top: "43%", left: "1%" }, { top: "62%", left: "2%" }, { top: "24%", left: "74%" }, { top: "43%", left: "75%" }, { top: "62%", left: "74%" }]` | Re-anchors chips into three evenly spaced rows (24%, 43%, 62%) in two vertical bands (left 1-2%, right 74-75%), clearing the top safe zone below the heading and maintaining >=24px clearance above the bottom note card without overlapping the central orb.
+
+---
+
+### 5.3 COMPLETE CHANGELOG
+
+| File | What | Before -> After | Why |
+|---|---|---|---|
+| `src/app/globals.css` | Typography and phone sizing tokens | Added `--fs-micro: 14px`, `--fs-small: 15px`, `--fs-body: 17px`, `--fs-title: 21px`, `--phone-w: clamp(280px, 22vw, 340px)`, plus mobile input 16px rule | Centralized font sizing system conforming to Round 2 token rules, eliminating ad hoc sizes and preventing iOS form zoom |
+| `src/components/landing/phone/PhoneMockup.tsx` | Sizing & container queries | Fixed `w-[280px]` -> `w-[var(--phone-w,280px)]` and added `style={{ containerType: "inline-size" }}` to `.phone-mockup-inner` | Standardizes phone widths across Hero, BookingSteps, and FinalCta while enabling nested screen responsive sizing using `cqw` |
+| `src/components/landing/phone/PhoneScreenHome.tsx` | Screen text sizing & wrapping | Hardcoded `text-[10px]`, `text-[11px]`, `text-xs` -> `clamp(12px, 3.6cqw, 14px)`; added `flex-wrap gap-1 leading-tight` to validity bar | Ensures text renders at $\ge 12$px at all mockup scales and prevents "Valid until 31 Dec 2026" from clipping |
+| `src/components/landing/phone/PhoneScreenPrice.tsx` | Screen text sizing | `text-[9px]`, `text-[10px]`, `text-xs` -> `clamp(12px, ...cqw, ...)` | Guarantees $\ge 12$px font size floor inside mockup |
+| `src/components/landing/phone/PhoneScreenSlots.tsx` | Screen text sizing | `text-[9px]`, `text-[10px]`, `text-xs` -> `clamp(12px, ...cqw, ...)` | Guarantees $\ge 12$px font size floor inside mockup |
+| `src/components/landing/phone/PhoneScreenUsed.tsx` | Screen text sizing | `text-[9px]`, `text-[10px]`, `text-xs` -> `clamp(12px, ...cqw, ...)` | Guarantees $\ge 12$px font size floor inside mockup |
+| `src/components/landing/phone/PhoneScreenService.tsx` | Screen text sizing | `text-[9px]`, `text-[10px]`, `text-xs` -> `clamp(12px, ...cqw, ...)` | Guarantees $\ge 12$px font size floor inside mockup |
+| `src/components/landing/HeroScene.tsx` | Screen layering & cross-fade bug (F3) | Transparent stacked screens without home fade-out -> All 5 screens positioned `absolute inset-0 bg-[#EEF0F3]`, layered with `z-index` (10..50), `autoAlpha` transitions with Home screen fading out at 0.26 and in when scrolling up | Completely eliminates phone screen text collision/overprint; ensures only 1 active screen visible at any rest state |
+| `src/components/landing/HeroScene.tsx` | Mobile accordion screens (F3) | Conditional React unmounting -> Stacked screens in PhoneMockup with smooth opacity/visibility transition, `aria-hidden` and `inert` | Prevents jarring layout shifts in mobile view and maintains parity with desktop screens |
+| `src/components/landing/HeroScene.tsx` | Typography (F2) | `text-[10px]`, `text-xs`, `text-sm` -> `fs-micro`, `fs-small`, `fs-body`, `fs-title`; H1 & H2 clamp raised by 2px | Enforces Round 2 typography scale and 14px mobile floor |
+| `src/components/landing/WhyVrooma.tsx` | Dark banner positioning (F4) | Bottom fixed with `mt-4` overflowing viewport -> Positioned in free band below cards: `w-[min(100%, 1100px)] mx-auto mb-2`, >=24px above stage bottom and clear of chat widget | Prevents dark banner from overflowing viewport bottom and keeps cards in place |
+| `src/components/landing/WhyVrooma.tsx` | Mobile banner layout (F4) | Horizontal bar with squished button -> Stacked container block with full-width button `min-h-[44px] h-12` | Accessible mobile tap targets and clean vertical flow |
+| `src/components/landing/WhyVrooma.tsx` | Typography (F2) | Micro/body/title ad hoc classes -> `fs-micro`, `fs-small`, `fs-body`, `fs-title`; H2 clamp upper limit +2px | Upgrades typography across cards, badge, and dark bar |
+| `src/components/landing/ShowroomsOrbit.tsx` | Stats duplication bug (F5) | 7 stat items in desktop grid with repeated rows and mislabelled `~6,000 SHOWROOMS` -> Exactly 4 distinct stats in 1 row (`grid-cols-4`): Showrooms, Workshops, Used In Stock, Cars / Year | Resolves duplicate and mislabelled stat counters |
+| `src/components/landing/ShowroomsOrbit.tsx` | Note card & Orb (F5) | Note card `bottom-0` tall height covering Kanpur chip -> Note card `bottom-6` (24px above bottom), `max-w-[min(960px,calc(100%-48px))]`, `max-h-[26svh]`; orb `clamp(240px, 40svh, 340px)` | Maintains >=24px gap between orb and note card; frees vertical space for chips |
+| `src/components/landing/ShowroomsOrbit.tsx` | Chips coordinates & wrapping (F5) | Old targets overlapping note card -> New targets `top: 24%, 43%, 62%`, `max-w-[min(360px, 24vw)]` with text wrapping | All 6 location chips visible with zero collisions |
+| `src/components/landing/ShowroomsOrbit.tsx` | Mobile layout (F5) | Large static disc & 4-col stats -> Orb `w-[min(70vw,280px)]`, 2-column location grid (1 column below 380px), note card with 2x2 stats | Fully responsive phone layout with $\ge 44$px tap targets |
+| `src/components/landing/BookingSteps.tsx` | Standard phone mockup size (F6) | Small phone `h-[clamp(230px,36svh,330px)] w-auto` -> `<PhoneMockup className="w-[var(--phone-w)] !h-auto">` | Standardizes phone size across hero, booking, and final scenes |
+| `src/components/landing/BookingSteps.tsx` | Phone placement & bottom bleed (F6) | `items-center gap-6` -> `items-start gap-8 lg:gap-12`, phone top aligned with cards, bleeding off stage bottom | Matches hero phone bleed behavior and provides $\ge 48$px gap to cards |
+| `src/components/landing/BookingSteps.tsx` | Mobile phone insertion (F6) | Missing phone mockup in mobile view -> Centered `<PhoneMockup className="w-[min(78vw,320px)] mx-auto">` between steps card and EMI card | Phone displayed in mobile stacked view without overflowing |
+| `src/components/landing/BookingSteps.tsx` | Typography & tap targets (F2) | Micro/small font sizes -> `fs-micro`, `fs-small`, `fs-body`, `fs-title`; H2 clamp upper limit +2px; mobile button `min-h-[44px]` | Complies with typography scale and tap target standards |
+| `src/components/landing/TransparentPricing.tsx` | Typography & card formatting (F2) | Ad hoc sizes -> `fs-micro`, `fs-small`, `fs-body`, `fs-title`; H2 clamp upper limit +2px; mobile link `min-h-[44px]` | Complies with typography scale |
+| `src/components/landing/InspectedUsed.tsx` | Typography (F2) | Ad hoc sizes -> `fs-micro`, `fs-small`, `fs-body`, `fs-title`; H2 clamp upper limit +2px; mobile link `min-h-[44px]` | Complies with typography scale |
+| `src/components/landing/FeaturedStrip.tsx` | Typography (F2) | Ad hoc sizes -> `fs-micro`, `fs-small`, `fs-body`, `fs-title` | Complies with typography scale |
+| `src/components/landing/Reviews.tsx` | Typography (F2) | Ad hoc sizes -> `fs-micro`, `fs-small`, `fs-body`, `fs-title`; H2 clamp upper limit +2px | Complies with typography scale |
+| `src/components/landing/FinalCta.tsx` | Standard phone & typography (F2, F6) | `!h-[clamp(340px,68svh,500px)] !w-auto` -> `w-[var(--phone-w)] !h-auto`; `fs-micro`, `fs-small`, `fs-body`, `fs-title`; H2 clamp +2px | Standardizes phone token and raises typography across scene |

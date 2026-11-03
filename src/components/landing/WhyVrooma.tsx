@@ -100,7 +100,7 @@ export function WhyVrooma({ data }: WhyVroomaProps) {
     >
       {/* Desktop & Pinned Layout */}
       <div data-layer className="hidden lg:block w-full h-full pointer-events-none">
-        <div className="stage-inner pointer-events-auto flex flex-col justify-between h-full w-full pt-2 pb-16">
+        <div className="stage-inner pointer-events-auto flex flex-col justify-between h-full w-full pt-1 pb-6">
           {/* Centred Large Heading */}
           <div
             id="why-heading"
@@ -108,31 +108,31 @@ export function WhyVrooma({ data }: WhyVroomaProps) {
             data-layout-kind="text"
             className="text-center space-y-1 max-w-3xl mx-auto origin-top"
           >
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-medium tracking-tight text-ink leading-tight text-balance">
+            <h2 className="text-2xl sm:text-3xl lg:text-[calc(2.25rem+2px)] font-medium tracking-tight text-ink leading-tight text-balance">
               Why choose Vrooma? Your <Accent tone="accent">honest</Accent> showroom
             </h2>
-            <p className="text-xs sm:text-sm text-ink-soft max-w-xl mx-auto">
+            <p className="fs-body text-ink-soft max-w-xl mx-auto">
               Traditional car buying is full of hidden quotes and endless phone calls. We built the opposite.
             </p>
           </div>
 
           {/* Three GlassCards */}
-          <div className="grid grid-cols-3 gap-6 my-auto pt-4">
+          <div className="grid grid-cols-3 gap-6 my-auto py-2">
             {/* Card 1: Know the real price */}
             <GlassCard data-layout="why:card-1" data-layout-kind="card" className="why-card p-5 sm:p-6 flex flex-col justify-between space-y-3">
               <div className="space-y-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-accent-ink">
+                <span className="fs-micro font-bold uppercase tracking-wider text-accent-ink block">
                   Pillar 01
                 </span>
-                <h3 className="text-base sm:text-lg font-bold text-ink">Know the real price</h3>
-                <p className="text-xs text-ink-soft leading-relaxed">
+                <h3 className="fs-title font-bold text-ink">Know the real price</h3>
+                <p className="fs-body text-ink-soft leading-relaxed">
                   Every line of the on-road price, from the city you pick.
                 </p>
               </div>
 
               {/* Mini Breakup */}
-              <div className="rounded-xl bg-ink/[0.02] border border-border/70 p-2.5 sm:p-3 space-y-1.5 text-xs">
-                <div className="space-y-1 text-[11px] text-ink-soft">
+              <div className="rounded-xl bg-ink/[0.02] border border-border/70 p-2.5 sm:p-3 space-y-1.5 fs-micro">
+                <div className="space-y-1 text-ink-soft">
                   <div className="why-breakup-row flex justify-between">
                     <span>Ex-Showroom</span>
                     <span className="font-semibold text-ink">₹12,45,000</span>
@@ -148,8 +148,8 @@ export function WhyVrooma({ data }: WhyVroomaProps) {
                 </div>
 
                 <div className="border-t border-border/60 pt-1.5 flex items-baseline justify-between">
-                  <span className="text-[11px] font-bold text-ink">Total On-road</span>
-                  <span className="text-sm font-black text-ink">
+                  <span className="font-bold text-ink">Total On-road</span>
+                  <span className="fs-body font-black text-ink">
                     {data.heroModel.teaserOnRoad ? (
                       <CountUp value={data.heroModel.teaserOnRoad} isCurrency />
                     ) : (
@@ -157,7 +157,7 @@ export function WhyVrooma({ data }: WhyVroomaProps) {
                     )}
                   </span>
                 </div>
-                <p className="text-[9px] text-ink-mute leading-tight pt-0.5">
+                <p className="fs-micro text-ink-mute leading-tight pt-0.5">
                   Valid until {data.heroModel.validUntil ?? "31 Dec 2026"} · Prices may change per government regulations.
                 </p>
               </div>
@@ -166,36 +166,36 @@ export function WhyVrooma({ data }: WhyVroomaProps) {
             {/* Card 2: Book a real slot */}
             <GlassCard data-layout="why:card-2" data-layout-kind="card" className="why-card p-5 sm:p-6 flex flex-col justify-between space-y-3">
               <div className="space-y-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-accent-ink">
+                <span className="fs-micro font-bold uppercase tracking-wider text-accent-ink block">
                   Pillar 02
                 </span>
-                <h3 className="text-base sm:text-lg font-bold text-ink">Book a real slot</h3>
-                <p className="text-xs text-ink-soft leading-relaxed">
+                <h3 className="fs-title font-bold text-ink">Book a real slot</h3>
+                <p className="fs-body text-ink-soft leading-relaxed">
                   Pick a showroom, a demo car and a free time. No phone tag.
                 </p>
               </div>
 
               {/* Slot chips */}
-              <div className="rounded-xl bg-ink/[0.02] border border-border/70 p-2.5 sm:p-3 space-y-1.5 text-xs">
-                <div className="flex items-center justify-between text-[11px]">
+              <div className="rounded-xl bg-ink/[0.02] border border-border/70 p-2.5 sm:p-3 space-y-1.5 fs-micro">
+                <div className="flex items-center justify-between">
                   <span className="font-semibold text-ink">Hazratganj Flagship</span>
-                  <span className="text-accent-ink font-bold text-[10px]">Demo Ready</span>
+                  <span className="text-accent-ink font-bold fs-micro">Demo Ready</span>
                 </div>
 
                 <div className="space-y-1.5 pt-0.5">
-                  <div className="why-slot-chip rounded-lg bg-dark text-white p-2 flex items-center justify-between text-xs">
+                  <div className="why-slot-chip rounded-lg bg-dark text-white p-2 flex items-center justify-between fs-small">
                     <span className="flex items-center gap-1.5">
-                      <Calendar className="h-3 w-3 text-accent" />
+                      <Calendar className="h-3.5 w-3.5 text-accent" />
                       {data.nextSlot ? data.nextSlot.timeFormatted : "Today, 4:00 PM"}
                     </span>
                     <Check className="h-3.5 w-3.5 text-accent" />
                   </div>
-                  <div className="why-slot-chip rounded-lg bg-white border border-border p-2 flex items-center justify-between text-xs text-ink-soft">
+                  <div className="why-slot-chip rounded-lg bg-white border border-border p-2 flex items-center justify-between fs-small text-ink-soft">
                     <span className="flex items-center gap-1.5">
-                      <Calendar className="h-3 w-3 text-ink-mute" />
+                      <Calendar className="h-3.5 w-3.5 text-ink-mute" />
                       Tomorrow, 11:30 AM
                     </span>
-                    <span className="text-[10px] font-bold text-accent-ink">Available</span>
+                    <span className="fs-micro font-bold text-accent-ink">Available</span>
                   </div>
                 </div>
               </div>
@@ -204,11 +204,11 @@ export function WhyVrooma({ data }: WhyVroomaProps) {
             {/* Card 3: Buy used with proof */}
             <GlassCard data-layout="why:card-3" data-layout-kind="card" className="why-card p-5 sm:p-6 flex flex-col justify-between space-y-3">
               <div className="space-y-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-accent-ink">
+                <span className="fs-micro font-bold uppercase tracking-wider text-accent-ink block">
                   Pillar 03
                 </span>
-                <h3 className="text-base sm:text-lg font-bold text-ink">Buy used with proof</h3>
-                <p className="text-xs text-ink-soft leading-relaxed">
+                <h3 className="fs-title font-bold text-ink">Buy used with proof</h3>
+                <p className="fs-body text-ink-soft leading-relaxed">
                   Inspection report, owners and kilometres on every certified car.
                 </p>
               </div>
@@ -238,22 +238,22 @@ export function WhyVrooma({ data }: WhyVroomaProps) {
                     />
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                    <span className="text-xs font-black text-ink">
+                    <span className="fs-small font-black text-ink">
                       <CountUp value={score} />
                     </span>
-                    <span className="text-[7px] uppercase font-bold text-ink-mute">/ 100</span>
+                    <span className="text-[9px] uppercase font-bold text-ink-mute">/ 100</span>
                   </div>
                 </div>
 
                 <div className="text-left space-y-0.5">
-                  <span className="text-xs font-bold text-ink flex items-center gap-1">
+                  <span className="fs-small font-bold text-ink flex items-center gap-1">
                     <ShieldCheck className="h-3.5 w-3.5 text-accent-ink" />
                     140-Point Certified
                   </span>
-                  <p className="text-[10px] text-ink-mute leading-tight">
+                  <p className="fs-micro text-ink-mute leading-tight">
                     {data.usedSample?.model_name ?? "Model C"} · {data.usedSample?.year ?? 2022} · {data.usedSample?.owners ?? 1} owner
                   </p>
-                  <span className="text-[9px] font-mono text-ink-soft block">
+                  <span className="fs-micro font-mono text-ink-soft block">
                     {data.usedSample?.reg_no_masked ?? "UP32 ** **** 4120"}
                   </span>
                 </div>
@@ -261,22 +261,22 @@ export function WhyVrooma({ data }: WhyVroomaProps) {
             </GlassCard>
           </div>
 
-          {/* Dark Bar at bottom */}
+          {/* Centred Dark Bar between cards and stage bottom */}
           <div
             id="why-dark-bar"
             data-layout="why:dark-bar"
             data-layout-kind="card"
-            className="rounded-2xl bg-dark text-white p-4 sm:p-5 px-6 sm:px-8 flex items-center justify-between shadow-xl border border-white/10 max-w-[calc(100%-240px)]"
+            className="rounded-2xl bg-dark text-white p-4 sm:p-5 px-6 sm:px-8 flex items-center justify-between shadow-xl border border-white/10 w-[min(100%,1100px)] mx-auto mb-2"
           >
-            <div className="space-y-0.5">
-              <h4 className="text-sm sm:text-base font-bold text-white">
+            <div className="space-y-0.5 max-w-2xl">
+              <h4 className="fs-title font-bold text-white leading-snug">
                 Own a Brand X? Book your service in a minute.
               </h4>
-              <p className="text-xs text-slate-400">
+              <p className="fs-body text-slate-300">
                 Choose a workshop and a free bay. Pick-up and drop available across Lucknow.
               </p>
             </div>
-            <PillButton asChild variant="secondary" showArrow className="h-10 text-xs px-5 bg-white text-dark hover:bg-slate-100 shrink-0">
+            <PillButton asChild variant="secondary" showArrow className="h-11 fs-small px-6 bg-white text-dark hover:bg-slate-100 shrink-0 min-h-[44px]">
               <Link href="/book/service">Book service</Link>
             </PillButton>
           </div>
@@ -292,7 +292,7 @@ export function WhyVrooma({ data }: WhyVroomaProps) {
             <h2 className="text-2xl sm:text-3xl font-medium tracking-tight text-ink">
               Why choose Vrooma? Your <Accent tone="accent">honest</Accent> showroom
             </h2>
-            <p className="text-xs sm:text-sm text-ink-soft">
+            <p className="fs-body text-ink-soft">
               Transparent on-road pricing, guaranteed test drive slots, and DPDP-compliant used car dossiers.
             </p>
           </div>
@@ -300,11 +300,11 @@ export function WhyVrooma({ data }: WhyVroomaProps) {
 
         <Reveal delay={0.1} className="space-y-4">
           <GlassCard className="p-5 space-y-3">
-            <h3 className="text-sm font-bold text-ink">Know the real price</h3>
-            <p className="text-xs text-ink-soft">
+            <h3 className="fs-title font-bold text-ink">Know the real price</h3>
+            <p className="fs-body text-ink-soft">
               Every line of the on-road price, from the city you pick.
             </p>
-            <div className="rounded-xl bg-ink/[0.02] border border-border p-3 space-y-1 text-xs">
+            <div className="rounded-xl bg-ink/[0.02] border border-border p-3 space-y-1 fs-micro">
               <div className="flex justify-between text-ink-soft">
                 <span>Ex-showroom</span>
                 <span className="font-semibold text-ink">₹12,45,000</span>
@@ -315,7 +315,7 @@ export function WhyVrooma({ data }: WhyVroomaProps) {
               </div>
               <div className="border-t border-border pt-1 flex justify-between font-bold text-ink">
                 <span>On-road Total</span>
-                <span className="text-sm font-black">
+                <span className="fs-body font-black">
                   {data.heroModel.teaserOnRoad ? formatINR(data.heroModel.teaserOnRoad) : "₹14,32,450"}
                 </span>
               </div>
@@ -323,45 +323,45 @@ export function WhyVrooma({ data }: WhyVroomaProps) {
           </GlassCard>
 
           <GlassCard className="p-5 space-y-3">
-            <h3 className="text-sm font-bold text-ink">Book a real slot</h3>
-            <p className="text-xs text-ink-soft">
+            <h3 className="fs-title font-bold text-ink">Book a real slot</h3>
+            <p className="fs-body text-ink-soft">
               Pick a showroom, a demo car and a free time. No phone tag.
             </p>
-            <div className="rounded-xl bg-dark text-white p-3 flex items-center justify-between text-xs">
+            <div className="rounded-xl bg-dark text-white p-3 flex items-center justify-between fs-small min-h-[44px]">
               <span>{data.nextSlot ? data.nextSlot.timeFormatted : "Today, 4:00 PM"}</span>
-              <span className="text-[10px] font-bold text-accent">Confirmed Slot</span>
+              <span className="fs-micro font-bold text-accent">Confirmed Slot</span>
             </div>
           </GlassCard>
 
           <GlassCard className="p-5 space-y-3">
-            <h3 className="text-sm font-bold text-ink">Buy used with proof</h3>
-            <p className="text-xs text-ink-soft">
+            <h3 className="fs-title font-bold text-ink">Buy used with proof</h3>
+            <p className="fs-body text-ink-soft">
               Inspection report, owners and kilometres on every certified car.
             </p>
             <div className="flex items-center gap-3">
-              <div className="h-12 w-12 rounded-full border-4 border-accent flex items-center justify-center font-black text-xs">
+              <div className="h-12 w-12 rounded-full border-4 border-accent flex items-center justify-center font-black fs-small">
                 {score}
               </div>
-              <div className="text-xs">
-                <span className="font-bold text-ink block">140-Point Rigorous Check</span>
-                <span className="font-mono text-ink-mute text-[10px]">
+              <div>
+                <span className="fs-body font-bold text-ink block">140-Point Rigorous Check</span>
+                <span className="font-mono text-ink-mute fs-micro block">
                   {data.usedSample?.reg_no_masked ?? "UP32 ** **** 4120"}
                 </span>
               </div>
             </div>
           </GlassCard>
 
-          {/* Mobile Dark Bar */}
-          <div className="rounded-2xl bg-dark text-white p-5 space-y-3">
-            <div>
-              <h4 className="text-sm font-bold text-white">
+          {/* Mobile Dark Bar: stacked block with 44px+ button, full container width */}
+          <div className="rounded-2xl bg-dark text-white p-5 space-y-4 w-full">
+            <div className="space-y-1">
+              <h4 className="fs-title font-bold text-white">
                 Own a Brand X? Book your service in a minute.
               </h4>
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="fs-body text-slate-300">
                 Choose a workshop and a free bay.
               </p>
             </div>
-            <PillButton asChild variant="secondary" showArrow className="w-full text-xs bg-white text-dark h-10">
+            <PillButton asChild variant="secondary" showArrow className="w-full fs-small bg-white text-dark min-h-[44px] h-12 flex items-center justify-center">
               <Link href="/book/service">Book service</Link>
             </PillButton>
           </div>

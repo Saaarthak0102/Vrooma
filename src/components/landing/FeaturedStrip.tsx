@@ -19,7 +19,7 @@ export function FeaturedStrip({ models }: FeaturedStripProps) {
       <Reveal>
         <div data-layout="featured:heading" data-layout-kind="text" className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10">
           <div className="space-y-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-accent-ink">
+            <span className="fs-micro font-bold uppercase tracking-wider text-accent-ink">
               Official Showroom Lineup
             </span>
             <h2 className="text-3xl sm:text-4xl font-medium tracking-tight text-ink">
@@ -28,7 +28,7 @@ export function FeaturedStrip({ models }: FeaturedStripProps) {
           </div>
           <Link
             href="/cars"
-            className="text-xs font-bold text-accent-ink hover:underline inline-flex items-center gap-1.5 self-start sm:self-auto"
+            className="fs-small font-bold text-accent-ink hover:underline inline-flex items-center gap-1.5 self-start sm:self-auto"
           >
             <span>View all Brand X models</span>
             <ArrowRight className="h-4 w-4" />
@@ -61,27 +61,27 @@ export function FeaturedStrip({ models }: FeaturedStripProps) {
               {/* Title & Tagline */}
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-base font-bold text-ink">{model.name}</h3>
-                  <span className="text-[10px] uppercase font-bold text-ink-mute tracking-wider">
+                  <h3 className="fs-title font-bold text-ink">{model.name}</h3>
+                  <span className="fs-micro uppercase font-bold text-ink-mute tracking-wider">
                     {model.bodyType}
                   </span>
                 </div>
-                <p className="text-xs text-ink-soft line-clamp-1">{model.tagline}</p>
+                <p className="fs-small text-ink-soft line-clamp-1">{model.tagline}</p>
               </div>
 
               {/* Price & Validity */}
               <div className="pt-3 border-t border-border/80 space-y-1">
-                <span className="text-[10px] uppercase font-bold text-ink-mute block">
+                <span className="fs-micro uppercase font-bold text-ink-mute block">
                   Lucknow On-Road
                 </span>
-                <span className="text-sm font-black text-ink block">
+                <span className="text-sm sm:text-base font-black text-ink block">
                   {model.teaserOnRoad ? (
                     `From ${formatINR(model.teaserOnRoad)}`
                   ) : (
                     "Contact showroom"
                   )}
                 </span>
-                <span className="text-[9px] text-ink-mute block leading-tight">
+                <span className="fs-micro text-ink-mute block leading-tight">
                   {model.validUntil
                     ? `Valid until ${model.validUntil} · Prices may change`
                     : "Official city price rule"}
@@ -90,7 +90,7 @@ export function FeaturedStrip({ models }: FeaturedStripProps) {
 
               {/* CTA Link */}
               <div className="pt-1">
-                <PillButton asChild variant="secondary" showArrow className="w-full text-xs h-10">
+                <PillButton asChild variant="secondary" showArrow className="w-full fs-small h-10">
                   <Link href={`/cars/${model.slug}`}>View details</Link>
                 </PillButton>
               </div>

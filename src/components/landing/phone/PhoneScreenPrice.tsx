@@ -32,38 +32,38 @@ export function PhoneScreenPrice({
   ];
 
   return (
-    <div className="flex flex-col h-full text-ink text-left space-y-2.5 pt-1">
+    <div className="flex flex-col h-full text-ink text-left space-y-2 pt-1">
       <div>
-        <span className="text-[10px] font-semibold text-accent-ink uppercase tracking-wider">
+        <span className="text-[clamp(12px,3.8cqw,13px)] font-semibold text-accent-ink uppercase tracking-wider block">
           Official Price Breakup
         </span>
-        <h4 className="text-xs font-extrabold text-ink leading-tight">{variantName}</h4>
-        <span className="text-[9px] text-ink-mute">Lucknow RTO Jurisdiction</span>
+        <h4 className="text-[clamp(13px,4.5cqw,16px)] font-extrabold text-ink leading-tight">{variantName}</h4>
+        <span className="text-[clamp(12px,3.5cqw,13px)] text-ink-mute block">Lucknow RTO Jurisdiction</span>
       </div>
 
       <div className="rounded-xl bg-white p-2.5 border border-border shadow-sm space-y-1.5 flex-1">
         {rows.map((r, i) => (
-          <div key={i} className="flex items-center justify-between text-[10px]">
+          <div key={i} className="flex items-center justify-between text-[clamp(12px,3.6cqw,13px)] leading-tight">
             <span className="text-ink-soft">{r.label}</span>
             <span className="font-semibold text-ink">{formatINR(r.amount)}</span>
           </div>
         ))}
 
-        <div className="border-t border-border/80 pt-1.5 mt-1.5 flex items-center justify-between">
+        <div className="border-t border-border/80 pt-1.5 mt-1 flex items-center justify-between">
           <div>
-            <span className="text-[10px] font-bold text-ink block">On-Road Lucknow</span>
-            <span className="text-[8px] text-ink-mute">Itemised total</span>
+            <span className="text-[clamp(12px,3.8cqw,13px)] font-bold text-ink block leading-tight">On-Road Lucknow</span>
+            <span className="text-[clamp(12px,3.5cqw,13px)] text-ink-mute leading-tight">Itemised total</span>
           </div>
-          <span className="text-xs font-black text-ink">{formatINR(total)}</span>
+          <span className="text-[clamp(13px,4.5cqw,16px)] font-black text-ink">{formatINR(total)}</span>
         </div>
       </div>
 
       {/* Validity caption */}
-      <div className="rounded-lg bg-ink/5 p-2 flex items-start gap-1.5 text-[8.5px] text-ink-soft leading-tight">
-        <Info className="h-3 w-3 shrink-0 text-ink-mute mt-0.5" />
+      <div className="rounded-lg bg-ink/5 p-2 flex items-start gap-1.5 text-[clamp(12px,3.5cqw,13px)] text-ink-soft leading-tight">
+        <Info className="h-3.5 w-3.5 shrink-0 text-ink-mute mt-0.5" />
         <div>
           <span>Valid until {validUntil}</span>
-          <p className="text-ink-mute text-[8px] mt-0.5">Statutory charges subject to RTO revision.</p>
+          <p className="text-ink-mute text-[clamp(12px,3.4cqw,12.5px)] mt-0.5 leading-tight">Statutory charges subject to RTO revision.</p>
         </div>
       </div>
     </div>

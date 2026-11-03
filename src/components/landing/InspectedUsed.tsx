@@ -138,10 +138,10 @@ export function InspectedUsed({ data }: InspectedUsedProps) {
             </div>
 
             <div id="inspected-heading" data-layout="inspected:heading" data-layout-kind="text">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-accent-ink">
+              <span className="fs-micro font-bold uppercase tracking-wider text-accent-ink">
                 Certified Quality Assurance
               </span>
-              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-medium tracking-tight text-ink leading-tight mt-1">
+              <h2 className="text-3xl sm:text-4xl lg:text-[calc(3rem+2px)] font-medium tracking-tight text-ink leading-tight mt-1 text-balance">
                 Every used car, <Accent tone="accent">inspected</Accent>
               </h2>
             </div>
@@ -158,31 +158,31 @@ export function InspectedUsed({ data }: InspectedUsedProps) {
                       <div className="h-8 w-8 rounded-full bg-accent/15 text-accent-ink flex items-center justify-center">
                         <FileText className="h-4 w-4" />
                       </div>
-                      <h3 className="text-base font-bold text-ink">Inspection report</h3>
+                      <h3 className="fs-title font-bold text-ink">Inspection report</h3>
                     </div>
-                    <span className="text-xs font-mono font-bold bg-ink/5 px-2 py-0.5 rounded text-ink-mute">
+                    <span className="fs-micro font-mono font-bold bg-ink/5 px-2 py-0.5 rounded text-ink-mute">
                       {usedSample?.stock_id ?? "UC-1182"}
                     </span>
                   </div>
 
                   <div className="space-y-0.5">
-                    <h4 className="text-sm font-bold text-ink">
+                    <h4 className="fs-small sm:fs-body font-bold text-ink">
                       {usedSample?.model_name ?? "Model C"} {usedSample?.variant_name ?? "VX Turbo"}
                     </h4>
-                    <p className="text-xs text-ink-soft">
+                    <p className="fs-small text-ink-soft">
                       {usedSample?.year ?? 2022} · {usedSample?.owners ?? 1} owner(s) · {usedSample?.km?.toLocaleString("en-IN") ?? "41,200"} km
                     </p>
-                    <span className="text-base font-black text-ink block pt-0.5">
+                    <span className="text-base sm:text-lg font-black text-ink block pt-0.5">
                       {usedSample?.price ? formatINR(usedSample.price) : "₹8,45,000"}
                     </span>
                   </div>
 
                   {/* Checklist Rows with Ticks */}
-                  <div className="rounded-xl bg-ink/[0.02] border border-border p-2.5 space-y-1.5 text-xs">
+                  <div className="rounded-xl bg-ink/[0.02] border border-border p-2.5 space-y-1.5 fs-small">
                     {checks.map((chk, i) => (
-                      <div key={i} className="flex items-center justify-between text-[11px]">
+                      <div key={i} className="flex items-center justify-between fs-small">
                         <span className="text-ink-soft truncate max-w-[220px]">{chk.item}</span>
-                        <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-700 shrink-0">
+                        <span className="flex items-center gap-1 fs-micro font-bold text-emerald-700 shrink-0">
                           <CheckCircle2 className="h-3 w-3 text-emerald-600" />
                           Pass
                         </span>
@@ -193,7 +193,7 @@ export function InspectedUsed({ data }: InspectedUsedProps) {
 
                 <Link
                   href={`/used-cars/${usedSample?.stock_id ?? "UC-1182"}`}
-                  className="inline-flex items-center gap-1.5 text-xs font-bold text-accent-ink hover:underline pt-2"
+                  className="inline-flex items-center gap-1.5 fs-small font-bold text-accent-ink hover:underline pt-2"
                 >
                   <span>View the car dossier</span>
                   <ArrowRight className="h-3.5 w-3.5" />
@@ -209,34 +209,34 @@ export function InspectedUsed({ data }: InspectedUsedProps) {
                     <div className="h-8 w-8 rounded-full bg-dark text-white flex items-center justify-center">
                       <Lock className="h-4 w-4" />
                     </div>
-                    <h3 className="text-base font-bold text-ink">Your details stay yours</h3>
+                    <h3 className="fs-title font-bold text-ink">Your details stay yours</h3>
                   </div>
 
-                  <p className="text-xs text-ink-soft leading-relaxed">
+                  <p className="fs-small sm:fs-body text-ink-soft leading-relaxed">
                     We mask vehicle registration plates across public listings to safeguard past owner identities under the Digital Personal Data Protection (DPDP) Act 2023.
                   </p>
 
                   {/* Masked Registration Plate Chip */}
                   <div className="rounded-xl bg-white border border-border/80 p-3 shadow-sm text-center space-y-1">
-                    <span className="text-[10px] uppercase font-bold text-ink-mute tracking-wider block">
+                    <span className="fs-micro uppercase font-bold text-ink-mute tracking-wider block">
                       Public Masked Registration Plate
                     </span>
                     <span className="font-mono text-base font-bold tracking-widest text-ink block bg-ink/[0.04] py-1 px-3 rounded-lg border border-dashed border-ink/20">
                       {usedSample?.reg_no_masked ?? "UP32 ** **** 4120"}
                     </span>
-                    <span className="text-[9px] text-ink-mute block pt-0.5">
+                    <span className="fs-micro text-ink-mute block pt-0.5">
                       Full RTO dossier verified by Vrooma Legal Desk
                     </span>
                   </div>
                 </div>
 
-                <div className="space-y-1 text-xs text-ink-soft pt-2">
-                  <p className="text-[11px] leading-relaxed">
+                <div className="space-y-1 fs-small text-ink-soft pt-2">
+                  <p className="fs-micro leading-relaxed">
                     We ask for consent first and you can opt out any time.
                   </p>
                   <Link
                     href="/legal/data-rights"
-                    className="inline-flex items-center gap-1.5 text-xs font-bold text-accent-ink hover:underline pt-0.5"
+                    className="inline-flex items-center gap-1.5 fs-small font-bold text-accent-ink hover:underline pt-0.5"
                   >
                     <span>Read your DPDP Data Rights</span>
                     <ArrowRight className="h-3.5 w-3.5" />
@@ -254,7 +254,7 @@ export function InspectedUsed({ data }: InspectedUsedProps) {
               <div className="h-16 w-16 mx-auto mb-2 flex items-center justify-center">
                 <ShieldCheck className="h-12 w-12 text-accent-ink" />
               </div>
-              <h2 className="text-2xl sm:text-3xl font-medium tracking-tight text-ink">
+              <h2 className="text-2xl sm:text-3xl font-medium tracking-tight text-ink leading-tight text-balance">
                 Every used car, <Accent tone="accent">inspected</Accent>
               </h2>
             </div>
@@ -263,25 +263,25 @@ export function InspectedUsed({ data }: InspectedUsedProps) {
           <div className="space-y-4">
             <GlassCard className="p-5 space-y-3">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold text-ink">Inspection report</h3>
-                <span className="text-xs font-mono font-bold bg-ink/5 px-2 py-0.5 rounded text-ink-mute">
+                <h3 className="fs-title font-bold text-ink">Inspection report</h3>
+                <span className="fs-micro font-mono font-bold bg-ink/5 px-2 py-0.5 rounded text-ink-mute">
                   {usedSample?.stock_id ?? "UC-1182"}
                 </span>
               </div>
-              <div className="text-xs text-ink-soft">
+              <div className="fs-small text-ink-soft">
                 <span className="font-bold text-ink block">
                   {usedSample?.model_name ?? "Model C"} {usedSample?.variant_name ?? "VX Turbo"}
                 </span>
                 <span>
                   {usedSample?.year ?? 2022} · {usedSample?.owners ?? 1} owner(s) · {usedSample?.km?.toLocaleString("en-IN") ?? "41,200"} km
                 </span>
-                <span className="text-sm font-black text-ink block mt-1">
+                <span className="text-sm sm:text-base font-black text-ink block mt-1">
                   {usedSample?.price ? formatINR(usedSample.price) : "₹8,45,000"}
                 </span>
               </div>
               <Link
                 href={`/used-cars/${usedSample?.stock_id ?? "UC-1182"}`}
-                className="text-xs font-bold text-accent-ink inline-flex items-center gap-1"
+                className="fs-small font-bold text-accent-ink inline-flex items-center gap-1 min-h-[44px]"
               >
                 <span>View certified car</span>
                 <ArrowRight className="h-3 w-3" />
@@ -289,19 +289,19 @@ export function InspectedUsed({ data }: InspectedUsedProps) {
             </GlassCard>
 
             <GlassCard className="p-5 space-y-3">
-              <h3 className="text-sm font-bold text-ink">Your details stay yours</h3>
-              <p className="text-xs text-ink-soft">
+              <h3 className="fs-title font-bold text-ink">Your details stay yours</h3>
+              <p className="fs-small text-ink-soft">
                 Vehicle registration numbers are masked for DPDP Act 2023 privacy.
               </p>
-              <div className="p-2.5 rounded-lg bg-ink/5 border border-dashed border-ink/20 text-center font-mono font-bold text-sm tracking-wider">
+              <div className="p-2.5 rounded-lg bg-ink/5 border border-dashed border-ink/20 text-center font-mono font-bold text-sm sm:text-base tracking-wider">
                 {usedSample?.reg_no_masked ?? "UP32 ** **** 4120"}
               </div>
-              <p className="text-[11px] text-ink-mute">
+              <p className="fs-micro text-ink-mute">
                 We ask for consent first and you can opt out any time.
               </p>
               <Link
                 href="/legal/data-rights"
-                className="text-xs font-bold text-accent-ink inline-flex items-center gap-1"
+                className="fs-small font-bold text-accent-ink inline-flex items-center gap-1 min-h-[44px]"
               >
                 <span>Data rights & opt-out</span>
                 <ArrowRight className="h-3 w-3" />
@@ -313,3 +313,4 @@ export function InspectedUsed({ data }: InspectedUsedProps) {
     />
   );
 }
+

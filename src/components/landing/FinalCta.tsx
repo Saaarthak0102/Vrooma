@@ -79,7 +79,7 @@ export function FinalCta({ data }: FinalCtaProps) {
             data-layout-kind="phone"
             className="absolute left-0 top-1/2 -translate-y-1/2 select-none shrink-0 pointer-events-auto"
           >
-            <PhoneMockup className="!h-[clamp(340px,68svh,500px)] !w-auto aspect-[9/19.5]">
+            <PhoneMockup className="w-[var(--phone-w)] !h-auto">
               <PhoneScreenHome
                 modelName={heroModel.name}
                 variantName={heroModel.variantName}
@@ -123,22 +123,22 @@ export function FinalCta({ data }: FinalCtaProps) {
           <div
             className="absolute left-[clamp(340px,28vw,420px)] right-0 top-2 space-y-3 pointer-events-auto"
           >
-            <span className="text-[10px] font-bold uppercase tracking-wider text-accent-ink block">
+            <span className="fs-micro font-bold uppercase tracking-wider text-accent-ink block">
               Instant Test Drive
             </span>
             <h2
               id="final-heading"
               data-layout="final:heading"
               data-layout-kind="text"
-              className="text-3xl sm:text-4xl lg:text-5xl font-medium tracking-tight text-ink leading-tight text-balance"
+              className="text-3xl sm:text-4xl lg:text-[calc(3rem+2px)] font-medium tracking-tight text-ink leading-tight text-balance"
             >
               Your next car is <Accent tone="mute">a tap away</Accent>
             </h2>
-            <p className="text-xs sm:text-sm text-ink-soft max-w-lg leading-relaxed">
+            <p className="fs-small sm:fs-body text-ink-soft max-w-lg leading-relaxed">
               Select your showroom, choose your demo car, and meet your consultant with zero dealership games.
             </p>
             <div className="pt-1">
-              <PillButton asChild variant="primary" showArrow className="h-11 px-7 text-sm">
+              <PillButton asChild variant="primary" showArrow className="h-11 px-7 fs-small">
                 <Link href="/book/test-drive">Book a test drive</Link>
               </PillButton>
             </div>
@@ -146,7 +146,7 @@ export function FinalCta({ data }: FinalCtaProps) {
               id="final-footnote"
               data-layout="final:footnote"
               data-layout-kind="text"
-              className="text-[11px] text-ink-mute pt-1"
+              className="fs-micro text-ink-mute pt-1"
             >
               No spam. Unsubscribe in one click. DPDP Act 2023 Compliant.
             </p>
@@ -183,13 +183,13 @@ export function FinalCta({ data }: FinalCtaProps) {
       <div className="lg:hidden w-full px-4 sm:px-6 space-y-6 text-center">
         <Reveal>
           <div className="space-y-3">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-accent-ink">
+            <span className="fs-micro font-bold uppercase tracking-wider text-accent-ink">
               Instant Test Drive
             </span>
-            <h2 className="text-3xl sm:text-4xl font-medium tracking-tight text-ink">
+            <h2 className="text-3xl sm:text-4xl font-medium tracking-tight text-ink leading-tight text-balance">
               Your next car is <Accent tone="mute">a tap away</Accent>
             </h2>
-            <p className="text-xs text-ink-soft max-w-sm mx-auto">
+            <p className="fs-small text-ink-soft max-w-sm mx-auto">
               Select your showroom, choose your demo car, and meet your consultant with zero dealership games.
             </p>
           </div>
@@ -207,10 +207,10 @@ export function FinalCta({ data }: FinalCtaProps) {
 
         <Reveal delay={0.1}>
           <div className="space-y-3">
-            <PillButton asChild variant="primary" showArrow className="w-full sm:w-auto h-12 text-sm px-8">
+            <PillButton asChild variant="primary" showArrow className="w-full sm:w-auto h-12 fs-small px-8">
               <Link href="/book/test-drive">Book a test drive</Link>
             </PillButton>
-            <p className="text-[11px] text-ink-mute">
+            <p className="fs-micro text-ink-mute">
               No obligation · 5-minute consultant response SLA
             </p>
           </div>

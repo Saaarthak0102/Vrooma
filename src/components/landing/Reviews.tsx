@@ -80,13 +80,13 @@ export function Reviews() {
     <section ref={containerRef} className="py-24 px-4 sm:px-8 w-full max-w-7xl mx-auto">
       {/* Header */}
       <div data-layout="reviews:heading" data-layout-kind="text" className="text-center space-y-2 mb-14">
-        <span className="text-[10px] font-bold uppercase tracking-wider text-accent-ink">
+        <span className="fs-micro font-bold uppercase tracking-wider text-accent-ink">
           Verified Ownership
         </span>
-        <h2 className="text-3xl sm:text-4xl lg:text-5xl font-medium tracking-tight text-ink">
+        <h2 className="text-3xl sm:text-4xl lg:text-[calc(3rem+2px)] font-medium tracking-tight text-ink text-balance">
           What our <Accent tone="accent">amazing</Accent> customers are saying
         </h2>
-        <p className="text-xs text-ink-mute font-medium pt-1">
+        <p className="fs-micro text-ink-mute font-medium pt-1">
           Sample reviews. Replace with real customer reviews before launch.
         </p>
       </div>
@@ -112,7 +112,7 @@ export function Reviews() {
               </div>
 
               {/* Quote text */}
-              <p className="text-xs sm:text-sm text-ink-soft leading-relaxed font-normal">
+              <p className="fs-small sm:fs-body text-ink-soft leading-relaxed font-normal">
                 &ldquo;{review.quote}&rdquo;
               </p>
             </div>
@@ -122,10 +122,10 @@ export function Reviews() {
               <div className="review-avatar h-10 w-10 rounded-full bg-dark text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-sm border border-white/20">
                 {review.initials}
               </div>
-              <div className="text-left text-xs">
+              <div className="text-left fs-small">
                 <span className="font-bold text-ink block leading-tight">{review.name}</span>
-                <span className="text-[10px] text-ink-mute block">{review.role}</span>
-                <span className="text-[10px] text-accent-ink font-semibold block mt-0.5">
+                <span className="fs-micro text-ink-mute block">{review.role}</span>
+                <span className="fs-micro text-accent-ink font-semibold block mt-0.5">
                   {review.carModel} · {review.location}
                 </span>
               </div>
