@@ -119,7 +119,24 @@
     "finalCtaAccent": "एक टैप दूर है",
     "quickSearch": "त्वरित वाहन खोज...",
     "featuredModels": "प्रमुख नए मॉडल",
-    "featuredModelsSub": "लग्जरी, सुरक्षा और बेहतरीन ड्राइविंग अनुभव के लिए निर्मित।"
+    "featuredModelsSub": "लग्जरी, सुरक्षा और बेहतरीन ड्राइविंग अनुभव के लिए निर्मित।",
+    "phone": {
+      "bookTestDriveHeader": "टेस्ट ड्राइव बुक करें",
+      "pickShowroom": "शोरूम चुनें",
+      "step1PickShowroom": "1. शोरूम चुनें",
+      "todaySlots": "आज के उपलब्ध स्लॉट",
+      "step2TodaySlots": "2. आज के उपलब्ध स्लॉट",
+      "noSlotsToday": "आज कोई स्लॉट नहीं - कल के देखें",
+      "tomorrow": "कल",
+      "confirmTestDrive": "टेस्ट ड्राइव कन्फर्म करें",
+      "selected": "चुना गया",
+      "nearby": "आस-पास",
+      "tabHome": "होम",
+      "tabCars": "कारें",
+      "tabUsed": "प्रयुक्त कारें",
+      "tabBookings": "बुकिंग",
+      "tabProfile": "प्रोफाइल"
+    }
   },
   "footer": {
     "newsletterTitle": "नए आगमन और ऑफ़र के लिए हमारे न्यूज़लेटर में शामिल हों।",

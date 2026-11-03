@@ -119,7 +119,24 @@
     "finalCtaAccent": "a tap away",
     "quickSearch": "Quick vehicle search...",
     "featuredModels": "Featured New Models",
-    "featuredModelsSub": "Engineered for luxury, safety, and pure driving performance."
+    "featuredModelsSub": "Engineered for luxury, safety, and pure driving performance.",
+    "phone": {
+      "bookTestDriveHeader": "Book Test Drive",
+      "pickShowroom": "Pick a showroom",
+      "step1PickShowroom": "1. Pick a showroom",
+      "todaySlots": "Today's free slots",
+      "step2TodaySlots": "2. Today's free slots",
+      "noSlotsToday": "No slots today - see tomorrow",
+      "tomorrow": "Tomorrow",
+      "confirmTestDrive": "Confirm test drive",
+      "selected": "Selected",
+      "nearby": "Nearby",
+      "tabHome": "Home",
+      "tabCars": "Cars",
+      "tabUsed": "Used",
+      "tabBookings": "Bookings",
+      "tabProfile": "Profile"
+    }
   },
   "footer": {
     "newsletterTitle": "Join our newsletter for new arrivals and offers.",

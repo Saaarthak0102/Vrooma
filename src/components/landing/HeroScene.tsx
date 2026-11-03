@@ -287,7 +287,7 @@ export function HeroScene({ data }: HeroSceneProps) {
             id="hero-body-group"
             data-layout="hero:body"
             data-layout-kind="text"
-            className="absolute top-[clamp(185px,23svh,220px)] left-[52%] max-w-[400px] pointer-events-auto space-y-3.5"
+            className="absolute top-[clamp(160px,20svh,200px)] left-[52%] max-w-[420px] pointer-events-auto space-y-4"
           >
             <p className="fs-body text-ink-soft leading-relaxed font-normal">
               Real on-road prices, EMI and test-drive slots for Brand X in Lucknow. A named consultant replies within 5 minutes.
@@ -300,31 +300,31 @@ export function HeroScene({ data }: HeroSceneProps) {
                 <Link href="/cars">Browse cars</Link>
               </PillButton>
             </div>
-          </div>
 
-          {/* Floater Chip (a): Next Free Slot */}
-          <div
-            data-layout="hero:chip-slot"
-            data-layout-kind="chip"
-            className="hero-floater-chip absolute top-[clamp(295px,38svh,335px)] left-[52%] z-30 pointer-events-auto"
-          >
-            <Floater duration={3.8} deltaY={-8}>
-              <div className="glass-card px-4 py-2.5 rounded-pill flex items-center gap-2.5 shadow-card border border-white/80">
-                <div className="h-7 w-7 rounded-full bg-accent/15 text-accent-ink flex items-center justify-center">
-                  <Clock className="h-3.5 w-3.5" />
+            {/* Floater Chip (a): Next Free Slot (Structurally placed >=24px below CTA row) */}
+            <div
+              data-layout="hero:chip-slot"
+              data-layout-kind="chip"
+              className="hero-floater-chip pt-2 pointer-events-auto inline-block"
+            >
+              <Floater duration={3.8} deltaY={-6}>
+                <div className="glass-card px-4 py-2.5 rounded-pill flex items-center gap-2.5 shadow-card border border-white/80">
+                  <div className="h-7 w-7 rounded-full bg-accent/15 text-accent-ink flex items-center justify-center shrink-0">
+                    <Clock className="h-3.5 w-3.5" />
+                  </div>
+                  <div className="text-left">
+                    <span className="fs-micro uppercase font-bold text-ink-mute tracking-wider block">
+                      Next Free Slot
+                    </span>
+                    <span className="fs-small font-bold text-ink">
+                      {liveSlot
+                        ? `${liveSlot.timeFormatted} · ${liveSlot.showroomName}`
+                        : "Today, 4:00 PM · Hazratganj"}
+                    </span>
+                  </div>
                 </div>
-                <div className="text-left">
-                  <span className="fs-micro uppercase font-bold text-ink-mute tracking-wider block">
-                    Next Free Slot
-                  </span>
-                  <span className="fs-small font-bold text-ink">
-                    {liveSlot
-                      ? `${liveSlot.timeFormatted} · ${liveSlot.showroomName}`
-                      : "Today, 4:00 PM · Hazratganj"}
-                  </span>
-                </div>
-              </div>
-            </Floater>
+              </Floater>
+            </div>
           </div>
 
           {/* Floater Chip (b): Teaser On-road Lucknow */}
@@ -536,15 +536,24 @@ export function HeroScene({ data }: HeroSceneProps) {
           </div>
         </div>
 
-        {/* Mobile Chips */}
-        <div className="flex flex-wrap gap-2.5">
-          <div className="glass-card px-3.5 py-2 rounded-pill flex items-center gap-2 fs-small">
-            <Clock className="h-3.5 w-3.5 text-accent-ink" />
-            <span className="font-semibold text-ink">
-              {liveSlot ? liveSlot.timeFormatted : "Today, 4:00 PM"}
-            </span>
+        {/* Mobile Chips: sits below CTA buttons with 20px gap, full width of content column */}
+        <div className="flex flex-col gap-3 pt-2">
+          <div className="glass-card px-4 py-2.5 rounded-pill flex items-center gap-2.5 fs-small w-full shadow-sm border border-white/80">
+            <div className="h-7 w-7 rounded-full bg-accent/15 text-accent-ink flex items-center justify-center shrink-0">
+              <Clock className="h-3.5 w-3.5" />
+            </div>
+            <div className="text-left min-w-0">
+              <span className="fs-micro uppercase font-bold text-ink-mute tracking-wider block">
+                Next Free Slot
+              </span>
+              <span className="fs-small font-bold text-ink truncate block">
+                {liveSlot
+                  ? `${liveSlot.timeFormatted} · ${liveSlot.showroomName}`
+                  : "Today, 4:00 PM · Hazratganj"}
+              </span>
+            </div>
           </div>
-          <div className="glass-card px-3.5 py-2 rounded-pill flex items-center gap-2 fs-small">
+          <div className="glass-card px-4 py-2 rounded-pill flex items-center justify-between gap-2 fs-small w-full border border-white/80">
             <span className="text-accent-ink font-bold">On-road from:</span>
             <span className="font-bold text-ink">
               {data.heroModel.teaserOnRoad ? formatINR(data.heroModel.teaserOnRoad) : "Contact showroom"}

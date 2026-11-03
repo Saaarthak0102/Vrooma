@@ -110,13 +110,13 @@ export function InspectedUsed({ data }: InspectedUsedProps) {
               <svg className="w-full h-full drop-shadow-lg" viewBox="0 0 100 110" fill="none">
                 <defs>
                   <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stop-color="#E3F7EE" />
-                    <stop offset="50%" stop-color="#1FBF75" />
-                    <stop offset="100%" stop-color="#0B8F56" />
+                    <stop offset="0%" stopColor="#E3F7EE" />
+                    <stop offset="50%" stopColor="#1FBF75" />
+                    <stop offset="100%" stopColor="#0B8F56" />
                   </linearGradient>
                   <linearGradient id="shieldBorder" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stop-color="#FFFFFF" />
-                    <stop offset="100%" stop-color="#0B8F56" />
+                    <stop offset="0%" stopColor="#FFFFFF" />
+                    <stop offset="100%" stopColor="#0B8F56" />
                   </linearGradient>
                 </defs>
                 {/* Shield Body */}

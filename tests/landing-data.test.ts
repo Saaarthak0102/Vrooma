@@ -73,4 +73,19 @@ describe("Landing Data Engine (Phase 2)", () => {
     expect(data.locations.some((l) => l.type === "workshop")).toBe(true);
     expect(data.locations.some((l) => l.type === "yard")).toBe(true);
   });
+
+  it("returns valid bookNowPreview for final CTA phone screen without hardcoded hours", async () => {
+    const data = await getLandingData("en");
+    expect(data.bookNowPreview).toBeDefined();
+    expect(data.bookNowPreview.showrooms.length).toBe(2);
+    expect(data.bookNowPreview.showrooms[0].name).toBeTruthy();
+    expect(data.bookNowPreview.showrooms[0].area).toBeTruthy();
+    expect(typeof data.bookNowPreview.showrooms[0].openNow).toBe("boolean");
+    expect(data.bookNowPreview.showrooms[0].label).toMatch(/^(Open now - closes|Opens)\s+\d+/);
+
+    expect(Array.isArray(data.bookNowPreview.slots)).toBe(true);
+    if (data.bookNowPreview.slots.length > 0) {
+      expect(data.bookNowPreview.slots[0].timeFormatted).toMatch(/(am|pm)/i);
+    }
+  });
 });

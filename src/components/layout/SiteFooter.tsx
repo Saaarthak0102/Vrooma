@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import { Link } from "@/i18n/navigation";
+import { Link, usePathname } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 import { Container } from "@/components/ui/container";
 import { PillButton } from "@/components/ui/PillButton";
@@ -9,10 +9,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { LocaleSwitcher } from "./LocaleSwitcher";
 import { toast } from "sonner";
 import { useGSAP } from "@gsap/react";
-import { gsap } from "@/lib/motion/register";
-import { PIN_QUERY } from "@/lib/motion/media";
+import { gsap, ScrollTrigger } from "@/lib/motion/register";
+import { PIN_QUERY, REDUCED_QUERY } from "@/lib/motion/media";
 
 export function SiteFooter() {
+  const pathname = usePathname();
   const tNav = useTranslations("nav");
   const tCommon = useTranslations("common");
   const [email, setEmail] = useState("");
@@ -30,30 +31,55 @@ export function SiteFooter() {
 
       const mm = gsap.matchMedia();
 
-      mm.add(PIN_QUERY, () => {
-        gsap.fromTo(
-          wordmark,
-          {
-            yPercent: 45,
-            opacity: 0,
-          },
-          {
-            yPercent: 0,
-            opacity: 1,
-            ease: "none",
-            scrollTrigger: {
-              trigger: footer,
-              start: "top bottom",
-              end: "bottom bottom",
-              scrub: 0.6,
-            },
-          }
-        );
+      // Under reduced motion: always show final state immediately
+      mm.add(REDUCED_QUERY, () => {
+        gsap.set(wordmark, { yPercent: 0, opacity: 1 });
       });
+
+      // Under mobile/tablet viewports (< 1024px): show final state immediately without scroll lag
+      mm.add("(max-width: 1023px)", () => {
+        gsap.set(wordmark, { yPercent: 0, opacity: 1 });
+      });
+
+      // Desktop layout with no reduced motion
+      mm.add(PIN_QUERY, () => {
+        const rect = footer.getBoundingClientRect();
+        const isAlreadyInView = rect.top <= window.innerHeight;
+        const isScrollable = document.documentElement.scrollHeight > window.innerHeight + 80;
+
+        if (isAlreadyInView && !isScrollable) {
+          // Short page where footer is already fully on screen at load
+          gsap.set(wordmark, { yPercent: 0, opacity: 1 });
+        } else {
+          // Normal/long page: scroll-linked rise
+          gsap.fromTo(
+            wordmark,
+            {
+              yPercent: 45,
+              opacity: 0,
+            },
+            {
+              yPercent: 0,
+              opacity: 1,
+              ease: "none",
+              scrollTrigger: {
+                trigger: footer,
+                start: "top bottom",
+                end: "bottom bottom",
+                scrub: 0.6,
+                invalidateOnRefresh: true,
+              },
+            }
+          );
+        }
+      });
+
+      // Recalculate ScrollTrigger on route transitions
+      ScrollTrigger.refresh();
 
       return () => mm.revert();
     },
-    { scope: footerRef }
+    { scope: footerRef, dependencies: [pathname] }
   );
 
   const handleSubscribe = async (e: React.FormEvent) => {
@@ -116,7 +142,7 @@ export function SiteFooter() {
                   placeholder="Enter your email address"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="flex-1 h-11 rounded-pill bg-white/90 border border-border px-4 text-xs text-ink placeholder:text-ink-mute focus:outline-none focus:ring-2 focus:ring-accent"
+                  className="flex-1 h-11 rounded-pill bg-white/90 border border-border px-4 text-base sm:text-xs text-ink placeholder:text-ink-mute focus:outline-none focus:ring-2 focus:ring-accent"
                 />
                 <PillButton
                   type="submit"
@@ -253,15 +279,15 @@ export function SiteFooter() {
         </div>
       </Container>
 
-      {/* Giant Scrubbed Vrooma Wordmark (Instrument Serif italic) */}
+      {/* Giant Scrubbed Vrooma Wordmark (Instrument Serif italic, sits behind links with lower z-index and 24px bottom padding) */}
       <div
         ref={wordmarkRef}
         data-layout="footer:wordmark"
         data-layout-kind="text"
         aria-hidden="true"
-        className="pointer-events-none select-none text-center font-serif italic font-normal tracking-tight text-white/55 leading-none whitespace-nowrap overflow-hidden"
+        className="pointer-events-none select-none text-center font-serif italic font-normal tracking-tight text-white/55 leading-none whitespace-nowrap overflow-hidden relative z-0 pb-6"
         style={{
-          fontSize: "clamp(8rem, 26vw, 24rem)",
+          fontSize: "clamp(4.5rem, 24vw, 24rem)",
           WebkitMaskImage: "linear-gradient(to bottom, rgba(0,0,0,1) 40%, rgba(0,0,0,0) 100%)",
           maskImage: "linear-gradient(to bottom, rgba(0,0,0,1) 40%, rgba(0,0,0,0) 100%)",
         }}

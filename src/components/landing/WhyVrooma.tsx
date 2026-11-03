@@ -82,11 +82,11 @@ export function WhyVrooma({ data }: WhyVroomaProps) {
         0.54
       );
 
-    // 0.8 - 1.0: Dark bar slides up
+    // 0.72 - 0.92: Dark bar slides up earlier to hold at rest for at least 8% of pin length
     tl.to(
       darkBar,
       { y: 0, opacity: 1, duration: 0.2, ease: "expo.out" },
-      0.8
+      0.42
     );
   };
 
@@ -100,7 +100,7 @@ export function WhyVrooma({ data }: WhyVroomaProps) {
     >
       {/* Desktop & Pinned Layout */}
       <div data-layer className="hidden lg:block w-full h-full pointer-events-none">
-        <div className="stage-inner pointer-events-auto flex flex-col justify-between h-full w-full pt-1 pb-6">
+        <div className="stage-inner pointer-events-auto flex flex-col justify-between h-full w-full pt-1 pb-[clamp(24px,4svh,36px)]">
           {/* Centred Large Heading */}
           <div
             id="why-heading"
@@ -117,7 +117,7 @@ export function WhyVrooma({ data }: WhyVroomaProps) {
           </div>
 
           {/* Three GlassCards */}
-          <div className="grid grid-cols-3 gap-6 my-auto py-2">
+          <div className="grid grid-cols-3 gap-6 my-auto py-1">
             {/* Card 1: Know the real price */}
             <GlassCard data-layout="why:card-1" data-layout-kind="card" className="why-card p-5 sm:p-6 flex flex-col justify-between space-y-3">
               <div className="space-y-1">
@@ -266,7 +266,7 @@ export function WhyVrooma({ data }: WhyVroomaProps) {
             id="why-dark-bar"
             data-layout="why:dark-bar"
             data-layout-kind="card"
-            className="rounded-2xl bg-dark text-white p-4 sm:p-5 px-6 sm:px-8 flex items-center justify-between shadow-xl border border-white/10 w-[min(100%,1100px)] mx-auto mb-2"
+            className="rounded-2xl bg-dark text-white p-3.5 sm:p-4 px-6 sm:px-8 flex items-center justify-between shadow-xl border border-white/10 w-[min(100%,1000px)] mx-auto mb-3"
           >
             <div className="space-y-0.5 max-w-2xl">
               <h4 className="fs-title font-bold text-white leading-snug">

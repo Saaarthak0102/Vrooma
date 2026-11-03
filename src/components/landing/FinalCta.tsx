@@ -6,7 +6,7 @@ import { Link } from "@/i18n/navigation";
 import { PinnedScene } from "@/components/motion/PinnedScene";
 import { Accent } from "@/components/ui/accent";
 import { PillButton } from "@/components/ui/PillButton";
-import { PhoneMockup, PhoneScreenHome } from "./phone";
+import { PhoneMockup, PhoneScreenBookNow } from "./phone";
 import { Reveal } from "@/components/motion/Reveal";
 import { LandingData } from "@/server/landing-data";
 import { gsap, DrawSVGPlugin, MotionPathPlugin } from "@/lib/motion/register";
@@ -80,13 +80,10 @@ export function FinalCta({ data }: FinalCtaProps) {
             className="absolute left-0 top-1/2 -translate-y-1/2 select-none shrink-0 pointer-events-auto"
           >
             <PhoneMockup className="w-[var(--phone-w)] !h-auto">
-              <PhoneScreenHome
+              <PhoneScreenBookNow
                 modelName={heroModel.name}
                 variantName={heroModel.variantName}
-                onRoadPrice={heroModel.teaserOnRoad}
-                validUntil={heroModel.validUntil ?? "31 Dec 2026"}
-                nextSlotTime={data.nextSlot?.timeFormatted ?? "Today, 4:00 PM"}
-                nextShowroom={data.nextSlot?.showroomName ?? "Hazratganj Flagship"}
+                preview={data.bookNowPreview}
               />
             </PhoneMockup>
           </div>
@@ -203,6 +200,17 @@ export function FinalCta({ data }: FinalCtaProps) {
             sizes="100vw"
             className="object-contain"
           />
+        </div>
+
+        {/* Mobile Phone Mockup: Preview test drive booking */}
+        <div className="flex justify-center select-none py-2">
+          <PhoneMockup className="w-[min(78vw,320px)] !h-auto">
+            <PhoneScreenBookNow
+              modelName={heroModel.name}
+              variantName={heroModel.variantName}
+              preview={data.bookNowPreview}
+            />
+          </PhoneMockup>
         </div>
 
         <Reveal delay={0.1}>

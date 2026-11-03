@@ -68,6 +68,25 @@ export interface EmiDefaultsData {
   label: "indicative";
 }
 
+export interface BookNowShowroomPreview {
+  id: string;
+  name: string;
+  area: string;
+  openNow: boolean;
+  label: string;
+}
+
+export interface BookNowSlotPreview {
+  id: string;
+  timeFormatted: string;
+}
+
+export interface BookNowPreviewData {
+  showrooms: BookNowShowroomPreview[];
+  slots: BookNowSlotPreview[];
+  nextDayLabel?: string | null;
+}
+
 export interface LandingData {
   featuredModels: FeaturedModelTeaser[];
   heroModel: HeroModelData;
@@ -76,6 +95,7 @@ export interface LandingData {
   stats: LandingStatsData;
   usedSample: PublicUsedCarSample | null;
   emiDefaults: EmiDefaultsData;
+  bookNowPreview: BookNowPreviewData;
 }
 
 export async function getLandingData(locale: string = "en"): Promise<LandingData> {
@@ -268,6 +288,150 @@ export async function getLandingData(locale: string = "en"): Promise<LandingData
     label: "indicative",
   };
 
+  // 9. Book Now Preview for FinalCta phone screen (computed in Asia/Kolkata)
+  const computeShowroomHoursStatus = (hours: Record<string, string>): { openNow: boolean; label: string } => {
+    const kolkataFormatter = new Intl.DateTimeFormat("en-US", {
+      timeZone: "Asia/Kolkata",
+      weekday: "short",
+      hour: "numeric",
+      minute: "numeric",
+      hour12: false,
+    });
+    const parts = kolkataFormatter.formatToParts(now);
+    const weekday = parts.find((p) => p.type === "weekday")?.value ?? "Mon";
+    const hour = parseInt(parts.find((p) => p.type === "hour")?.value ?? "12", 10);
+    const minute = parseInt(parts.find((p) => p.type === "minute")?.value ?? "0", 10);
+    const currentMinutes = hour * 60 + minute;
+
+    const isSunday = weekday === "Sun";
+    let timeRangeStr = isSunday ? hours["Sunday"] : hours["Mon - Sat"];
+    if (!timeRangeStr) {
+      timeRangeStr = Object.values(hours)[0] || "09:30 AM - 08:00 PM";
+    }
+
+    const [openPart, closePart] = timeRangeStr.split("-").map((s) => s.trim());
+
+    const parse12HourTime = (t?: string): number => {
+      if (!t) return 9 * 60 + 30;
+      const match = t.match(/(\d+):(\d+)\s*(AM|PM)/i);
+      if (!match) return 9 * 60 + 30;
+      let h = parseInt(match[1], 10);
+      const m = parseInt(match[2], 10);
+      const meridiem = match[3].toUpperCase();
+      if (meridiem === "PM" && h < 12) h += 12;
+      if (meridiem === "AM" && h === 12) h = 0;
+      return h * 60 + m;
+    };
+
+    const openMinutes = parse12HourTime(openPart);
+    const closeMinutes = parse12HourTime(closePart);
+
+    const formatMinutesTo12Hour = (min: number) => {
+      let h = Math.floor(min / 60);
+      const m = min % 60;
+      const ampm = h >= 12 ? "PM" : "AM";
+      if (h > 12) h -= 12;
+      if (h === 0) h = 12;
+      const minuteStr = m === 0 ? ":00" : `:${m.toString().padStart(2, "0")}`;
+      return `${h}${minuteStr} ${ampm}`;
+    };
+
+    if (currentMinutes >= openMinutes && currentMinutes < closeMinutes) {
+      return {
+        openNow: true,
+        label: `Open now - closes ${formatMinutesTo12Hour(closeMinutes)}`,
+      };
+    } else {
+      return {
+        openNow: false,
+        label: `Opens ${formatMinutesTo12Hour(openMinutes)}`,
+      };
+    }
+  };
+
+  const previewShowrooms: BookNowShowroomPreview[] = showrooms.slice(0, 2).map((s) => {
+    const status = computeShowroomHoursStatus(s.hours || {});
+    const addressParts = s.address.split(",").map((p) => p.trim());
+    const area = addressParts.length >= 3
+      ? `${addressParts[2]}, ${addressParts[1]}`
+      : addressParts[0] || "Lucknow";
+
+    const shortName = s.name.replace(/^Vrooma\s+/, "");
+
+    return {
+      id: s.id,
+      name: shortName,
+      area,
+      openNow: status.openNow,
+      label: status.label,
+    };
+  });
+
+  const kolkataDay = (date: Date) => {
+    return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(date);
+  };
+  const todayKolkata = kolkataDay(now);
+
+  const todayAvailableSlots = availableSlots.filter(
+    (s) => kolkataDay(new Date(s.starts_at)) === todayKolkata
+  );
+
+  let previewSlots: BookNowSlotPreview[] = [];
+  let nextDayLabel: string | null = null;
+
+  if (todayAvailableSlots.length > 0) {
+    previewSlots = todayAvailableSlots.slice(0, 3).map((s) => {
+      const d = new Date(s.starts_at);
+      return {
+        id: s.id,
+        timeFormatted: d
+          .toLocaleTimeString("en-IN", {
+            timeZone: "Asia/Kolkata",
+            hour: "numeric",
+            minute: "2-digit",
+            hour12: true,
+          })
+          .toUpperCase(),
+      };
+    });
+  } else {
+    const futureSlots = availableSlots.filter(
+      (s) => kolkataDay(new Date(s.starts_at)) > todayKolkata
+    );
+    if (futureSlots.length > 0) {
+      const firstFutureDate = new Date(futureSlots[0].starts_at);
+      const dayName = firstFutureDate.toLocaleDateString("en-IN", {
+        timeZone: "Asia/Kolkata",
+        weekday: "short",
+        day: "numeric",
+        month: "short",
+      });
+      nextDayLabel = `No slots today - see ${dayName}`;
+      previewSlots = futureSlots.slice(0, 3).map((s) => {
+        const d = new Date(s.starts_at);
+        return {
+          id: s.id,
+          timeFormatted: d
+            .toLocaleTimeString("en-IN", {
+              timeZone: "Asia/Kolkata",
+              hour: "numeric",
+              minute: "2-digit",
+              hour12: true,
+            })
+            .toUpperCase(),
+        };
+      });
+    } else {
+      nextDayLabel = "No slots today - see tomorrow";
+    }
+  }
+
+  const bookNowPreview: BookNowPreviewData = {
+    showrooms: previewShowrooms,
+    slots: previewSlots,
+    nextDayLabel,
+  };
+
   return {
     featuredModels,
     heroModel,
@@ -276,5 +440,6 @@ export async function getLandingData(locale: string = "en"): Promise<LandingData
     stats,
     usedSample,
     emiDefaults,
+    bookNowPreview,
   };
 }
