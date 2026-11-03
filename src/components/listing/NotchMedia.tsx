@@ -1,14 +1,11 @@
 import React from "react";
 import Image from "next/image";
-import { NotchArrow } from "./NotchArrow";
 
 export interface NotchMediaProps {
   src: string;
   alt: string;
   priority?: boolean;
   tag?: React.ReactNode;
-  showArrow?: boolean;
-  isBooked?: boolean;
   className?: string;
   blurDataURL?: string;
 }
@@ -18,8 +15,6 @@ export function NotchMedia({
   alt,
   priority = false,
   tag,
-  showArrow = true,
-  isBooked = false,
   className = "",
   blurDataURL,
 }: NotchMediaProps) {
@@ -41,10 +36,6 @@ export function NotchMedia({
 
       {/* Bottom-left cutout tag */}
       {tag}
-
-      {/* Bottom-right cutout arrow */}
-      {showArrow && <NotchArrow isBooked={isBooked} />}
     </div>
   );
 }
-

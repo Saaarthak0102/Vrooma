@@ -259,7 +259,9 @@
       "suv": "SUV",
       "hatchback": "Hatchback",
       "ev": "EV",
-      "mpv": "MPV"
+      "mpv": "MPV",
+      "familyFriendly": "Family friendly",
+      "ecoFriendly": "Eco friendly"
     },
     "quickView": "Quick view",
     "details": "Details",

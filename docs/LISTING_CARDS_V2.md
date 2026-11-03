@@ -92,3 +92,38 @@ Pure function in `src/lib/listing-tags.ts`:
 5. All text maintains $\ge 12\text{px}$ floor (tab label) and $\ge 14\text{px}$ for specifications.
 6. Buttons maintain a minimum height of 44px for touch targets.
 
+---
+
+## 5. ROUND 2 SPECIFICATION & CHANGE LOG
+
+### Summary of Round 2 Changes
+- **C1. Remove Arrow Everywhere**: Deleted decorative bottom-right arrow circle and concave cutouts from all cards. Removed `NotchArrow` component, CSS, `--lc-arrow` tokens, and hover rules.
+- **C2. Full-Width Image**: Image band spans the card's full width inside the 1px card border (`margin-inline: calc(var(--lc-pad) * -1)`). Single token `--lc-pad` (16px mobile, 20px from 640px) locks card padding and media negative margins together. Tab text has left padding `var(--lc-pad)` lining up flush with title and specs below. Straight band with square side edges.
+- **C3. Remove Green Line on Hover**: Deleted the bottom hairline (`.notch-card::after` scaleX animation). Preserved card lift, shadow layer fade, soft green border tint (`color-mix`), image zoom, and light sweep.
+- **C4. Tag Words for SUV and EV**: Added `SUV_EV_TAG_OVERRIDES_OTHERS = true` in `lib/constants.ts`. SUVs resolve to `"familyFriendly"` ("Family friendly" / "परिवार के लिए"), EVs resolve to `"ecoFriendly"` ("Eco friendly" / "पर्यावरण अनुकूल"). EV beats SUV when a model is both. No accent dot on these tags.
+- **C5. Better, Quieter Dark Primary Button Hover**: Removed text roll, duplicate label markup, and accent ring. Applied shade shift (`color-mix(in srgb, var(--dark) 88%, white)`), single soft light sweep (`::after` 105deg gradient translateX -130% -> 130% over 700ms), 1px top highlight (`::before` opacity fade), arrow icon translateX(3px) over 250ms, active press scale(0.985), and accessible focus ring.
+
+### Round 2 Change Log (`file | what | before -> after`)
+
+| File | What | Before -> After |
+|---|---|---|
+| `src/components/listing/NotchArrow.tsx` | Arrow primitive deletion | Existed with concave fillets and dark arrow circle -> Deleted file entirely |
+| `src/components/listing/index.ts` | Export cleanup | `export * from "./NotchArrow";` -> Removed export |
+| `src/components/listing/NotchMedia.tsx` | Media primitive arrow removal | Rendered `<NotchArrow>` with `showArrow` and `isBooked` props -> Clean media container with full-width band and tag only |
+| `src/components/listing/ListingCardSkeleton.tsx` | Skeleton cutout matching | Arrow notch cutout placeholder -> Removed arrow cutout; added `paddingLeft: "var(--lc-pad)"` to tab placeholder |
+| `src/components/listing/listing-card.css` | Token definition | `--lc-arrow: 52px; --lc-media-inset: 8px; --lc-media-radius: 12px;` -> Removed; added `--lc-pad: 16px;` (20px at >=640px) |
+| `src/components/listing/listing-card.css` | Card padding synchronization | `padding: 16px;` (20px >=640px) -> `padding: var(--lc-pad);` |
+| `src/components/listing/listing-card.css` | Bottom accent hairline removal | `.notch-card::after` with `scaleX(0 -> 1)` animation -> Deleted `.notch-card::after` and all related hover/focus rules |
+| `src/components/listing/listing-card.css` | Full-width media band | `border-radius: var(--lc-media-radius); width: 100%;` -> `border-radius: 0; width: auto; margin-inline: calc(var(--lc-pad) * -1);` |
+| `src/components/listing/listing-card.css` | Tag text alignment | `.notch-tag { padding: 0 16px 0 0; }` -> `.notch-tag { padding: 0 16px 0 var(--lc-pad); }` |
+| `src/components/listing/listing-card.css` | Arrow CSS cleanup | `.notch-arrow`, `.notch-arrow-circle`, `.notch-arrow-icon` and hover rotation -> Completely removed |
+| `src/components/listing/listing-card.css` | Primary button hover | Text roll (`.notch-btn-roll`), duplicate text span, inner accent ring -> Minimal shade shift (`color-mix(in srgb, var(--dark) 88%, white)`), single light sweep (`::after`), 1px top highlight (`::before`), arrow icon translateX(3px) |
+| `src/lib/constants.ts` | SUV/EV priority override constant | Did not exist -> `export const SUV_EV_TAG_OVERRIDES_OTHERS = true;` |
+| `src/lib/listing-tags.ts` | Tag resolution engine | Only `featured`, `offer`, `newArrival`, `{bodyType}` -> Added `familyFriendly`, `ecoFriendly`, EV detection (`body_type` or variants), SUV detection, and `SUV_EV_TAG_OVERRIDES_OTHERS` priority branching |
+| `messages/en.json` | English tag translations | Missing `familyFriendly` and `ecoFriendly` -> `"familyFriendly": "Family friendly"`, `"ecoFriendly": "Eco friendly"` |
+| `messages/hi.json` | Hindi tag translations | Missing `familyFriendly` and `ecoFriendly` -> `"familyFriendly": "परिवार के लिए"`, `"ecoFriendly": "पर्यावरण अनुकूल"` |
+| `tests/listing-tags.test.ts` | Tag test suite | Tested v1 priority without SUV/EV tags -> Added comprehensive tests for SUV, EV, EV-beats-SUV, overrides true/false, sedan/hatchback unchanged, dot rules |
+| `src/components/cars/CarCard.tsx` | New car card tag & button | No variants passed to `newCarTag`, button used text roll -> Passed `variants: model.variants`, simplified button DOM to `<span>Book Demo</span>` + `<ArrowRight>` |
+| `src/components/used/UsedCarCard.tsx` | Used car card button & media | Passed `isBooked` to `NotchMedia`, button used text roll -> Clean `<NotchMedia>`, simplified button DOM to `<span>Book VIP view</span>` + `<ArrowRight>` |
+| `docs/LISTING_CARDS_V2.md` | Architectural specification | Documented Round 1 primitives -> Added Round 2 specification and change log |
+

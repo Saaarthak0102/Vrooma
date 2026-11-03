@@ -39,46 +39,166 @@ describe("listing-tags pure logic", () => {
   });
 
   describe("newCarTag", () => {
-    it("prioritizes 'featured' over active offer and new arrival", () => {
-      const tag = newCarTag({
-        isFeatured: true,
-        hasActiveOffer: true,
-        createdAt: "2026-11-01T00:00:00+05:30",
-        bodyType: "sedan",
-        now: referenceDate,
+    describe("when SUV_EV_TAG_OVERRIDES_OTHERS is true (default)", () => {
+      it("resolves SUV to 'familyFriendly' overriding featured, offer, and new arrival", () => {
+        const tag = newCarTag({
+          isFeatured: true,
+          hasActiveOffer: true,
+          createdAt: "2026-11-01T00:00:00+05:30",
+          bodyType: "suv",
+          now: referenceDate,
+        });
+        expect(tag).toBe("familyFriendly");
       });
-      expect(tag).toBe("featured");
+
+      it("resolves EV by bodyType to 'ecoFriendly' overriding featured, offer, and new arrival", () => {
+        const tag = newCarTag({
+          isFeatured: true,
+          hasActiveOffer: true,
+          createdAt: "2026-11-01T00:00:00+05:30",
+          bodyType: "ev",
+          now: referenceDate,
+        });
+        expect(tag).toBe("ecoFriendly");
+      });
+
+      it("resolves EV by all variants fuel=ev to 'ecoFriendly'", () => {
+        const tag = newCarTag({
+          isFeatured: false,
+          hasActiveOffer: false,
+          bodyType: "hatchback",
+          variants: [{ fuel: "ev" }, { fuel: "ev" }],
+          now: referenceDate,
+        });
+        expect(tag).toBe("ecoFriendly");
+      });
+
+      it("EV beats SUV when a model is both (e.g. electric SUV)", () => {
+        const tag = newCarTag({
+          isFeatured: false,
+          hasActiveOffer: false,
+          bodyType: "suv",
+          variants: [{ fuel: "ev" }, { fuel: "ev" }],
+          now: referenceDate,
+        });
+        expect(tag).toBe("ecoFriendly");
+      });
+
+      it("keeps standard hierarchy for sedan and hatchback", () => {
+        // Featured wins for sedan
+        const tagFeatured = newCarTag({
+          isFeatured: true,
+          hasActiveOffer: true,
+          createdAt: "2026-11-01T00:00:00+05:30",
+          bodyType: "sedan",
+          now: referenceDate,
+        });
+        expect(tagFeatured).toBe("featured");
+
+        // Offer wins when not featured for hatchback
+        const tagOffer = newCarTag({
+          isFeatured: false,
+          hasActiveOffer: true,
+          createdAt: "2026-11-01T00:00:00+05:30",
+          bodyType: "hatchback",
+          now: referenceDate,
+        });
+        expect(tagOffer).toBe("offer");
+
+        // New arrival wins when within 60 days
+        const tagArrival = newCarTag({
+          isFeatured: false,
+          hasActiveOffer: false,
+          createdAt: "2026-09-15T00:00:00+05:30",
+          bodyType: "hatchback",
+          now: referenceDate,
+        });
+        expect(tagArrival).toBe("newArrival");
+
+        // Fallback to bodyType for older sedan
+        const tagFallback = newCarTag({
+          isFeatured: false,
+          hasActiveOffer: false,
+          createdAt: "2025-01-01T00:00:00+05:30",
+          bodyType: "sedan",
+          now: referenceDate,
+        });
+        expect(tagFallback).toEqual({ bodyType: "sedan" });
+      });
     });
 
-    it("prioritizes 'offer' over new arrival when not featured", () => {
-      const tag = newCarTag({
-        isFeatured: false,
-        hasActiveOffer: true,
-        createdAt: "2026-11-01T00:00:00+05:30",
-        bodyType: "suv",
-        now: referenceDate,
+    describe("when SUV_EV_TAG_OVERRIDES_OTHERS is false", () => {
+      it("prioritizes featured over SUV and EV", () => {
+        const tagSuv = newCarTag({
+          isFeatured: true,
+          bodyType: "suv",
+          overrideSuvEv: false,
+          now: referenceDate,
+        });
+        expect(tagSuv).toBe("featured");
+
+        const tagEv = newCarTag({
+          isFeatured: true,
+          bodyType: "ev",
+          overrideSuvEv: false,
+          now: referenceDate,
+        });
+        expect(tagEv).toBe("featured");
       });
-      expect(tag).toBe("offer");
+
+      it("prioritizes offer over SUV and EV", () => {
+        const tag = newCarTag({
+          isFeatured: false,
+          hasActiveOffer: true,
+          bodyType: "suv",
+          overrideSuvEv: false,
+          now: referenceDate,
+        });
+        expect(tag).toBe("offer");
+      });
+
+      it("prioritizes new arrival over SUV and EV", () => {
+        const tag = newCarTag({
+          isFeatured: false,
+          hasActiveOffer: false,
+          createdAt: "2026-10-15T00:00:00+05:30",
+          bodyType: "suv",
+          overrideSuvEv: false,
+          now: referenceDate,
+        });
+        expect(tag).toBe("newArrival");
+      });
+
+      it("falls back to familyFriendly for SUV and ecoFriendly for EV when no priority tags match", () => {
+        const tagSuv = newCarTag({
+          isFeatured: false,
+          hasActiveOffer: false,
+          createdAt: "2025-01-01T00:00:00+05:30",
+          bodyType: "suv",
+          overrideSuvEv: false,
+          now: referenceDate,
+        });
+        expect(tagSuv).toBe("familyFriendly");
+
+        const tagEv = newCarTag({
+          isFeatured: false,
+          hasActiveOffer: false,
+          createdAt: "2025-01-01T00:00:00+05:30",
+          bodyType: "ev",
+          overrideSuvEv: false,
+          now: referenceDate,
+        });
+        expect(tagEv).toBe("ecoFriendly");
+      });
     });
 
-    it("returns 'newArrival' when created within NEW_ARRIVAL_DAYS (60 days)", () => {
-      const tag = newCarTag({
-        isFeatured: false,
-        hasActiveOffer: false,
-        createdAt: "2026-09-15T00:00:00+05:30", // 49 days ago
-        bodyType: "hatchback",
-        now: referenceDate,
-      });
-      expect(tag).toBe("newArrival");
-    });
-
-    it("respects exact NEW_ARRIVAL_DAYS boundary (60 days)", () => {
+    it("respects exact NEW_ARRIVAL_DAYS boundary (60 days) for non-SUV/non-EV", () => {
       // 60 days before 2026-11-03 is 2026-09-04
       const tagOnBoundary = newCarTag({
         isFeatured: false,
         hasActiveOffer: false,
         createdAt: "2026-09-04T12:00:00+05:30",
-        bodyType: "ev",
+        bodyType: "sedan",
         now: referenceDate,
       });
       expect(tagOnBoundary).toBe("newArrival");
@@ -88,13 +208,13 @@ describe("listing-tags pure logic", () => {
         isFeatured: false,
         hasActiveOffer: false,
         createdAt: "2026-09-03T12:00:00+05:30",
-        bodyType: "ev",
+        bodyType: "sedan",
         now: referenceDate,
       });
-      expect(tagExpired).toEqual({ bodyType: "ev" });
+      expect(tagExpired).toEqual({ bodyType: "sedan" });
     });
 
-    it("falls back to { bodyType } when no special condition matches", () => {
+    it("falls back to { bodyType } when no special condition matches (e.g. mpv)", () => {
       const tag = newCarTag({
         isFeatured: false,
         hasActiveOffer: false,
@@ -200,6 +320,8 @@ describe("listing-tags pure logic", () => {
       expect(hasAccentDot("offer")).toBe(true);
       expect(hasAccentDot("justListed")).toBe(true);
       expect(hasAccentDot("newArrival")).toBe(false);
+      expect(hasAccentDot("familyFriendly")).toBe(false);
+      expect(hasAccentDot("ecoFriendly")).toBe(false);
       expect(hasAccentDot("lowKms")).toBe(false);
       expect(hasAccentDot("oneOwner")).toBe(false);
       expect(hasAccentDot("inspected")).toBe(false);

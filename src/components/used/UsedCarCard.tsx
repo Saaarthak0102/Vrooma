@@ -66,12 +66,11 @@ export function UsedCarCard({ car, className = "", priority = false }: UsedCarCa
         )}
       </div>
 
-      {/* 2. Media: 16/10 aspect (4/3 on phones) with bottom-left cutout tag and bottom-right arrow notch */}
+      {/* 2. Media: 16/10 aspect (4/3 on phones) with bottom-left cutout tab */}
       <NotchMedia
         src={mainImage}
         alt={`${car.model_name} ${car.variant_name}, ${car.year}`}
         priority={priority}
-        isBooked={isBooked}
         tag={
           tagLabel ? (
             <NotchTag
@@ -140,12 +139,7 @@ export function UsedCarCard({ car, className = "", priority = false }: UsedCarCa
               href={`/book/test-drive?usedCar=${car.stock_id}`}
               className="notch-btn-primary notch-interactive"
             >
-              <span className="notch-btn-roll">
-                <span className="notch-btn-roll-text">Book VIP view</span>
-                <span className="notch-btn-roll-text" aria-hidden="true">
-                  Book VIP view
-                </span>
-              </span>
+              <span>Book VIP view</span>
               <ArrowRight className="h-3.5 w-3.5 notch-btn-icon" />
             </Link>
           )}

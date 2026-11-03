@@ -12,30 +12,19 @@ export function ListingCardSkeleton() {
         <div className="h-4 w-24 bg-stone-200 rounded-md" />
       </div>
 
-      {/* 2. Media geometry matching 16/10 (4/3 on phones) with notches */}
+      {/* 2. Media geometry matching 16/10 (4/3 on phones) */}
       <div className="notch-media bg-stone-200">
         {/* Simplified flat notch tab placeholder bottom-left */}
         <div
-          className="absolute left-0 bottom-0 bg-white"
+          className="absolute left-0 bottom-0 bg-white flex items-center"
           style={{
             height: "var(--lc-tab-h)",
             width: "35%",
             borderTopRightRadius: "var(--lc-notch-r)",
+            paddingLeft: "var(--lc-pad)",
           }}
         >
-          <div className="h-3 w-16 bg-stone-200 rounded ml-2 mt-2" />
-        </div>
-
-        {/* Simplified flat arrow notch placeholder bottom-right */}
-        <div
-          className="absolute right-0 bottom-0 bg-white flex items-center justify-center"
-          style={{
-            width: "var(--lc-arrow)",
-            height: "var(--lc-arrow)",
-            borderTopLeftRadius: "var(--lc-notch-r)",
-          }}
-        >
-          <div className="w-10 h-10 rounded-full bg-stone-200" />
+          <div className="h-3 w-16 bg-stone-200 rounded" />
         </div>
       </div>
 
@@ -68,4 +57,3 @@ export function ListingCardSkeleton() {
     </div>
   );
 }
-

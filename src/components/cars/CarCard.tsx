@@ -40,6 +40,7 @@ export function CarCard({
     hasActiveOffer,
     createdAt: model.created_at,
     bodyType: model.body_type,
+    variants: model.variants,
   });
 
   const tagKey = typeof tagResult === "string" ? tagResult : tagResult.bodyType;
@@ -133,12 +134,7 @@ export function CarCard({
             href={`/book/test-drive?model=${model.slug}`}
             className="notch-btn-primary notch-interactive"
           >
-            <span className="notch-btn-roll">
-              <span className="notch-btn-roll-text">Book Demo</span>
-              <span className="notch-btn-roll-text" aria-hidden="true">
-                Book Demo
-              </span>
-            </span>
+            <span>Book Demo</span>
             <ArrowRight className="h-3.5 w-3.5 notch-btn-icon" />
           </Link>
         </div>

@@ -42,6 +42,8 @@ export const NEW_ARRIVAL_DAYS = 60;
 export const JUST_LISTED_DAYS = 14;
 export const LOW_KM_THRESHOLD = 25000;
 
+export const SUV_EV_TAG_OVERRIDES_OTHERS = true;
+
 export const COMPANY_FACTS = {
   staff: 340,
   newCarsYear: 6000,

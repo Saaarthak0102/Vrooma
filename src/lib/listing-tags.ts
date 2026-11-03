@@ -2,6 +2,7 @@ import {
   NEW_ARRIVAL_DAYS,
   JUST_LISTED_DAYS,
   LOW_KM_THRESHOLD,
+  SUV_EV_TAG_OVERRIDES_OTHERS,
 } from "./constants";
 
 export interface NewCarTagInput {
@@ -9,13 +10,17 @@ export interface NewCarTagInput {
   hasActiveOffer?: boolean;
   createdAt?: string | Date | null;
   bodyType: string;
+  variants?: { fuel?: string }[];
   now?: Date | string;
+  overrideSuvEv?: boolean;
 }
 
 export type NewCarTagResult =
   | "featured"
   | "offer"
   | "newArrival"
+  | "familyFriendly"
+  | "ecoFriendly"
   | { bodyType: string };
 
 export interface UsedCarTagInput {
@@ -78,19 +83,63 @@ export function diffDaysKolkata(
 }
 
 /**
+ * Determines whether a model is an EV.
+ * EV is true if bodyType is 'ev' (or 'electric'), or if all variants have fuel 'ev'.
+ */
+export function isEvModel(bodyType: string, variants?: { fuel?: string }[]): boolean {
+  const normalizedBody = bodyType?.toLowerCase().trim();
+  if (normalizedBody === "ev" || normalizedBody === "electric") {
+    return true;
+  }
+  if (variants && variants.length > 0 && variants.every((v) => v.fuel?.toLowerCase().trim() === "ev")) {
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Determines whether a model is an SUV.
+ */
+export function isSuvModel(bodyType: string): boolean {
+  const normalizedBody = bodyType?.toLowerCase().trim();
+  return normalizedBody === "suv";
+}
+
+/**
  * Tag resolution for new models in priority order:
+ * When SUV_EV_TAG_OVERRIDES_OTHERS is true:
+ * 1. EV -> "ecoFriendly"
+ * 2. SUV -> "familyFriendly" (EV beats SUV)
+ * 3. isFeatured -> "featured"
+ * 4. hasActiveOffer -> "offer"
+ * 5. createdAt within NEW_ARRIVAL_DAYS (60) -> "newArrival"
+ * 6. Fallback -> { bodyType }
+ *
+ * When SUV_EV_TAG_OVERRIDES_OTHERS is false:
  * 1. isFeatured -> "featured"
  * 2. hasActiveOffer -> "offer"
  * 3. createdAt within NEW_ARRIVAL_DAYS (60) -> "newArrival"
- * 4. Fallback -> { bodyType }
+ * 4. EV -> "ecoFriendly"
+ * 5. SUV -> "familyFriendly"
+ * 6. Fallback -> { bodyType }
  */
 export function newCarTag({
   isFeatured,
   hasActiveOffer,
   createdAt,
   bodyType,
+  variants,
   now = new Date(),
+  overrideSuvEv = SUV_EV_TAG_OVERRIDES_OTHERS,
 }: NewCarTagInput): NewCarTagResult {
+  const isEv = isEvModel(bodyType, variants);
+  const isSuv = isSuvModel(bodyType);
+
+  if (overrideSuvEv) {
+    if (isEv) return "ecoFriendly";
+    if (isSuv) return "familyFriendly";
+  }
+
   if (isFeatured) {
     return "featured";
   }
@@ -104,6 +153,11 @@ export function newCarTag({
     if (days >= 0 && days <= NEW_ARRIVAL_DAYS) {
       return "newArrival";
     }
+  }
+
+  if (!overrideSuvEv) {
+    if (isEv) return "ecoFriendly";
+    if (isSuv) return "familyFriendly";
   }
 
   return { bodyType };
