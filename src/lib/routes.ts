@@ -14,12 +14,13 @@ export const routes = {
   dataRights: () => "/legal/data-rights",
   signIn: (nextUrl?: string) => (nextUrl ? `/sign-in?next=${encodeURIComponent(nextUrl)}` : "/sign-in"),
   
-  // Buyer dashboard
+  // Buyer profile & dashboard
+  profile: () => "/profile",
   dashboard: () => "/dashboard",
-  dashboardBookings: () => "/dashboard/bookings",
-  dashboardSaved: () => "/dashboard/saved",
-  dashboardEnquiries: () => "/dashboard/enquiries",
-  dashboardProfile: () => "/dashboard/profile",
+  dashboardBookings: () => "/dashboard?view=bookings",
+  dashboardSaved: () => "/dashboard?view=saved",
+  dashboardEnquiries: () => "/dashboard?view=enquiries",
+  dashboardProfile: () => "/profile",
   bookTestDrive: (variantId?: string) => (variantId ? `/book/test-drive?variant=${variantId}` : "/book/test-drive"),
   bookService: () => "/book/service",
   tradeIn: () => "/trade-in",

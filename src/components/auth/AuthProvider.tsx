@@ -8,9 +8,10 @@ interface AuthContextType {
   user: Profile | null;
   role: Role | null;
   status: "loading" | "authenticated" | "unauthenticated";
-  signIn: (email: string, role?: Role) => Promise<void>;
+  signIn: (email: string, role?: Role, extraData?: Partial<Profile>) => Promise<void>;
   signOut: () => void;
   switchRole: (role: Role) => void;
+  updateProfile: (updates: Partial<Profile>) => Promise<Profile>;
   isSignInSheetOpen: boolean;
   openSignInSheet: (onSuccess?: () => void) => void;
   closeSignInSheet: () => void;
@@ -29,14 +30,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Check localStorage on mount
     try {
+      const defaultBuyer = mockUsers.find((u) => u.role === "buyer") || null;
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
-        setUser(parsed);
+        const merged: Profile = {
+          ...defaultBuyer,
+          ...parsed,
+          whatsapp: parsed.whatsapp || parsed.phone || defaultBuyer?.whatsapp || "9876500001",
+          address: parsed.address || defaultBuyer?.address || "14/A, MG Marg, Hazratganj, Lucknow",
+          pincode: parsed.pincode || defaultBuyer?.pincode || "226001",
+        };
+        setUser(merged);
         setStatus("authenticated");
       } else {
         // In mock mode, default to buyer profile for seamless exploration
-        const defaultBuyer = mockUsers.find((u) => u.role === "buyer") || null;
         setUser(defaultBuyer);
         setStatus("authenticated");
       }
@@ -45,7 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const signIn = async (email: string, targetRole: Role = "buyer") => {
+  const signIn = async (email: string, targetRole: Role = "buyer", extraData?: Partial<Profile>) => {
     // Find matching mock user or synthesize one
     let matched = mockUsers.find(
       (u) => u.email.toLowerCase() === email.toLowerCase() || u.role === targetRole
@@ -54,11 +62,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       matched = {
         id: `usr-${Date.now()}`,
         email,
-        full_name: email.split("@")[0],
+        full_name: extraData?.full_name || email.split("@")[0],
+        phone: extraData?.phone || extraData?.whatsapp || "9876500001",
+        whatsapp: extraData?.whatsapp || extraData?.phone || "9876500001",
+        address: extraData?.address || "14/A, MG Marg, Hazratganj, Lucknow",
+        pincode: extraData?.pincode || "226001",
         role: targetRole,
         locale: "en",
         city_id: "city-lucknow",
       };
+    } else if (extraData) {
+      matched = { ...matched, ...extraData };
     }
 
     setUser(matched);
@@ -72,6 +86,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       pendingCallback();
       setPendingCallback(null);
     }
+  };
+
+  const updateProfile = async (updates: Partial<Profile>): Promise<Profile> => {
+    if (!user) {
+      throw new Error("No authenticated user session found");
+    }
+
+    const updatedUser: Profile = {
+      ...user,
+      ...updates,
+    };
+
+    setUser(updatedUser);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser));
+    } catch {}
+
+    // Persist to server/store via API route
+    try {
+      await fetch("/api/me/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: user.id, ...updates }),
+      });
+    } catch {
+      // In offline/mock mode, direct memoryStore update is also handled
+    }
+
+    return updatedUser;
   };
 
   const signOut = () => {
@@ -114,6 +157,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signIn,
         signOut,
         switchRole,
+        updateProfile,
         isSignInSheetOpen,
         openSignInSheet,
         closeSignInSheet,

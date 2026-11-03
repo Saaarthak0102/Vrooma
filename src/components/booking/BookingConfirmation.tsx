@@ -89,7 +89,7 @@ export function BookingConfirmation({
 
       <div className="flex flex-col sm:flex-row gap-3 pt-2">
         <Button asChild variant="outline" className="w-full text-xs">
-          <Link href="/dashboard/bookings">View in My Dashboard</Link>
+          <Link href="/dashboard?view=bookings">View in My Dashboard</Link>
         </Button>
         <Button asChild variant="primary" className="w-full text-xs gap-1">
           <Link href="/">

@@ -16,6 +16,7 @@ import {
   UsedCar,
   Model,
   Variant,
+  Profile,
 } from "@/types/domain";
 
 // Global module-level in-memory store for session continuity in mock mode
@@ -95,6 +96,15 @@ class MemoryStore {
       slot.booked_count += 1;
     }
     return booking;
+  }
+
+  updateUser(id: string, updates: Partial<Profile>) {
+    const idx = this.users.findIndex((u) => u.id === id);
+    if (idx !== -1) {
+      this.users[idx] = { ...this.users[idx], ...updates };
+      return this.users[idx];
+    }
+    return null;
   }
 
   addTradeIn(req: TradeInRequest) {

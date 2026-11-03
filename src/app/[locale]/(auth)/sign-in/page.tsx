@@ -6,13 +6,23 @@ import { useRouter } from "@/i18n/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Role } from "@/types/domain";
-import { ShieldCheck, Mail, Sparkles, User, Briefcase, KeyRound } from "lucide-react";
+import { ShieldCheck, Mail, Sparkles, User, Briefcase, KeyRound, UserPlus } from "lucide-react";
 import { notWired } from "@/components/dev/NotWired";
+import { useTranslations } from "next-intl";
 
 export default function SignInPage() {
   const { signIn, switchRole, user } = useAuth();
   const router = useRouter();
+  const tAuth = useTranslations("auth");
+  const tProfile = useTranslations("profile");
+
+  const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
+  const [address, setAddress] = useState("");
+  const [pincode, setPincode] = useState("");
+
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
 
@@ -22,7 +32,20 @@ export default function SignInPage() {
     setLoading(true);
     setStatus("loading");
     try {
-      await signIn(email, "buyer");
+      if (mode === "signup") {
+        const cleanPhone = whatsapp.replace(/\D/g, "");
+        const formattedWhatsapp = cleanPhone ? `+91 ${cleanPhone.slice(0, 5)} ${cleanPhone.slice(5)}` : "+91 98765 00001";
+        await signIn(email, "buyer", {
+          full_name: fullName.trim() || email.split("@")[0],
+          email: email.trim(),
+          whatsapp: formattedWhatsapp,
+          phone: formattedWhatsapp,
+          address: address.trim() || "14/A, MG Marg, Hazratganj, Lucknow",
+          pincode: pincode.trim() || "226001",
+        });
+      } else {
+        await signIn(email, "buyer");
+      }
       setStatus("success");
       setTimeout(() => {
         router.push("/dashboard");
@@ -49,16 +72,55 @@ export default function SignInPage() {
           <div className="h-12 w-12 rounded-full bg-accent/20 flex items-center justify-center text-accent-ink mx-auto">
             <ShieldCheck className="h-6 w-6" />
           </div>
-          <h1 className="text-2xl font-black text-ink tracking-tight">Sign In to Vrooma</h1>
+          <h1 className="text-2xl font-black text-ink tracking-tight">
+            {mode === "signup" ? tAuth("createAccount") : tAuth("title")}
+          </h1>
           <p className="text-xs text-ink-soft">
-            Unlock on-road pricing breakdowns, demo slots, and saved vehicles across Lucknow.
+            {tAuth("subtitle")}
           </p>
         </div>
 
+        {/* Mode Switcher */}
+        <div className="grid grid-cols-2 p-1 bg-ink/5 rounded-pill text-xs font-semibold">
+          <button
+            type="button"
+            onClick={() => setMode("signin")}
+            className={`py-1.5 rounded-pill transition-colors ${
+              mode === "signin" ? "bg-white text-ink shadow-sm" : "text-ink-soft hover:text-ink"
+            }`}
+          >
+            {tAuth("title")}
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode("signup")}
+            className={`py-1.5 rounded-pill transition-colors ${
+              mode === "signup" ? "bg-white text-ink shadow-sm" : "text-ink-soft hover:text-ink"
+            }`}
+          >
+            {tAuth("signUp")}
+          </button>
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-4">
+          {mode === "signup" && (
+            <div>
+              <label className="text-xs font-semibold uppercase tracking-wider text-ink-soft mb-1 block">
+                {tProfile("fullName")}
+              </label>
+              <Input
+                type="text"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder={tProfile("fullNamePlaceholder")}
+                required
+              />
+            </div>
+          )}
+
           <div>
             <label className="text-xs font-semibold uppercase tracking-wider text-ink-soft mb-1 block">
-              Email Address
+              {tAuth("emailLabel")}
             </label>
             <Input
               type="email"
@@ -68,16 +130,69 @@ export default function SignInPage() {
               required
             />
           </div>
+
+          {mode === "signup" && (
+            <>
+              <div>
+                <label className="text-xs font-semibold uppercase tracking-wider text-ink-soft mb-1 block">
+                  {tProfile("whatsapp")}
+                </label>
+                <div className="relative flex rounded-md">
+                  <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-border bg-ink/5 text-ink-soft text-xs font-semibold select-none">
+                    +91
+                  </span>
+                  <Input
+                    type="tel"
+                    value={whatsapp}
+                    onChange={(e) => setWhatsapp(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                    placeholder={tProfile("whatsappPlaceholder")}
+                    className="rounded-l-none font-mono"
+                    maxLength={10}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold uppercase tracking-wider text-ink-soft mb-1 block">
+                  {tProfile("address")}
+                </label>
+                <Input
+                  type="text"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  placeholder={tProfile("addressPlaceholder")}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold uppercase tracking-wider text-ink-soft mb-1 block">
+                  {tProfile("pincode")}
+                </label>
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  value={pincode}
+                  onChange={(e) => setPincode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  placeholder={tProfile("pincodePlaceholder")}
+                  maxLength={6}
+                  required
+                />
+              </div>
+            </>
+          )}
+
           <Button
             type="submit"
             className="w-full h-11 gap-2"
             disabled={loading}
             status={status}
-            loadingText="Sending link..."
-            successText="Link Sent!"
-            leftIcon={<Mail className="h-4 w-4" />}
+            loadingText={mode === "signup" ? tProfile("saving") : "Sending link..."}
+            successText={mode === "signup" ? tProfile("saveChanges") : "Link Sent!"}
+            leftIcon={mode === "signup" ? <UserPlus className="h-4 w-4" /> : <Mail className="h-4 w-4" />}
           >
-            Send Magic Link
+            {mode === "signup" ? tAuth("createAccount") : tAuth("sendMagicLink")}
           </Button>
         </form>
 
@@ -144,4 +259,3 @@ export default function SignInPage() {
     </div>
   );
 }
-

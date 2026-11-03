@@ -218,6 +218,9 @@ export interface Profile {
   email: string;
   full_name: string;
   phone?: string | null;
+  whatsapp?: string | null;
+  address?: string | null;
+  pincode?: string | null;
   city_id?: string | null;
   role: Role;
   locale: "en" | "hi";

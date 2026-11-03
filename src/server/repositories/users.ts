@@ -19,3 +19,14 @@ export async function getUserById(id: string): Promise<Profile | null> {
   throw new Error("TODO(day-4): Supabase getUserById not implemented yet");
 }
 
+export async function updateUser(id: string, updates: Partial<Profile>): Promise<Profile> {
+  if (env.NEXT_PUBLIC_USE_MOCK) {
+    const updated = memoryStore.updateUser(id, updates);
+    if (!updated) {
+      throw new Error("User not found");
+    }
+    return updated;
+  }
+  throw new Error("TODO(day-4): Supabase updateUser not implemented yet");
+}
+

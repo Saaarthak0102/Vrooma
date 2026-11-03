@@ -17,12 +17,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   User,
+  LayoutDashboard,
   LogOut,
-  Calendar,
-  Bookmark,
-  MessageSquare,
-  ShieldCheck,
-  Briefcase,
   ChevronDown,
 } from "lucide-react";
 
@@ -61,7 +57,7 @@ export function UserMenu() {
           <Avatar className="h-7 w-7 shrink-0">
             <AvatarFallback className="text-xs font-semibold">{initials}</AvatarFallback>
           </Avatar>
-          <span className="text-xs max-w-[100px] truncate hidden sm:inline-block leading-none relative -top-[1.5px] text-ink font-semibold">
+          <span className="user-menu-name text-xs font-semibold text-ink">
             {user.full_name.split(" ")[0]}
           </span>
           <ChevronDown className="h-3.5 w-3.5 text-ink-mute shrink-0" />
@@ -81,57 +77,29 @@ export function UserMenu() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
 
-        {/* Buyer items */}
+        {/* 1. My Profile */}
+        <DropdownMenuItem asChild>
+          <Link href="/profile" className="flex items-center gap-2 cursor-pointer">
+            <User className="h-4 w-4" />
+            <span>{tNav("myProfile")}</span>
+          </Link>
+        </DropdownMenuItem>
+
+        {/* 2. Dashboard */}
         <DropdownMenuItem asChild>
           <Link href="/dashboard" className="flex items-center gap-2 cursor-pointer">
-            <User className="h-4 w-4" />
+            <LayoutDashboard className="h-4 w-4" />
             <span>{tNav("dashboard")}</span>
           </Link>
         </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link href="/dashboard/bookings" className="flex items-center gap-2 cursor-pointer">
-            <Calendar className="h-4 w-4" />
-            <span>My Bookings</span>
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link href="/dashboard/saved" className="flex items-center gap-2 cursor-pointer">
-            <Bookmark className="h-4 w-4" />
-            <span>Saved Vehicles</span>
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link href="/dashboard/enquiries" className="flex items-center gap-2 cursor-pointer">
-            <MessageSquare className="h-4 w-4" />
-            <span>My Enquiries</span>
-          </Link>
-        </DropdownMenuItem>
-
-        {/* Staff shortcut if consultant or higher */}
-        {(role === "consultant" || role === "manager" || role === "admin") && (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Link href="/staff" className="flex items-center gap-2 cursor-pointer font-medium text-accent-ink">
-                <Briefcase className="h-4 w-4" />
-                <span>{tNav("staff")}</span>
-              </Link>
-            </DropdownMenuItem>
-          </>
-        )}
-
-        {/* Admin shortcut */}
-        {role === "admin" && (
-          <DropdownMenuItem asChild>
-            <Link href="/admin" className="flex items-center gap-2 cursor-pointer font-medium text-ink">
-              <ShieldCheck className="h-4 w-4" />
-              <span>{tNav("admin")}</span>
-            </Link>
-          </DropdownMenuItem>
-        )}
 
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={signOut} className="flex items-center gap-2 cursor-pointer text-danger focus:text-danger focus:bg-danger/10">
+
+        {/* 3. Sign Out */}
+        <DropdownMenuItem
+          onClick={signOut}
+          className="flex items-center gap-2 cursor-pointer text-danger focus:text-danger focus:bg-danger/10"
+        >
           <LogOut className="h-4 w-4" />
           <span>{tNav("signOut")}</span>
         </DropdownMenuItem>
@@ -139,4 +107,3 @@ export function UserMenu() {
     </DropdownMenu>
   );
 }
-

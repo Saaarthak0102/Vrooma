@@ -13,24 +13,45 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Role } from "@/types/domain";
-import { ShieldCheck, Mail, Sparkles, User, Briefcase, KeyRound } from "lucide-react";
+import { ShieldCheck, Mail, Sparkles, User, Briefcase, KeyRound, UserPlus } from "lucide-react";
 import { notWired } from "@/components/dev/NotWired";
 
 export function SignInSheet() {
   const t = useTranslations("auth");
+  const tProfile = useTranslations("profile");
   const tCommon = useTranslations("common");
   const { isSignInSheetOpen, closeSignInSheet, signIn, switchRole, user } = useAuth();
+
+  const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
+  const [address, setAddress] = useState("");
+  const [pincode, setPincode] = useState("");
+
   const [isLoading, setIsLoading] = useState(false);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
 
-  const handleMagicLink = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
     setIsLoading(true);
     setStatus("loading");
     try {
-      await signIn(email, "buyer");
+      if (mode === "signup") {
+        const cleanPhone = whatsapp.replace(/\D/g, "");
+        const formattedWhatsapp = cleanPhone ? `+91 ${cleanPhone.slice(0, 5)} ${cleanPhone.slice(5)}` : "+91 98765 00001";
+        await signIn(email, "buyer", {
+          full_name: fullName.trim() || email.split("@")[0],
+          email: email.trim(),
+          whatsapp: formattedWhatsapp,
+          phone: formattedWhatsapp,
+          address: address.trim() || "14/A, MG Marg, Hazratganj, Lucknow",
+          pincode: pincode.trim() || "226001",
+        });
+      } else {
+        await signIn(email, "buyer");
+      }
       setStatus("success");
       setTimeout(() => {
         closeSignInSheet();
@@ -50,22 +71,62 @@ export function SignInSheet() {
 
   return (
     <Sheet open={isSignInSheetOpen} onOpenChange={(open) => !open && closeSignInSheet()}>
-      <SheetContent side="auto" className="sm:max-w-md">
+      <SheetContent side="auto" className="sm:max-w-md overflow-y-auto max-h-screen">
         <SheetHeader className="text-left">
           <div className="flex items-center gap-2 mb-2">
             <span className="h-8 w-8 rounded-full bg-accent/20 flex items-center justify-center text-accent-ink">
               <ShieldCheck className="h-5 w-5" />
             </span>
-            <SheetTitle className="text-xl font-bold">{t("title")}</SheetTitle>
+            <SheetTitle className="text-xl font-bold">
+              {mode === "signup" ? t("createAccount") : t("title")}
+            </SheetTitle>
           </div>
           <SheetDescription className="text-sm text-ink-soft">
             {t("subtitle")}
           </SheetDescription>
         </SheetHeader>
 
-        <div className="space-y-6 py-2">
-          {/* Quick email / phone sign-in */}
-          <form onSubmit={handleMagicLink} className="space-y-3">
+        <div className="space-y-5 py-2">
+          {/* Mode Switcher */}
+          <div className="grid grid-cols-2 p-1 bg-ink/5 rounded-pill text-xs font-semibold">
+            <button
+              type="button"
+              onClick={() => setMode("signin")}
+              className={`py-1.5 rounded-pill transition-colors ${
+                mode === "signin" ? "bg-white text-ink shadow-sm" : "text-ink-soft hover:text-ink"
+              }`}
+            >
+              {t("title")}
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode("signup")}
+              className={`py-1.5 rounded-pill transition-colors ${
+                mode === "signup" ? "bg-white text-ink shadow-sm" : "text-ink-soft hover:text-ink"
+              }`}
+            >
+              {t("signUp")}
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-3">
+            {mode === "signup" && (
+              <>
+                <div>
+                  <label className="text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1 block">
+                    {tProfile("fullName")}
+                  </label>
+                  <Input
+                    type="text"
+                    placeholder={tProfile("fullNamePlaceholder")}
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    required
+                  />
+                </div>
+              </>
+            )}
+
             <div>
               <label className="text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1 block">
                 {t("emailLabel")}
@@ -78,16 +139,69 @@ export function SignInSheet() {
                 required
               />
             </div>
+
+            {mode === "signup" && (
+              <>
+                <div>
+                  <label className="text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1 block">
+                    {tProfile("whatsapp")}
+                  </label>
+                  <div className="relative flex rounded-md">
+                    <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-border bg-ink/5 text-ink-soft text-xs font-semibold select-none">
+                      +91
+                    </span>
+                    <Input
+                      type="tel"
+                      value={whatsapp}
+                      onChange={(e) => setWhatsapp(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                      placeholder={tProfile("whatsappPlaceholder")}
+                      className="rounded-l-none font-mono"
+                      maxLength={10}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1 block">
+                    {tProfile("address")}
+                  </label>
+                  <Input
+                    type="text"
+                    placeholder={tProfile("addressPlaceholder")}
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1 block">
+                    {tProfile("pincode")}
+                  </label>
+                  <Input
+                    type="text"
+                    inputMode="numeric"
+                    placeholder={tProfile("pincodePlaceholder")}
+                    value={pincode}
+                    onChange={(e) => setPincode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                    maxLength={6}
+                    required
+                  />
+                </div>
+              </>
+            )}
+
             <Button
               type="submit"
               className="w-full gap-2"
               disabled={isLoading}
               status={status}
-              loadingText="Signing in..."
-              successText="Signed In!"
-              leftIcon={<Mail className="h-4 w-4" />}
+              loadingText={mode === "signup" ? tProfile("saving") : "Signing in..."}
+              successText={mode === "signup" ? tProfile("saveChanges") : "Signed In!"}
+              leftIcon={mode === "signup" ? <UserPlus className="h-4 w-4" /> : <Mail className="h-4 w-4" />}
             >
-              {t("sendMagicLink")}
+              {mode === "signup" ? t("createAccount") : t("sendMagicLink")}
             </Button>
           </form>
 
@@ -177,4 +291,3 @@ export function SignInSheet() {
     </Sheet>
   );
 }
-

@@ -270,6 +270,29 @@
   vertical-align: middle !important;
 }
 
+/* Universal Profile Button Name Alignment (Universal Navbar across all pages) */
+.btn .user-menu-name {
+  display: none !important;
+}
+
+@media (min-width: 640px) {
+  .btn .user-menu-name {
+    display: inline-flex !important;
+    align-items: center !important;
+    align-self: center !important;
+    justify-content: center !important;
+    height: 100% !important;
+    line-height: normal !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle !important;
+  }
+}
+
 /* Idle State */
 .btn[data-status="idle"] .btn__label {
   opacity: 1;

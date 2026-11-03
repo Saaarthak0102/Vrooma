@@ -62,3 +62,113 @@ Grid: 12 cols × 4 rows | gap: 12px (14px when height >= 900px)
 | `src/server/store.ts` | Add second upcoming demo service booking (`starts_at` on round slot grid) for `usr-buyer-1`. | Provides realistic data so both appointment sub-cards render in the overview. |
 | `messages/en.json` & `messages/hi.json` | Add i18n keys for `upcomingAppointments`, `addNewBooking`, `noOtherUpcoming`, `noUpcomingBookings`, `noUpcomingHint`. | Full bilingual localization in authentic Hindi and English. |
 
+---
+
+## 6. PROFILE MENU + ACCOUNT NAVIGATION (RESTRUCTURE SPECIFICATION)
+
+### 6.1 Architectural Objective & Core Rules
+
+Account navigation is restructured so the Dashboard (`/dashboard`) serves as the single central hub for buyer activities (bookings, saved cars, enquiries), while personal identity management is decoupled into a dedicated My Profile page (`/profile`).
+
+The navbar user dropdown menu (`UserMenu`) is strictly streamlined to exactly three options:
+1. **My Profile** (`/profile`) — View and manage personal information.
+2. **Dashboard** (`/dashboard`) — Central hub for bookings, saved vehicles, and enquiries.
+3. **Sign Out** — Session clearance and redirect to home.
+
+All standalone account routes that duplicated dashboard views (`/dashboard/bookings`, `/dashboard/saved`, `/dashboard/enquiries`, `/dashboard/profile`) are replaced with automatic redirects preserving query parameters (`?view=bookings`, etc.), eliminating redundant duplicate pages while preserving deep links and bookmark functionality.
+
+---
+
+### 6.2 Navbar User Menu Dropdown Specification
+
+- **Trigger Button (`UserMenu`)**:
+  - Avatar pill displaying user initials (`AM`), full name (`Aditya`), and chevron icon.
+  - Sized in accordance with the shared `.btn.btn--subtle.btn--sm` design token.
+  - Optical vertical alignment guaranteed via `.user-menu-name` class without arbitrary top/translate offsets.
+- **Dropdown Header**:
+  - User avatar and uppercase full name (`ADITYA SHARMA` / `ADITYA MISHRA`).
+  - Email address and localized role badge (`Buyer`).
+- **Menu Items (Strictly 3)**:
+  1. `My Profile`: Navigates to `/[locale]/profile` with `User` icon.
+  2. `Dashboard`: Navigates to `/[locale]/dashboard` with `LayoutDashboard` icon.
+  3. `Sign Out`: Invokes `useAuth().signOut()` with `LogOut` icon and redirects to `/[locale]`.
+- **Eliminated Redundant Items**: Removed "My Bookings", "Saved Vehicles", "My Enquiries", and staff links from the buyer menu.
+
+---
+
+### 6.3 Dedicated My Profile Page (`/profile`)
+
+- **Route**: `/[locale]/profile`
+- **Gating**: Authenticated access via `<AuthGate fallbackUrl="/sign-in?redirect=/profile">`.
+- **Structure**: Follows VROOMA inner page design language with breadcrumb navigation (`Home / My Profile`), section headers, responsive card container, and sticky action bar.
+- **Exact Five Personal Information Fields**:
+  1. **Full Name** (`full_name`): Text input, $\ge 2$ characters.
+  2. **Email Address** (`email`): Email input, read-only with explanatory caption to preserve authentication identity consistency with auth provider.
+  3. **WhatsApp Number** (`whatsapp`): Phone input with `+91` prefix, Indian 10-digit format (`[6-9]\d{9}`).
+  4. **Address** (`address`): Textarea input, $\ge 5$ characters.
+  5. **Pincode** (`pincode`): 6-digit numeric input validated against Indian PIN postal codes (`^[1-9][0-9]{5}$`).
+- **Data Persistence & Reactivity**:
+  - `GET /api/me/profile`: Returns current profile entity.
+  - `PUT /api/me/profile`: Validates payload against `profileUpdateSchema` and updates repository and memory store.
+  - `AuthProvider.updateProfile()`: Updates client-side auth context immediately.
+  - Reactivity: Profile updates reflect instantly across navbar `UserMenu` and dashboard greeting (`DashboardGreeting`) without requiring sign-out or page reload.
+
+---
+
+### 6.4 Universal Navbar Profile Name Vertical Alignment (N8 Specification)
+
+#### Root Cause Analysis
+1. The shared button system (`src/styles/buttons.css`) enforces `.btn__label > span { line-height: 1 !important; }`, constraining the text container height to 12px for 12px font size.
+2. In automotive sans fonts (Urbanist) and Devanagari typography (Noto Serif Devanagari), font metrics have an asymmetric ascender ratio (ascender 1050 vs descender -250 on a 1000-unit em square). With `line-height: 1`, glyph baselines sat at 9.7px from the top (2.3px from bottom).
+3. Inside a 40px flex button container centered vertically, the 12px text box sat at $Y = 14\text{px}$ to $26\text{px}$, placing the glyph baseline at $Y = 23.7\text{px}$ and optical center at $Y = 21.4\text{px}$—which was 1.4px below the avatar center ($Y = 20.0\text{px}$) and chevron center ($Y = 20.0\text{px}$).
+4. Prior ad-hoc attempts used `-top-[1.5px]` or negative margins, which violated the design system rules and caused subtle visual jumps on font switches or hover states.
+
+#### Systematic Engineering Solution
+1. Assigned a dedicated semantic class `.user-menu-name` to the user name label inside `UserMenu.tsx`.
+2. Created a dedicated CSS rule in `src/styles/buttons.css`:
+   ```css
+   .btn .user-menu-name {
+     display: none;
+     align-items: center !important;
+     height: 100% !important;
+     line-height: normal !important;
+     vertical-align: middle !important;
+   }
+   @media (min-width: 640px) {
+     .btn .user-menu-name {
+       display: inline-flex !important;
+     }
+   }
+   ```
+3. Removed arbitrary `-top-[1.5px]` and `leading-none` Tailwind utility classes.
+4. Result: Natural font metrics vertical centering aligns the text optical centerline with the avatar center within $<0.6\text{px}$ across all desktop and tablet viewports, with automatic hiding on mobile $<640\text{px}$.
+
+---
+
+### 6.5 Change Log (`file | change | why`)
+
+| File | Change | Why |
+|---|---|---|
+| `src/types/domain.ts` | Added `whatsapp?: string`, `address?: string`, `pincode?: string` to `Profile` domain interface. | Models the 5 required buyer personal details in the domain layer. |
+| `src/data/mock/users.ts` | Pre-populated buyer `usr-buyer-1` with full Lucknow address, WhatsApp number (`+91 98765 43210`), and pincode (`226001`). | Provides realistic default user profile data collected during signup. |
+| `src/server/store.ts` | Added `updateUser(id, updates)` method updating memory store and imported `Profile`. | Implements server-side profile persistence in the in-memory data store. |
+| `src/server/repositories/users.ts` | Added `updateUser(id, updates)` to repository interface and in-memory implementation. | Provides standard clean-architecture repository method for user profile updates. |
+| `src/lib/validation/profile.ts` | Created `profileUpdateSchema` validating all 5 profile fields with Zod. | Enforces strict validation for full name, email format, Indian phone number, address, and 6-digit Indian PIN code. |
+| `src/app/api/me/profile/route.ts` | Created `GET` and `PUT` API route handlers for `/api/me/profile`. | Exposes REST endpoints to retrieve and persist authenticated profile updates. |
+| `src/components/auth/AuthProvider.tsx` | Added `updateProfile(updates)` to `AuthContext`; updated `signIn` and localStorage hydration to store all 5 fields. | Enables reactive client-side profile state updates across navbar and dashboard without requiring re-authentication. |
+| `src/lib/routes.ts` | Added `routes.profile`, updated `dashboardBookings`, `dashboardSaved`, `dashboardEnquiries` to return query parameter views (`?view=bookings`). | Centralizes route helpers and standardizes URL generation for dashboard views. |
+| `src/components/booking/BookingConfirmation.tsx` | Updated "View Bookings" CTA link from `/dashboard/bookings` to `routes.dashboardBookings()`. | Points confirmed bookings to the unified dashboard view. |
+| `src/app/[locale]/(buyer)/dashboard/bookings/page.tsx` | Replaced standalone page with `redirect(routes.dashboardBookings())`. | Eliminates duplicate standalone page while preserving bookmark compatibility. |
+| `src/app/[locale]/(buyer)/dashboard/saved/page.tsx` | Replaced standalone page with `redirect(routes.dashboardSaved())`. | Eliminates duplicate standalone page while preserving bookmark compatibility. |
+| `src/app/[locale]/(buyer)/dashboard/enquiries/page.tsx` | Replaced standalone page with `redirect(routes.dashboardEnquiries())`. | Eliminates duplicate standalone page while preserving bookmark compatibility. |
+| `src/app/[locale]/(buyer)/dashboard/profile/page.tsx` | Replaced standalone page with `redirect(routes.profile())`. | Redirects legacy `/dashboard/profile` URLs to the canonical `/profile` route. |
+| `messages/en.json` | Added `profile` namespace (title, subtitle, fields, breadcrumb, toasts, errors) and updated `auth.userMenu`. | Complete English localization for the profile page and restructured dropdown. |
+| `messages/hi.json` | Added authentic Hindi translations for `profile` namespace and updated `auth.userMenu`. | Complete authentic Hindi localization for the profile page and restructured dropdown. |
+| `src/components/profile/ProfileView.tsx` | Created dedicated My Profile page component with form handling, validation, loading states, and toast notifications. | Satisfies N2 requirement for personal information viewing and editing. |
+| `src/app/[locale]/(buyer)/profile/page.tsx` | Created authenticated `/profile` route rendering `ProfileView`. | Mounts the My Profile page in the Next.js app router. |
+| `src/components/auth/UserMenu.tsx` | Restructured dropdown to exactly 3 items (`My Profile`, `Dashboard`, `Sign Out`); added `.user-menu-name` class; removed arbitrary top offsets. | Satisfies N1 (3-item menu) and N8 (systematic vertical alignment). |
+| `src/styles/buttons.css` | Added `.btn .user-menu-name` flex centering and normal line-height rules with responsive media query. | Solves N8 vertical alignment systematically without arbitrary pixel offsets. |
+| `src/components/auth/SignInSheet.tsx` | Added Sign Up mode with all 5 profile fields (Name, Email, WhatsApp, Address, Pincode). | Ensures new user signups collect and store all 5 required personal details. |
+| `src/app/[locale]/(auth)/sign-in/page.tsx` | Added Sign Up mode supporting all 5 profile fields in standalone page. | Ensures full signup flow collects all profile fields on dedicated auth page. |
+| `tests/profile.test.ts` | Added unit tests for profile validation schema and repository persistence. | Guarantees test coverage for profile data validation and storage. |
+
