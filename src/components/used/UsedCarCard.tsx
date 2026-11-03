@@ -11,6 +11,7 @@ import { OwnerKmYearBadges } from "./OwnerKmYearBadges";
 import { Button } from "@/components/ui/button";
 import { ShieldCheck, ArrowRight, Ban } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { getVehicleAsset } from "@/constants/vehicle-assets";
 
 export interface UsedCarCardProps {
   car: UsedCar;
@@ -21,7 +22,7 @@ export interface UsedCarCardProps {
 export function UsedCarCard({ car, className = "", priority = false }: UsedCarCardProps) {
   const t = useTranslations("listing");
   const isBooked = car.status === "booked";
-  const mainImage = car.images[0] || "/images/placeholders/car-2.svg";
+  const mainImage = getVehicleAsset(car.images?.[0] || car);
 
   // Resolve Tag
   const tagResult = usedCarTag({

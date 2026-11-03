@@ -1,4 +1,5 @@
 import { Offer, Banner } from "@/types/domain";
+import { APPROVED_VEHICLE_ASSETS } from "@/constants/vehicle-assets";
 
 export const mockOffers: Offer[] = [
   {
@@ -34,7 +35,7 @@ export const mockBanners: Banner[] = [
   {
     id: "ban-1",
     title: "Discover the All-New Model H in Lucknow",
-    image_url: "/images/placeholders/car-1.svg",
+    image_url: APPROVED_VEHICLE_ASSETS.y,
     href: "/cars/model-h",
     sort: 1,
     active: true,
@@ -42,7 +43,7 @@ export const mockBanners: Banner[] = [
   {
     id: "ban-2",
     title: "Vrooma Certified Pre-Owned Cars - 140 Checkpoints",
-    image_url: "/images/placeholders/car-2.svg",
+    image_url: APPROVED_VEHICLE_ASSETS.c,
     href: "/used-cars",
     sort: 2,
     active: true,

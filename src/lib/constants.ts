@@ -57,3 +57,6 @@ export const EMI_DEFAULTS = {
   downPaymentPct: 20,
 } as const;
 
+export * from "@/constants/vehicle-assets";
+
+

@@ -11,6 +11,7 @@ import { SavedVehicleRecord } from "@/server/repositories/saved";
 import { Model, UsedCar } from "@/types/domain";
 import { notWired } from "@/components/dev/NotWired";
 import { cn } from "@/lib/utils";
+import { getVehicleAsset } from "@/constants/vehicle-assets";
 
 export interface SavedVehiclesCardProps {
   records: SavedVehicleRecord[];
@@ -83,11 +84,11 @@ export function SavedVehiclesCard({
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="saved-thumb relative rounded-md bg-stone-100 overflow-hidden shrink-0 border border-border">
                     <Image
-                      src={image || "/images/placeholders/car-1.svg"}
+                      src={getVehicleAsset(image || record.item)}
                       alt={title}
                       fill
                       sizes="64px"
-                      className="object-cover object-bottom"
+                      className="object-contain p-0.5"
                     />
                   </div>
                   <div className="min-w-0">

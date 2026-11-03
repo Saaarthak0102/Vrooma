@@ -2,14 +2,17 @@
 
 This document tracks all image assets, transparent vehicle cutouts, licensing, and processing scripts used across the Vrooma platform.
 
-## 1. Automotive Cutout Assets (`public/images/cars/`)
+## 1. Approved Vehicle SVG Assets (`public/images/cars/`)
 
-| Asset | Format | Intended Dimensions | Role & Usage | Source / Licence | Edits |
-|---|---|---|---|---|---|
-| `hero-model-h.svg` | SVG (Vector Cutout) | 2400 × 1200 / Aspect 2:1 | Pinned Hero Scene (overlap with PhoneMockup) | Dealership Studio Silhouette / Proprietary MIT | Transparent background, contact shadow handled via CSS, de-badged front grille. |
-| `pricing-car-a.svg` | SVG (Vector Cutout) | 1000 × 550 | TransparentPricing Scene (tilted left entry) | Dealership Studio Silhouette / Proprietary MIT | Transparent background, tilted perspective. |
-| `pricing-car-b.svg` | SVG (Vector Cutout) | 1000 × 550 | TransparentPricing Scene (tilted right entry) | Dealership Studio Silhouette / Proprietary MIT | Transparent background, tilted perspective. |
-| `final-car.svg` | SVG (Vector Cutout) | 1000 × 500 | Final CTA Destination Cutout | Dealership Studio Silhouette / Proprietary MIT | Transparent background, route termination target. |
+Single source of truth for all vehicle illustrations site-wide:
+
+| Asset | Format | Intended Dimensions / Aspect | Model / Role & Usage | Edits |
+|---|---|---|---|---|
+| `s.svg` | SVG (Vector Cutout) | 664 × 374 (~16:9) | Model S / Urban Hatchback, Catalog & Detail views | Approved single source of truth |
+| `y.svg` | SVG (Vector Cutout) | 370 × 208 (~16:9) | Model H / Executive Sedan, Hero Scene, Catalog & Detail views | Approved single source of truth |
+| `c.svg` | SVG (Vector Cutout) | 640 × 480 (4:3) | Model C / Compact SUV, TransparentPricing Scene, Catalog views | Approved single source of truth |
+| `x.svg` | SVG (Vector Cutout) | 842 × 421 (2:1) | Model X / Luxury EV, TransparentPricing Scene, Catalog views | Approved single source of truth |
+| `r.svg` | SVG (Vector Cutout) | 658 × 439 (~3:2) | Model T / Rugged 4x4 Offroader, Catalog & Detail views | Approved single source of truth |
 
 > [!NOTE]
 > All vehicle badges, brand crests, and license plates are de-badged or masked to adhere to strict OEM confidentiality and DPDP Act 2023 regulations.

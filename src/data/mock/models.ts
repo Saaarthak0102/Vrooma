@@ -1,5 +1,6 @@
 import { Model } from "@/types/domain";
 import { mockVariants } from "./variants";
+import { APPROVED_VEHICLE_ASSETS } from "@/constants/vehicle-assets";
 
 export const mockModels: Model[] = [
   {
@@ -8,11 +9,9 @@ export const mockModels: Model[] = [
     name: "Model H",
     body_type: "sedan",
     tagline: "The Benchmark of Executive Elegance & Refinement",
-    hero_image: "/images/placeholders/car-1.svg",
+    hero_image: APPROVED_VEHICLE_ASSETS.y,
     gallery: [
-      "/images/placeholders/car-1.svg",
-      "/images/placeholders/car-2.svg",
-      "/images/placeholders/car-3.svg",
+      APPROVED_VEHICLE_ASSETS.y,
     ],
     is_active: true,
     is_featured: true,
@@ -27,10 +26,9 @@ export const mockModels: Model[] = [
     name: "Model C",
     body_type: "suv",
     tagline: "Dominant Presence with Class-Leading Technology",
-    hero_image: "/images/placeholders/car-2.svg",
+    hero_image: APPROVED_VEHICLE_ASSETS.c,
     gallery: [
-      "/images/placeholders/car-2.svg",
-      "/images/placeholders/car-1.svg",
+      APPROVED_VEHICLE_ASSETS.c,
     ],
     is_active: true,
     is_featured: false,
@@ -45,10 +43,9 @@ export const mockModels: Model[] = [
     name: "Model S",
     body_type: "hatchback",
     tagline: "Agile, Fuel-Efficient, Built for Urban Precision",
-    hero_image: "/images/placeholders/car-3.svg",
+    hero_image: APPROVED_VEHICLE_ASSETS.s,
     gallery: [
-      "/images/placeholders/car-3.svg",
-      "/images/placeholders/car-1.svg",
+      APPROVED_VEHICLE_ASSETS.s,
     ],
     is_active: true,
     is_featured: false,
@@ -63,10 +60,9 @@ export const mockModels: Model[] = [
     name: "Model X",
     body_type: "ev",
     tagline: "Next-Gen Electric Performance with 460km Range",
-    hero_image: "/images/placeholders/car-4.svg",
+    hero_image: APPROVED_VEHICLE_ASSETS.x,
     gallery: [
-      "/images/placeholders/car-4.svg",
-      "/images/placeholders/car-2.svg",
+      APPROVED_VEHICLE_ASSETS.x,
     ],
     is_active: true,
     is_featured: false,
@@ -81,10 +77,9 @@ export const mockModels: Model[] = [
     name: "Model T",
     body_type: "suv",
     tagline: "True 4x4 Capability Engineered for Unpaved Horizons",
-    hero_image: "/images/placeholders/car-5.svg",
+    hero_image: APPROVED_VEHICLE_ASSETS.r,
     gallery: [
-      "/images/placeholders/car-5.svg",
-      "/images/placeholders/car-2.svg",
+      APPROVED_VEHICLE_ASSETS.r,
     ],
     is_active: true,
     is_featured: false,

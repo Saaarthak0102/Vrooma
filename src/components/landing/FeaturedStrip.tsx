@@ -7,6 +7,7 @@ import { Accent } from "@/components/ui/accent";
 import { Reveal } from "@/components/motion/Reveal";
 import { FeaturedModelTeaser } from "@/server/landing-data";
 import { formatINR } from "@/lib/money";
+import { getVehicleAsset } from "@/constants/vehicle-assets";
 import { ArrowRight, ShieldCheck } from "lucide-react";
 
 export interface FeaturedStripProps {
@@ -49,7 +50,7 @@ export function FeaturedStrip({ models }: FeaturedStripProps) {
               {/* Image with subtle contact shadow */}
               <div className="relative aspect-[16/10] w-full select-none">
                 <Image
-                  src={model.heroImage || "/images/placeholders/car-1.svg"}
+                  src={getVehicleAsset(model.heroImage || model)}
                   alt={`${model.name} in Lucknow`}
                   fill
                   sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"

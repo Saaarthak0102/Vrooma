@@ -20,11 +20,11 @@ ON CONFLICT DO NOTHING;
 
 -- 3. Models
 INSERT INTO models (id, slug, name, body_type, tagline, hero_image, is_active, is_featured) VALUES
-  ('m0000001-0000-0000-0000-000000000001', 'model-h', 'Model H', 'sedan', 'The Benchmark of Executive Elegance & Refinement', '/images/placeholders/car-1.svg', true, true),
-  ('m0000001-0000-0000-0000-000000000002', 'model-c', 'Model C', 'suv', 'Dominant Presence with Class-Leading Technology', '/images/placeholders/car-2.svg', true, false),
-  ('m0000001-0000-0000-0000-000000000003', 'model-s', 'Model S', 'hatchback', 'Agile, Fuel-Efficient, Built for Urban Precision', '/images/placeholders/car-3.svg', true, false),
-  ('m0000001-0000-0000-0000-000000000004', 'model-x', 'Model X', 'ev', 'Next-Gen Electric Performance with 460km Range', '/images/placeholders/car-4.svg', true, false),
-  ('m0000001-0000-0000-0000-000000000005', 'model-t', 'Model T', 'suv', 'True 4x4 Capability Engineered for Unpaved Horizons', '/images/placeholders/car-5.svg', true, false)
+  ('m0000001-0000-0000-0000-000000000001', 'model-h', 'Model H', 'sedan', 'The Benchmark of Executive Elegance & Refinement', '/images/cars/y.svg', true, true),
+  ('m0000001-0000-0000-0000-000000000002', 'model-c', 'Model C', 'suv', 'Dominant Presence with Class-Leading Technology', '/images/cars/c.svg', true, false),
+  ('m0000001-0000-0000-0000-000000000003', 'model-s', 'Model S', 'hatchback', 'Agile, Fuel-Efficient, Built for Urban Precision', '/images/cars/s.svg', true, false),
+  ('m0000001-0000-0000-0000-000000000004', 'model-x', 'Model X', 'ev', 'Next-Gen Electric Performance with 460km Range', '/images/cars/x.svg', true, false),
+  ('m0000001-0000-0000-0000-000000000005', 'model-t', 'Model T', 'suv', 'True 4x4 Capability Engineered for Unpaved Horizons', '/images/cars/r.svg', true, false)
 ON CONFLICT (slug) DO NOTHING;
 
 -- 4. Variants (Include NEW-H-02 Model H ZX Automatic Petrol ₹12,45,000)
@@ -41,8 +41,8 @@ ON CONFLICT DO NOTHING;
 
 -- 5. Used Cars (Include UC-1182 and UC-1190 Booked)
 INSERT INTO used_cars (id, stock_id, model_id, variant_name, fuel, year, km, owners, price, status, reg_no_private, reg_no_masked, certified, images) VALUES
-  ('u0000001-0000-0000-0000-000000000001', 'UC-1182', 'm0000001-0000-0000-0000-000000000002', 'VX', 'diesel', 2022, 41200, 1, 845000, 'available', 'UP32BC4120', 'UP32 ** **** 4120', true, '["/images/placeholders/car-2.svg"]'::jsonb),
-  ('u0000001-0000-0000-0000-000000000002', 'UC-1190', 'm0000001-0000-0000-0000-000000000003', 'LX', 'petrol', 2021, 58600, 1, 512000, 'booked', 'UP32DZ5860', 'UP32 ** **** 5860', true, '["/images/placeholders/car-3.svg"]'::jsonb)
+  ('u0000001-0000-0000-0000-000000000001', 'UC-1182', 'm0000001-0000-0000-0000-000000000002', 'VX', 'diesel', 2022, 41200, 1, 845000, 'available', 'UP32BC4120', 'UP32 ** **** 4120', true, '["/images/cars/c.svg"]'::jsonb),
+  ('u0000001-0000-0000-0000-000000000002', 'UC-1190', 'm0000001-0000-0000-0000-000000000003', 'LX', 'petrol', 2021, 58600, 1, 512000, 'booked', 'UP32DZ5860', 'UP32 ** **** 5860', true, '["/images/cars/s.svg"]'::jsonb)
 ON CONFLICT (stock_id) DO NOTHING;
 
 -- 6. Price Rules (seed values)

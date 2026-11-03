@@ -25,6 +25,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getVehicleAsset } from "@/constants/vehicle-assets";
 
 export interface DashboardPanelContentProps {
   activeTab: "bookings" | "saved" | "enquiries";
@@ -377,11 +378,11 @@ export function DashboardPanelContent({
                     >
                       <div className="relative aspect-[16/10] bg-stone-100">
                         <Image
-                          src={image || "/images/placeholders/car-1.svg"}
+                          src={getVehicleAsset(image || record.item)}
                           alt={title}
                           fill
                           sizes="(max-width: 640px) 100vw, 320px"
-                          className="object-cover object-bottom"
+                          className="object-contain p-2"
                         />
                         <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-white/90 text-ink shadow-sm">
                           {isUsed ? "Certified Used" : "Brand New"}

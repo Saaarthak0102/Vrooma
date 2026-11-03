@@ -9,6 +9,7 @@ import { NotchTag } from "@/components/listing/NotchTag";
 import { Button } from "@/components/ui/button";
 import { Fuel, Gauge, ArrowRight } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { getVehicleAsset } from "@/constants/vehicle-assets";
 
 export interface CarCardProps {
   model: Model;
@@ -66,7 +67,7 @@ export function CarCard({
 
       {/* 2. Media: 16/10 aspect (4/3 on phones) with bottom-left cutout tab and bottom-right arrow notch */}
       <NotchMedia
-        src={model.hero_image}
+        src={getVehicleAsset(model.hero_image || model)}
         alt={`${model.name} ${mainVariant?.name || ""}`}
         priority={priority}
         tag={

@@ -11,6 +11,7 @@ import { Reveal } from "@/components/motion/Reveal";
 import { LandingData } from "@/server/landing-data";
 import { gsap, DrawSVGPlugin, MotionPathPlugin } from "@/lib/motion/register";
 import { MapPin, ArrowRight } from "lucide-react";
+import { APPROVED_VEHICLE_ASSETS } from "@/constants/vehicle-assets";
 
 export interface FinalCtaProps {
   data: LandingData;
@@ -163,7 +164,7 @@ export function FinalCta({ data }: FinalCtaProps) {
             />
             <div className="relative aspect-[2/1] w-full">
               <Image
-                src="/images/cars/final-car.svg"
+                src={APPROVED_VEHICLE_ASSETS.y}
                 alt="Model H premium sedan profile"
                 fill
                 sizes="(min-width: 1024px) 34vw, 100vw"
@@ -194,7 +195,7 @@ export function FinalCta({ data }: FinalCtaProps) {
 
         <div className="relative aspect-[2/1] w-full max-w-md mx-auto select-none">
           <Image
-            src="/images/cars/final-car.svg"
+            src={APPROVED_VEHICLE_ASSETS.y}
             alt="Model H premium sedan profile"
             fill
             sizes="100vw"

@@ -12,6 +12,7 @@ import { LandingData } from "@/server/landing-data";
 import { formatINR } from "@/lib/money";
 import { gsap } from "@/lib/motion/register";
 import { ArrowRight, Calendar, ShieldCheck, Calculator } from "lucide-react";
+import { APPROVED_VEHICLE_ASSETS } from "@/constants/vehicle-assets";
 
 export interface TransparentPricingProps {
   data: LandingData;
@@ -143,7 +144,7 @@ export function TransparentPricing({ data }: TransparentPricingProps) {
             />
             <div className="relative aspect-[2/1] w-full">
               <Image
-                src="/images/cars/pricing-car-a.svg"
+                src={APPROVED_VEHICLE_ASSETS.c}
                 alt="Model C SUV profile in white"
                 fill
                 sizes="(min-width: 1024px) 38vw, 100vw"
@@ -166,7 +167,7 @@ export function TransparentPricing({ data }: TransparentPricingProps) {
             />
             <div className="relative aspect-[2/1] w-full">
               <Image
-                src="/images/cars/pricing-car-b.svg"
+                src={APPROVED_VEHICLE_ASSETS.x}
                 alt="Model X EV Fastback profile"
                 fill
                 sizes="(min-width: 1024px) 36vw, 100vw"
@@ -297,7 +298,7 @@ export function TransparentPricing({ data }: TransparentPricingProps) {
               className="absolute bottom-1 left-1/2 -translate-x-1/2 w-[85%] h-5 rounded-[100%] bg-black/25 blur-sm"
             />
             <Image
-              src="/images/cars/pricing-car-a.svg"
+              src={APPROVED_VEHICLE_ASSETS.c}
               alt="Model C SUV profile"
               fill
               sizes="100vw"

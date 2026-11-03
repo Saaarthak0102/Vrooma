@@ -3,6 +3,7 @@ import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { MapPin, Home, Car, Tag, Calendar, User } from "lucide-react";
 import { BookNowPreviewData } from "@/server/landing-data";
+import { getVehicleAsset } from "@/constants/vehicle-assets";
 
 export interface PhoneScreenBookNowProps {
   modelName?: string;
@@ -35,7 +36,7 @@ export function PhoneScreenBookNow({
           </div>
           <div className="relative w-16 h-8 shrink-0 select-none">
             <Image
-              src="/images/cars/final-car.svg"
+              src={getVehicleAsset(modelName)}
               alt={modelName}
               fill
               className="object-contain"

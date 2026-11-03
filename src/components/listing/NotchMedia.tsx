@@ -1,5 +1,6 @@
 import React from "react";
 import Image from "next/image";
+import { getVehicleAsset } from "@/constants/vehicle-assets";
 
 export interface NotchMediaProps {
   src: string;
@@ -18,10 +19,12 @@ export function NotchMedia({
   className = "",
   blurDataURL,
 }: NotchMediaProps) {
+  const resolvedSrc = getVehicleAsset(src);
+
   return (
     <div className={`notch-media ${className}`}>
       <Image
-        src={src}
+        src={resolvedSrc}
         alt={alt}
         fill
         sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"

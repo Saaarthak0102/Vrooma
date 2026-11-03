@@ -17,6 +17,7 @@ import { MediaParallax } from "@/components/listing/MediaParallax";
 import { useFlipGroup } from "@/components/listing/FlipGroup";
 import { AuthGate } from "@/components/auth/AuthGate";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { getVehicleAsset } from "@/constants/vehicle-assets";
 import {
   ShieldCheck,
   ArrowRight,
@@ -57,7 +58,7 @@ export function UsedListingCard({
   };
 
   const isBooked = car.status === "booked";
-  const mainImage = car.images[0] || "/images/placeholders/car-2.svg";
+  const mainImage = getVehicleAsset(car.images?.[0] || car);
   const carTitle = `${car.model_name} ${car.variant_name}`;
   const showroomName =
     SHOWROOM_NAMES[car.showroom_id] || "Pre-Owned Hub (Shaheed Path)";

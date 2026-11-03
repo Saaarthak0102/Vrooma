@@ -6,6 +6,7 @@ import { formatINR } from "@/lib/money";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Trash2 } from "lucide-react";
 import { notWired } from "@/components/dev/NotWired";
+import { getVehicleAsset } from "@/constants/vehicle-assets";
 
 export function SavedCarCard({
   item,
@@ -30,11 +31,11 @@ export function SavedCarCard({
       <div className="flex items-center gap-4 min-w-0">
         <div className="relative h-16 w-24 rounded-[12px] bg-stone-100 overflow-hidden shrink-0">
           <Image
-            src={image || "/images/placeholders/car-1.svg"}
+            src={getVehicleAsset(image || item)}
             alt={title}
             fill
             sizes="96px"
-            className="object-cover object-bottom transition-transform duration-300 hover:scale-105"
+            className="object-contain p-1 transition-transform duration-300 hover:scale-105"
           />
         </div>
         <div className="min-w-0">

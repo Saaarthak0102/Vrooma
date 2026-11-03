@@ -138,8 +138,9 @@
 }
 
 .notch-media-img {
-  object-fit: cover;
-  object-position: center bottom;
+  object-fit: contain;
+  object-position: center;
+  padding: 12px;
   transition: transform 700ms var(--lc-ease);
 }
 

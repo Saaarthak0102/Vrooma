@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import { env } from "./env";
 import { BRAND_NAME, BRAND_TAGLINE } from "./constants";
+import { DEFAULT_VEHICLE_ASSET } from "@/constants/vehicle-assets";
 
 export interface GenerateSeoProps {
   title?: string;
@@ -14,7 +15,7 @@ export function constructMetadata({
   title,
   description = "Discover new and certified used cars in Lucknow with transparent on-road prices, instant EMI calculation, and 5-minute lead response.",
   path = "",
-  image = "/images/placeholders/car-1.svg",
+  image = DEFAULT_VEHICLE_ASSET,
   locale = "en",
 }: GenerateSeoProps = {}): Metadata {
   const fullTitle = title ? `${title} | ${BRAND_NAME}` : `${BRAND_NAME} - ${BRAND_TAGLINE}`;

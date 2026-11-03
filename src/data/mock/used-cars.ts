@@ -1,4 +1,5 @@
 import { UsedCar } from "@/types/domain";
+import { APPROVED_VEHICLE_ASSETS } from "@/constants/vehicle-assets";
 
 export const mockUsedCars: UsedCar[] = [
   {
@@ -20,8 +21,7 @@ export const mockUsedCars: UsedCar[] = [
     certified: true,
     listed_at: "2026-05-10T10:00:00.000Z",
     images: [
-      "/images/placeholders/car-2.svg",
-      "/images/placeholders/car-1.svg",
+      APPROVED_VEHICLE_ASSETS.c,
     ],
     inspection: {
       score: 94,
@@ -58,8 +58,7 @@ export const mockUsedCars: UsedCar[] = [
     certified: true,
     listed_at: "2026-05-02T10:00:00.000Z",
     images: [
-      "/images/placeholders/car-3.svg",
-      "/images/placeholders/car-1.svg",
+      APPROVED_VEHICLE_ASSETS.s,
     ],
     inspection: {
       score: 91,
@@ -93,8 +92,7 @@ export const mockUsedCars: UsedCar[] = [
     certified: true,
     listed_at: "2026-06-01T10:00:00.000Z",
     images: [
-      "/images/placeholders/car-1.svg",
-      "/images/placeholders/car-2.svg",
+      APPROVED_VEHICLE_ASSETS.y,
     ],
     inspection: {
       score: 98,
@@ -127,7 +125,7 @@ export const mockUsedCars: UsedCar[] = [
     certified: true,
     listed_at: "2026-10-28T10:00:00.000Z",
     images: [
-      "/images/placeholders/car-5.svg",
+      APPROVED_VEHICLE_ASSETS.r,
     ],
     inspection: {
       score: 92,
@@ -160,7 +158,7 @@ export const mockUsedCars: UsedCar[] = [
     certified: true,
     listed_at: "2026-05-14T10:00:00.000Z",
     images: [
-      "/images/placeholders/car-2.svg",
+      APPROVED_VEHICLE_ASSETS.c,
     ],
     inspection: {
       score: 89,
@@ -192,7 +190,7 @@ export const mockUsedCars: UsedCar[] = [
     certified: true,
     listed_at: "2026-10-30T10:00:00.000Z",
     images: [
-      "/images/placeholders/car-3.svg",
+      APPROVED_VEHICLE_ASSETS.s,
     ],
     inspection: {
       score: 97,
@@ -224,7 +222,7 @@ export const mockUsedCars: UsedCar[] = [
     certified: true,
     listed_at: "2026-05-04T10:00:00.000Z",
     images: [
-      "/images/placeholders/car-1.svg",
+      APPROVED_VEHICLE_ASSETS.y,
     ],
     inspection: {
       score: 88,
@@ -256,7 +254,7 @@ export const mockUsedCars: UsedCar[] = [
     certified: true,
     listed_at: "2026-05-22T10:00:00.000Z",
     images: [
-      "/images/placeholders/car-4.svg",
+      APPROVED_VEHICLE_ASSETS.x,
     ],
     inspection: {
       score: 99,

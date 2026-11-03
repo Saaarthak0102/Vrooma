@@ -32,6 +32,7 @@ import {
   ChevronDown,
   MapPin,
 } from "lucide-react";
+import { APPROVED_VEHICLE_ASSETS, getVehicleAsset } from "@/constants/vehicle-assets";
 
 export interface HeroSceneProps {
   data: LandingData;
@@ -367,7 +368,7 @@ export function HeroScene({ data }: HeroSceneProps) {
             />
             <div className="relative aspect-[2/1] w-full">
               <Image
-                src="/images/cars/hero-model-h.svg"
+                src={APPROVED_VEHICLE_ASSETS.y}
                 alt="Model H ZX automatic in white"
                 fill
                 priority
@@ -569,7 +570,7 @@ export function HeroScene({ data }: HeroSceneProps) {
             className="absolute bottom-1 left-1/2 -translate-x-1/2 w-[85%] h-6 rounded-[100%] bg-black/25 blur-sm"
           />
           <Image
-            src="/images/cars/hero-model-h.svg"
+            src={APPROVED_VEHICLE_ASSETS.y}
             alt="Model H ZX automatic in white"
             fill
             priority

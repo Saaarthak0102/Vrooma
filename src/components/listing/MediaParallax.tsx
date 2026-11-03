@@ -3,6 +3,7 @@
 import React, { useRef, useEffect } from "react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { getVehicleAsset } from "@/constants/vehicle-assets";
 
 export interface MediaParallaxProps {
   src: string;
@@ -100,7 +101,7 @@ export function MediaParallax({
         }}
       >
         <Image
-          src={src}
+          src={getVehicleAsset(src)}
           alt={alt}
           fill
           priority={priority}

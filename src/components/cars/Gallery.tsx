@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
+import { getVehicleAsset } from "@/constants/vehicle-assets";
 
 export interface GalleryProps {
   images: string[];
@@ -11,7 +12,7 @@ export interface GalleryProps {
 
 export function Gallery({ images, modelName }: GalleryProps) {
   const [selectedIdx, setSelectedIdx] = useState(0);
-  const currentImage = images[selectedIdx] || "/images/placeholders/car-1.svg";
+  const currentImage = getVehicleAsset(images[selectedIdx] || modelName);
 
   return (
     <div className="space-y-4">
@@ -46,7 +47,7 @@ export function Gallery({ images, modelName }: GalleryProps) {
               }`}
             >
               <Image
-                src={img}
+                src={getVehicleAsset(img || modelName)}
                 alt={`${modelName} thumbnail ${i + 1}`}
                 fill
                 sizes="96px"

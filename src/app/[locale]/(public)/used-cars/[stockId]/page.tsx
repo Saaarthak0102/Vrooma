@@ -5,6 +5,7 @@ import { constructMetadata } from "@/lib/seo";
 import { VehicleJsonLd, BreadcrumbJsonLd } from "@/components/seo/VehicleJsonLd";
 import { UsedCarDetailView } from "./UsedCarDetailView";
 import { env } from "@/lib/env";
+import { getVehicleAsset } from "@/constants/vehicle-assets";
 
 export async function generateStaticParams() {
   const cars = await listUsedCars();
@@ -47,7 +48,7 @@ export default async function UsedCarPage({
     <>
       <VehicleJsonLd
         name={`${car.year} ${car.model_name} ${car.variant_name} (${car.stock_id})`}
-        image={car.images[0] || "/images/placeholders/car-2.svg"}
+        image={getVehicleAsset(car.images?.[0] || car)}
         description={`Certified Used ${car.model_name} with ${car.km.toLocaleString()} km`}
         price={car.price}
         url={`${env.NEXT_PUBLIC_SITE_URL}/${locale}/used-cars/${car.stock_id}`}

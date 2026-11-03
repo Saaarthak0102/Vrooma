@@ -1,4 +1,5 @@
 import { Variant } from "@/types/domain";
+import { APPROVED_VEHICLE_ASSETS } from "@/constants/vehicle-assets";
 
 export const mockVariants: Variant[] = [
   // Model H variants
@@ -32,28 +33,28 @@ export const mockVariants: Variant[] = [
         variant_id: "var-h-zx-at",
         name: "Platinum White Pearl",
         hex: "#F8FAFC",
-        image_url: "/images/placeholders/car-1.svg",
+        image_url: APPROVED_VEHICLE_ASSETS.y,
       },
       {
         id: "col-meteoroid-grey",
         variant_id: "var-h-zx-at",
         name: "Meteoroid Grey Metallic",
         hex: "#475569",
-        image_url: "/images/placeholders/car-1.svg",
+        image_url: APPROVED_VEHICLE_ASSETS.y,
       },
       {
         id: "col-radiant-red",
         variant_id: "var-h-zx-at",
         name: "Radiant Red Metallic",
         hex: "#DC2626",
-        image_url: "/images/placeholders/car-1.svg",
+        image_url: APPROVED_VEHICLE_ASSETS.y,
       },
       {
         id: "col-golden-brown",
         variant_id: "var-h-zx-at",
         name: "Golden Brown Metallic",
         hex: "#78350F",
-        image_url: "/images/placeholders/car-1.svg",
+        image_url: APPROVED_VEHICLE_ASSETS.y,
       },
     ],
   },
@@ -86,7 +87,7 @@ export const mockVariants: Variant[] = [
         variant_id: "var-h-vx-mt",
         name: "Platinum White Pearl",
         hex: "#F8FAFC",
-        image_url: "/images/placeholders/car-1.svg",
+        image_url: APPROVED_VEHICLE_ASSETS.y,
       },
     ],
   },
