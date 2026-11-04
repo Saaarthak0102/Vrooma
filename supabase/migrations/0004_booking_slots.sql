@@ -3,7 +3,7 @@
 
 -- 1. Demo cars
 CREATE TABLE IF NOT EXISTS demo_cars (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   showroom_id UUID REFERENCES showrooms(id) ON DELETE CASCADE,
   variant_id UUID REFERENCES variants(id) ON DELETE CASCADE,
   reg_label TEXT NOT NULL,
@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS demo_cars (
 
 -- 2. Booking slots
 CREATE TABLE IF NOT EXISTS slots (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   kind booking_kind_type NOT NULL,
   showroom_id UUID REFERENCES showrooms(id) ON DELETE CASCADE,
   workshop_id UUID REFERENCES workshops(id) ON DELETE CASCADE,
@@ -37,7 +37,7 @@ ON public.slots (
 
 -- 3. Bookings
 CREATE TABLE IF NOT EXISTS bookings (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL, -- references auth.users
   slot_id UUID REFERENCES slots(id) ON DELETE RESTRICT,
   kind booking_kind_type NOT NULL,

@@ -1,7 +1,7 @@
 -- 0006_ai_consent_audit.sql
 
 CREATE TABLE IF NOT EXISTS consents (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
   purpose TEXT NOT NULL,
   granted BOOLEAN NOT NULL DEFAULT TRUE,
@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS consents (
 );
 
 CREATE TABLE IF NOT EXISTS saved_items (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
   target_type TEXT NOT NULL, -- 'model' | 'used_car'
   target_id UUID NOT NULL,
@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS saved_items (
 );
 
 CREATE TABLE IF NOT EXISTS trade_in_requests (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
   lead_id UUID REFERENCES leads(id) ON DELETE SET NULL,
   make TEXT NOT NULL,
@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS trade_in_requests (
 );
 
 CREATE TABLE IF NOT EXISTS offers (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   title TEXT NOT NULL,
   body TEXT NOT NULL,
   badge TEXT,
@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS offers (
 );
 
 CREATE TABLE IF NOT EXISTS banners (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   title TEXT NOT NULL,
   image_url TEXT NOT NULL,
   href TEXT NOT NULL,
@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS banners (
 );
 
 CREATE TABLE IF NOT EXISTS messages_outbox (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   channel TEXT NOT NULL,
   to_phone_or_email TEXT NOT NULL,
   template TEXT NOT NULL,
@@ -66,7 +66,7 @@ CREATE TABLE IF NOT EXISTS messages_outbox (
 );
 
 CREATE TABLE IF NOT EXISTS ai_logs (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   kind TEXT NOT NULL,
   lead_id UUID REFERENCES leads(id) ON DELETE SET NULL,
   prompt_hash TEXT NOT NULL,
@@ -78,7 +78,7 @@ CREATE TABLE IF NOT EXISTS ai_logs (
 );
 
 CREATE TABLE IF NOT EXISTS audit_log (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   actor_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
   action TEXT NOT NULL,
   entity TEXT NOT NULL,
@@ -88,7 +88,7 @@ CREATE TABLE IF NOT EXISTS audit_log (
 );
 
 CREATE TABLE IF NOT EXISTS csv_imports (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   uploaded_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
   filename TEXT NOT NULL,
   total INT NOT NULL,

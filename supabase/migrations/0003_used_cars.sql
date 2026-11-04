@@ -1,7 +1,7 @@
 -- 0003_used_cars.sql
 
 CREATE TABLE IF NOT EXISTS used_cars (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   stock_id TEXT UNIQUE NOT NULL,
   model_id UUID REFERENCES models(id) ON DELETE RESTRICT,
   variant_name TEXT NOT NULL,
@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS used_cars (
 );
 
 CREATE TABLE IF NOT EXISTS used_car_sales_history (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   model_id UUID REFERENCES models(id) ON DELETE SET NULL,
   year INT NOT NULL,
   km INT NOT NULL,
@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS used_car_sales_history (
 );
 
 CREATE TABLE IF NOT EXISTS used_car_price_suggestions (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   used_car_id UUID REFERENCES used_cars(id) ON DELETE CASCADE,
   low INT NOT NULL,
   high INT NOT NULL,

@@ -13,7 +13,7 @@ CREATE TYPE transmission_type AS ENUM ('manual', 'automatic');
 
 -- Core Geographic & Dealership Facility Tables
 CREATE TABLE IF NOT EXISTS cities (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   state TEXT NOT NULL,
   slug TEXT UNIQUE NOT NULL,
@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS cities (
 );
 
 CREATE TABLE IF NOT EXISTS showrooms (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   city_id UUID REFERENCES cities(id) ON DELETE RESTRICT,
   name TEXT NOT NULL,
   address TEXT NOT NULL,
@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS showrooms (
 );
 
 CREATE TABLE IF NOT EXISTS workshops (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   city_id UUID REFERENCES cities(id) ON DELETE RESTRICT,
   name TEXT NOT NULL,
   address TEXT NOT NULL,

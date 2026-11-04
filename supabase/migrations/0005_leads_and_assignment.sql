@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS profiles (
 
 -- 2. Leads
 CREATE TABLE IF NOT EXISTS leads (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   source lead_source_type NOT NULL DEFAULT 'web',
   user_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
   name TEXT NOT NULL,
@@ -47,7 +47,7 @@ ON public.leads (
 
 -- 4. Lead events
 CREATE TABLE IF NOT EXISTS lead_events (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   lead_id UUID REFERENCES leads(id) ON DELETE CASCADE,
   type TEXT NOT NULL,
   payload JSONB NOT NULL DEFAULT '{}'::jsonb,
@@ -57,7 +57,7 @@ CREATE TABLE IF NOT EXISTS lead_events (
 
 -- 5. Assignment rules
 CREATE TABLE IF NOT EXISTS assignment_rules (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   showroom_id UUID REFERENCES showrooms(id) ON DELETE CASCADE,
   model_id UUID REFERENCES models(id) ON DELETE CASCADE,
   consultant_ids UUID[] NOT NULL DEFAULT '{}',

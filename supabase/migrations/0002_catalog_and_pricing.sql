@@ -1,7 +1,7 @@
 -- 0002_catalog_and_pricing.sql
 
 CREATE TABLE IF NOT EXISTS models (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   slug TEXT UNIQUE NOT NULL,
   name TEXT NOT NULL,
   body_type TEXT NOT NULL,
@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS models (
 );
 
 CREATE TABLE IF NOT EXISTS variants (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   model_id UUID REFERENCES models(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   fuel fuel_type NOT NULL,
@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS variants (
 );
 
 CREATE TABLE IF NOT EXISTS variant_colors (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   variant_id UUID REFERENCES variants(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   hex TEXT NOT NULL,
@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS variant_colors (
 );
 
 CREATE TABLE IF NOT EXISTS price_rules (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   city_id UUID REFERENCES cities(id) ON DELETE CASCADE,
   model_id UUID REFERENCES models(id) ON DELETE SET NULL,
   variant_id UUID REFERENCES variants(id) ON DELETE SET NULL,
