@@ -7,14 +7,31 @@ export interface ListSlotsParams {
   showroomId?: string;
   workshopId?: string;
   demoCarId?: string;
-  date?: string; // YYYY-MM-DD
+  date?: string; // YYYY-MM-DD in Asia/Kolkata
+  includePast?: boolean;
   limit?: number;
 }
 
 const SLOT_COLUMNS = "id, kind, showroom_id, workshop_id, demo_car_id, starts_at, ends_at, capacity, booked_count, is_active";
 
 /**
+ * Converts an IST date string (YYYY-MM-DD) to UTC ISO boundaries.
+ * IST is UTC+05:30.
+ */
+export function getISTDayRangeUTC(dateStr: string): { startUTC: string; endUTC: string } {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  const istOffsetMs = (5 * 60 + 30) * 60 * 1000;
+  const start = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0) - istOffsetMs);
+  const end = new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999) - istOffsetMs);
+  return {
+    startUTC: start.toISOString(),
+    endUTC: end.toISOString(),
+  };
+}
+
+/**
  * List active future slots for test drives or service workshop bays.
+ * Enforces IST day queries and 2-hour minimum advance lead time.
  */
 export async function listSlots(params: ListSlotsParams = {}): Promise<Slot[]> {
   const supabase = createPublicClient();
@@ -35,10 +52,18 @@ export async function listSlots(params: ListSlotsParams = {}): Promise<Slot[]> {
   if (params.demoCarId) {
     query = query.eq("demo_car_id", params.demoCarId);
   }
+
+  // 2-hour minimum advance booking lead-time cutoff
+  if (!params.includePast) {
+    const minLeadTime = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
+    query = query.gt("starts_at", minLeadTime);
+  }
+
   if (params.date) {
+    const { startUTC, endUTC } = getISTDayRangeUTC(params.date);
     query = query
-      .gte("starts_at", `${params.date}T00:00:00.000Z`)
-      .lte("starts_at", `${params.date}T23:59:59.999Z`);
+      .gte("starts_at", startUTC)
+      .lte("starts_at", endUTC);
   }
 
   const limit = Math.min(params.limit || 100, 200);

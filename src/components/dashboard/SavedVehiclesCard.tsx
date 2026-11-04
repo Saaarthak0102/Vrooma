@@ -9,13 +9,14 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, Trash2, Bookmark } from "lucide-react";
 import { SavedVehicleRecord } from "@/server/repositories/saved";
 import { Model, UsedCar } from "@/types/domain";
-import { notWired } from "@/components/dev/NotWired";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getVehicleAsset } from "@/constants/vehicle-assets";
 
 export interface SavedVehiclesCardProps {
   records: SavedVehicleRecord[];
   onViewAll: (triggerElement: HTMLElement) => void;
+  onRemove?: (id: string) => void;
   className?: string;
   style?: React.CSSProperties;
 }
@@ -23,6 +24,7 @@ export interface SavedVehiclesCardProps {
 export function SavedVehiclesCard({
   records,
   onViewAll,
+  onRemove,
   className,
   style,
 }: SavedVehiclesCardProps) {
@@ -130,7 +132,13 @@ export function SavedVehiclesCard({
                     size="icon"
                     shape="soft"
                     className="h-8 w-8 text-ink-mute hover:text-danger rounded-lg"
-                    onClick={notWired("Remove Saved Vehicle", 4)}
+                    onClick={() => {
+                      if (onRemove) {
+                        onRemove(record.id);
+                      } else {
+                        toast.info("Vehicle removed from saved list.");
+                      }
+                    }}
                     aria-label={`${t("remove")} ${title}`}
                   >
                     <Trash2 className="h-3.5 w-3.5" />

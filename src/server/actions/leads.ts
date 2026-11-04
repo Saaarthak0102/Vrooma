@@ -1,0 +1,230 @@
+"use server";
+
+import { z } from "zod";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
+import { requireRole } from "@/server/auth/viewer";
+import { ActionResponse, successResponse, errorResponse } from "@/lib/errors";
+import { Lead, LeadStatus } from "@/types/domain";
+
+export const FORBIDDEN_DISCOUNT_WORDS = [
+  "discount",
+  "discounts",
+  "price cut",
+  "price cuts",
+  "waiver",
+  "waivers",
+  "off",
+  "cashback",
+  "छूट",
+  "कम",
+];
+
+export function containsForbiddenDiscountWords(text: string): boolean {
+  const lower = text.toLowerCase();
+  for (const word of FORBIDDEN_DISCOUNT_WORDS) {
+    if (word.startsWith("छ") || word.startsWith("क")) {
+      if (lower.includes(word)) return true;
+    } else {
+      const regex = new RegExp(`\\b${word}\\b`, "i");
+      if (regex.test(lower)) return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Update lead status with optimistic concurrency protection.
+ * Sets first_contacted_at automatically on transition from 'new'.
+ */
+export async function updateLeadStatusAction(
+  leadId: string,
+  status: LeadStatus,
+  lostReason?: string,
+  expectedUpdatedAt?: string
+): Promise<ActionResponse<{ id: string; status: LeadStatus; firstContactedAt?: string | null }>> {
+  try {
+    await requireRole("consultant", "manager", "admin");
+    const admin = createAdminClient();
+    const userClient = await createClient();
+
+    // 1. Optimistic concurrency check
+    if (expectedUpdatedAt) {
+      const { data: currentLead } = await admin
+        .from("leads")
+        .select("updated_at, status")
+        .eq("id", leadId)
+        .single();
+
+      if (currentLead && currentLead.updated_at !== expectedUpdatedAt) {
+        return errorResponse(
+          "CONFLICT",
+          "This lead record was modified by another sales consultant. Please refresh to view the latest status."
+        );
+      }
+    }
+
+    // 2. Call set_lead_status RPC
+    const { data: updated, error } = await (userClient || admin).rpc("set_lead_status", {
+      p_lead_id: leadId,
+      p_status: status,
+      p_lost_reason: status === "lost" ? lostReason || "Not specified" : null,
+    });
+
+    if (error) {
+      return errorResponse("INTERNAL_ERROR", `Failed to update lead status: ${error.message}`);
+    }
+
+    return successResponse({
+      id: updated.id,
+      status: updated.status as LeadStatus,
+      firstContactedAt: updated.first_contacted_at,
+    });
+  } catch (err: any) {
+    return errorResponse("INTERNAL_ERROR", err?.message || "Status update failed.");
+  }
+}
+
+/**
+ * Reassign a lead to another sales consultant in the showroom pool.
+ */
+export async function reassignLeadAction(
+  leadId: string,
+  toConsultantId: string,
+  reason: string
+): Promise<ActionResponse<{ id: string; assignedTo: string }>> {
+  try {
+    const { profile } = await requireRole("consultant", "manager", "admin");
+    const admin = createAdminClient();
+    const userClient = await createClient();
+
+    if (!reason || reason.trim().length === 0) {
+      return errorResponse("VALIDATION_FAILED", "A reason is required when reassigning a customer lead.");
+    }
+
+    // Verify target consultant exists and is active
+    const { data: targetConsultant } = await admin
+      .from("profiles")
+      .select("id, full_name, is_active, role")
+      .eq("id", toConsultantId)
+      .maybeSingle();
+
+    if (!targetConsultant || !targetConsultant.is_active) {
+      return errorResponse("NOT_FOUND", "Selected consultant is inactive or was not found.");
+    }
+
+    // Call reassign_lead RPC
+    const { data: lead, error } = await (userClient || admin).rpc("reassign_lead", {
+      p_lead_id: leadId,
+      p_to_consultant_id: toConsultantId,
+      p_reason: reason.trim(),
+    });
+
+    if (error) {
+      return errorResponse("INTERNAL_ERROR", `Failed to reassign lead: ${error.message}`);
+    }
+
+    // Queue notification to new consultant
+    try {
+      await admin.from("messages_outbox").insert({
+        channel: "email",
+        to_address: "staff@vrooma.in",
+        template: "lead_reassigned",
+        body: `Lead ${lead.ref} has been reassigned to ${targetConsultant.full_name} by ${profile.full_name}. Reason: ${reason}`,
+        lead_id: leadId,
+        idempotency_key: `outbox_reassign_${leadId}_${Date.now()}`,
+        status: "pending",
+      });
+    } catch (outboxErr: any) {
+      console.warn(`[leads] Outbox write error: ${outboxErr?.message}`);
+    }
+
+    return successResponse({
+      id: lead.id,
+      assignedTo: toConsultantId,
+    });
+  } catch (err: any) {
+    return errorResponse("INTERNAL_ERROR", err?.message || "Reassignment failed.");
+  }
+}
+
+/**
+ * Send a reply message to the buyer.
+ * Enforces strict dealership policy: discount words are forbidden in drafts and replies.
+ */
+export async function sendLeadReplyAction(
+  leadId: string,
+  message: string,
+  channel: "whatsapp" | "email" | "sms" = "whatsapp"
+): Promise<ActionResponse<{ messageId: string }>> {
+  try {
+    const { profile } = await requireRole("consultant", "manager", "admin");
+    const admin = createAdminClient();
+
+    if (!message || message.trim().length === 0) {
+      return errorResponse("VALIDATION_FAILED", "Message cannot be empty.");
+    }
+
+    // Dealership policy constraint: discount words are hard-blocked
+    if (containsForbiddenDiscountWords(message)) {
+      return errorResponse(
+        "VALIDATION_FAILED",
+        "Dealership Policy Guardrail: Reply cannot quote discounts, price cuts, or waivers. All pricing adjustments must go through the Dealer Principal or Used-Car Manager."
+      );
+    }
+
+    // Fetch lead details
+    const { data: lead, error: leadErr } = await admin
+      .from("leads")
+      .select("id, ref, name, phone, email, status, showroom_id")
+      .eq("id", leadId)
+      .single();
+
+    if (leadErr || !lead) {
+      return errorResponse("NOT_FOUND", "Lead record not found.");
+    }
+
+    const destination = channel === "email" ? (lead.email || lead.phone) : lead.phone;
+
+    // Queue in messages_outbox
+    const msgId = `reply_${lead.id}_${Date.now()}`;
+    const { error: outboxErr } = await admin.from("messages_outbox").insert({
+      channel,
+      to_address: destination,
+      template: "consultant_reply",
+      body: message.trim(),
+      lead_id: lead.id,
+      idempotency_key: msgId,
+      status: "pending",
+    });
+
+    if (outboxErr) {
+      return errorResponse("INTERNAL_ERROR", `Failed to queue message: ${outboxErr.message}`);
+    }
+
+    // Record lead event
+    await admin.from("lead_events").insert({
+      lead_id: lead.id,
+      type: "contacted",
+      actor_id: profile.id,
+      payload: {
+        channel,
+        sender: profile.full_name,
+        message_length: message.length,
+      },
+    });
+
+    // If lead was still 'new', update to 'contacted'
+    if (lead.status === "new") {
+      await admin.rpc("set_lead_status", {
+        p_lead_id: lead.id,
+        p_status: "contacted",
+      });
+    }
+
+    return successResponse({ messageId: msgId });
+  } catch (err: any) {
+    return errorResponse("INTERNAL_ERROR", err?.message || "Failed to send reply.");
+  }
+}
+

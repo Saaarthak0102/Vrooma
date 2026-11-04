@@ -1,15 +1,21 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
+import { useRouter } from "@/i18n/navigation";
 import { Booking } from "@/types/domain";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, MapPin, User, Car, Clock } from "lucide-react";
-import { notWired } from "@/components/dev/NotWired";
+import { Calendar, MapPin, User, Car, Clock, Loader2 } from "lucide-react";
 import { bookingRef } from "@/lib/booking-ref";
+import { cancelBookingAction } from "@/server/actions/booking";
+import { toast } from "sonner";
 
 export function BookingCard({ booking }: { booking: Booking }) {
+  const router = useRouter();
+  const [cancelling, setCancelling] = useState(false);
+
   const isTestDrive = booking.kind === "test_drive";
+  const isCancelled = booking.status === "cancelled";
   const dateFormatted = new Date(booking.starts_at).toLocaleDateString("en-IN", {
     weekday: "short",
     day: "numeric",
@@ -20,6 +26,33 @@ export function BookingCard({ booking }: { booking: Booking }) {
     minute: "2-digit",
     hour12: true,
   });
+
+  const handleCancel = async () => {
+    if (!confirm("Are you sure you want to cancel this booking? The slot will be released.")) return;
+    setCancelling(true);
+    try {
+      const res = await cancelBookingAction(booking.id);
+      if (res.ok) {
+        toast.success("Booking cancelled successfully.");
+        router.refresh();
+      } else {
+        toast.error(res.error.message || "Failed to cancel booking.");
+      }
+    } catch {
+      toast.error("Failed to cancel booking.");
+    } finally {
+      setCancelling(false);
+    }
+  };
+
+  const handleReschedule = () => {
+    toast.info("Please select a new appointment slot.");
+    if (booking.kind === "test_drive") {
+      router.push("/book/test-drive");
+    } else {
+      router.push("/book/service");
+    }
+  };
 
   return (
     <div className="rounded-xl border border-border bg-white p-5 shadow-card space-y-4">
@@ -59,24 +92,28 @@ export function BookingCard({ booking }: { booking: Booking }) {
         )}
       </div>
 
-      <div className="pt-2 border-t border-border flex gap-2">
-        <Button
-          variant="secondary"
-          size="sm"
-          className="w-1/2 text-xs"
-          onClick={notWired("Reschedule Booking", 4)}
-        >
-          Reschedule
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-1/2 text-xs text-danger hover:bg-danger/10"
-          onClick={notWired("Cancel Booking", 4)}
-        >
-          Cancel
-        </Button>
-      </div>
+      {!isCancelled && (
+        <div className="pt-2 border-t border-border flex gap-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            className="w-1/2 text-xs"
+            onClick={handleReschedule}
+          >
+            Reschedule
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-1/2 text-xs text-danger hover:bg-danger/10"
+            onClick={handleCancel}
+            disabled={cancelling}
+          >
+            {cancelling ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
+            Cancel
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

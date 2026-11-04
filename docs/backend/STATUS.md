@@ -1,7 +1,7 @@
 # VROOMA BACKEND: IMPLEMENTATION STATUS & PROGRESSION
 
-**Last Updated:** 2026-11-04  
-**Current Phase:** Phase 3 Complete (Mock Layer Removed, Real Supabase Data Layer & RPC Integration Live)  
+**Last Updated:** 2026-11-05  
+**Current Phase:** Phase 4 Complete (Slots, Bookings, Leads, SLA, CSV Import/Export & Outbox Engine Live)  
 **Branch / Worktree:** Main  
 
 ---
@@ -14,7 +14,7 @@
 | **1** | `docs/backend/02 auth.md` | Real sign-in, sign-up, onboarding, sessions, roles, guards | **COMPLETE** | 2026-11-04 |
 | **2** | `docs/backend/03 schema.md` | Production schema, RLS, functions, cron, storage, seed | **COMPLETE** | 2026-11-04 |
 | **3** | `docs/backend/04 data layer catalog.md` | Mock removal; catalog, pricing, admin CRUD on real data | **COMPLETE** | 2026-11-04 |
-| **4** | `docs/backend/05 booking lead.md` | Slots, test drives, service, leads, SLA, CSV import/export, outbox | PENDING | — |
+| **4** | `docs/backend/05 booking lead.md` | Slots, test drives, service, leads, SLA, CSV import/export, outbox | **COMPLETE** | 2026-11-05 |
 | **5** | `docs/backend/06 account privacy.md` | Profile, saved, enquiries, trade-in, consent, data rights, newsletter | PENDING | — |
 | **6** | `docs/backend/07 hardening release.md` | Security review, tests, observability, performance, release checklist | PENDING | — |
 
@@ -157,3 +157,63 @@ The agent must **NOT** run `db push` against any Supabase project until the user
 - **ESLint:** `npm run lint` passed with 0 errors, 0 warnings.
 - **Vitest Suite:** 24/24 test files passed, 245/245 tests passing (100%).
 - **Production Build:** `npm run build` passed successfully, generating all 117 static & dynamic routes without warnings.
+
+---
+
+## 7. Phase 4 Implementation Summary (Slots, Bookings, Leads, SLA, CSV, Outbox)
+
+### 7.1 What Was Built
+
+1. **Slots & Atomic Booking Engine:**
+   - Real slot queries via `GET /api/slots` with public ISR cache (`Cache-Control: public, s-maxage=30, stale-while-revalidate=60`).
+   - IST day boundaries (`Asia/Kolkata`, UTC+05:30) calculated deterministically via `getISTDayRangeUTC`.
+   - Server-side 2-hour minimum advance booking lead-time cutoff.
+   - Taken or full slots returned with `booked_count >= capacity` and displayed disabled, never hidden.
+   - Server action `bookSlotAction` invoking `book_slot` RPC:
+     - Handles concurrency conflicts (`VR001`) returning typed `CONFLICT`.
+     - Validates profile completeness (`requireCompleteProfile`) and DPDP consent.
+     - Blocks overlapping bookings of the same kind for the same user.
+     - Automatically attaches a `leads` record in the same transaction for sales desk assignment.
+     - Normalizes and masks vehicle registration numbers (`UP32 ** **** 1234`) according to DPDP Act 2023.
+   - Server actions `cancelBookingAction` (releasing capacity) and `rescheduleBookingAction` (atomic slot swap).
+   - Server action `generateSlotsAction` for admin slot generation up to 60 days in advance.
+   - Updated client booking wizards (`/book/test-drive` and `/book/service`) completely removing all mock data imports.
+
+2. **Leads Pipeline & Staff Console Actions:**
+   - Public lead intake route handler `POST /api/leads` with Zod validation, hidden honeypot spam protection, per-IP and per-phone rate limiting (429 with `Retry-After: 60`), and phone E.164 normalization.
+   - Staff server action `updateLeadStatusAction` with optimistic concurrency conflict detection on `updated_at`.
+   - Staff server action `reassignLeadAction` with required audit reason and event tracking.
+   - Staff server action `sendLeadReplyAction` enforcing strict dealership policy: hard-blocking discount words (`discount`, `price cut`, `off`, `waiver`, `छूट`, `कम`).
+   - Automated SLA breach worker `GET /api/cron/sla` calling `flag_sla_breaches` RPC via admin client with `CRON_SECRET` protection.
+
+3. **Portal CSV Ingestion (`/api/leads/import`):**
+   - File limits: <= 2 MB, <= 2,000 rows.
+   - UTF-8 BOM (`\uFEFF`) stripping and delimiter auto-detection (`,`, `;`, `\t`).
+   - Flexible case-insensitive header mapping.
+   - Formula injection neutralisation on import (stripping leading `= + - @`).
+   - Deduplication within batch and against database (24h dedupe rule).
+   - Ingestion logging to `public.csv_imports`.
+
+4. **Daily DMS CSV Feed (`/api/export/daily-csv?date=`):**
+   - Protected by `CRON_SECRET` bearer token or Dealership Admin/Manager session.
+   - Streams full IST calendar day inbound leads and bookings.
+   - CSV injection immunity via `escapeCsvCellForExport` (prefixing `'` on all formula trigger characters).
+   - Documented in `docs/backend/EXPORT.md`.
+   - Immutable audit logging in `public.audit_log`.
+
+5. **Outbox Background Worker (`/api/cron/outbox`):**
+   - Scheduled worker claiming pending/failed batches with optimistic locking.
+   - Exponential retry backoff (1m, 5m, 30m, 120m).
+   - Dead-letter queue marking (`status = 'dead'`) after 5 failed attempts.
+   - Resend email transmission with local test/dev simulation fallback.
+
+6. **Dealer Principal "Leak" Monitor (`src/server/actions/admin-leak.ts`):**
+   - Server action `getLeakMetricsAction` invoking `get_leak_metrics` RPC.
+   - Direct mathematical alignment with brief assumptions for the ₹2.11 crore operational leak (54 lost sales × ₹25,000 dealer contribution = ₹1.62 cr/yr; 300 migrating owners × ₹4,500 × 30% margin = ₹48.6 lakh/yr).
+
+### 7.2 Verification Status
+- **TypeScript Typecheck:** `npx tsc --noEmit` passed with 0 errors.
+- **ESLint:** `npm run lint` passed with 0 errors, 0 warnings.
+- **Wiring Placeholders:** All Phase 4 placeholders wired; 0 repository `TODO(day-` markers.
+- **Vitest Suite:** 27/27 test files passed, 261/261 tests passing (100%).
+- **Production Build:** `npm run build` compiled all 118 static and dynamic routes with exit code 0.

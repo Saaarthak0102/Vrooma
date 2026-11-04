@@ -13,7 +13,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { bookingRef } from "@/lib/booking-ref";
 import { formatAppointmentDate } from "@/lib/date";
-import { notWired } from "@/components/dev/NotWired";
+import { cancelBookingAction } from "@/server/actions/booking";
+import { toast } from "sonner";
+import { useRouter } from "@/i18n/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import {
   Calendar,
@@ -37,10 +39,37 @@ export function BookingDetailsDialog({
   open,
   onOpenChange,
 }: BookingDetailsDialogProps) {
+  const router = useRouter();
   const locale = useLocale();
   const t = useTranslations("dashboard");
 
   if (!booking) return null;
+
+  const handleCancel = async () => {
+    if (!confirm("Are you sure you want to cancel this booking?")) return;
+    try {
+      const res = await cancelBookingAction(booking.id);
+      if (res.ok) {
+        toast.success("Booking cancelled successfully.");
+        onOpenChange(false);
+        router.refresh();
+      } else {
+        toast.error(res.error.message || "Failed to cancel.");
+      }
+    } catch {
+      toast.error("Failed to cancel.");
+    }
+  };
+
+  const handleReschedule = () => {
+    onOpenChange(false);
+    toast.info("Please select a new appointment slot.");
+    if (booking.kind === "test_drive") {
+      router.push("/book/test-drive");
+    } else {
+      router.push("/book/service");
+    }
+  };
 
   const dateDetails = formatAppointmentDate(booking.starts_at, locale);
   const isTestDrive = booking.kind === "test_drive";
@@ -187,7 +216,7 @@ export function BookingDetailsDialog({
               variant="secondary"
               size="sm"
               className="text-xs flex-1 sm:flex-initial"
-              onClick={notWired("Reschedule Booking", 4)}
+              onClick={handleReschedule}
             >
               {t("reschedule")}
             </Button>
@@ -195,7 +224,7 @@ export function BookingDetailsDialog({
               variant="outline"
               size="sm"
               className="text-xs text-danger hover:bg-danger/10 flex-1 sm:flex-initial"
-              onClick={notWired("Cancel Booking", 4)}
+              onClick={handleCancel}
             >
               {t("cancel")}
             </Button>

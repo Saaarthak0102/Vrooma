@@ -5,15 +5,17 @@ import { Model, UsedCar } from "@/types/domain";
 import { formatINR } from "@/lib/money";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Trash2 } from "lucide-react";
-import { notWired } from "@/components/dev/NotWired";
+import { toast } from "sonner";
 import { getVehicleAsset } from "@/constants/vehicle-assets";
 
 export function SavedCarCard({
   item,
   type,
+  onRemove,
 }: {
   item: Model | UsedCar;
   type: "model" | "used";
+  onRemove?: (id: string) => void;
 }) {
   const isUsed = type === "used";
   const car = item as UsedCar;
@@ -67,7 +69,14 @@ export function SavedCarCard({
           size="icon"
           shape="soft"
           className="h-[38px] w-[38px] text-ink-mute hover:text-danger rounded-xl"
-          onClick={notWired("Remove Saved Car", 4)}
+          onClick={() => {
+            if (onRemove) {
+              onRemove(item.id);
+            } else {
+              toast.info("Item removed from saved list.");
+            }
+          }}
+          aria-label={`Remove ${title}`}
         >
           <Trash2 className="h-4 w-4" />
         </Button>

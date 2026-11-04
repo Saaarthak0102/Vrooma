@@ -15,7 +15,9 @@ import { useLocale, useTranslations } from "next-intl";
 import { bookingRef } from "@/lib/booking-ref";
 import { formatAppointmentDate } from "@/lib/date";
 import { MapPin, User, Calendar, Plus, Car, Wrench } from "lucide-react";
-import { notWired } from "@/components/dev/NotWired";
+import { cancelBookingAction } from "@/server/actions/booking";
+import { toast } from "sonner";
+import { useRouter } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
 
 export interface NextAppointmentCardProps {
@@ -120,7 +122,20 @@ function AppointmentSubCard({
           variant="outline"
           size="sm"
           className="flex-1 text-xs h-8 text-danger hover:bg-danger/10"
-          onClick={notWired("Cancel Booking", 4)}
+          onClick={async () => {
+            if (!confirm("Are you sure you want to cancel this booking?")) return;
+            try {
+              const res = await cancelBookingAction(booking.id);
+              if (res.ok) {
+                toast.success("Booking cancelled.");
+                window.location.reload();
+              } else {
+                toast.error(res.error.message || "Failed to cancel.");
+              }
+            } catch {
+              toast.error("Failed to cancel.");
+            }
+          }}
         >
           {t("cancel")}
         </Button>

@@ -1,15 +1,33 @@
 import { z } from "zod";
+import { normalizeIndianPhone } from "@/lib/phone";
 
 export const createLeadSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
+  name: z
+    .string()
+    .trim()
+    .min(2, "Name must be at least 2 characters")
+    .max(100, "Name exceeds maximum length"),
   phone: z
     .string()
-    .regex(/^[6-9]\d{9}$/, "Please enter a valid 10-digit Indian mobile number"),
-  email: z.string().email("Invalid email address").optional().or(z.literal("")),
+    .transform((val) => normalizeIndianPhone(val) || "")
+    .refine((val) => val.length === 13 && val.startsWith("+91"), {
+      message: "Please enter a valid 10-digit Indian mobile number",
+    }),
+  email: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .email("Invalid email address")
+    .optional()
+    .or(z.literal("")),
   showroom_id: z.string().min(1, "Showroom is required"),
   model_id: z.string().optional().nullable(),
   used_car_id: z.string().optional().nullable(),
-  message: z.string().max(500, "Message too long").optional(),
+  message: z
+    .string()
+    .max(1000, "Message cannot exceed 1000 characters")
+    .transform((val) => val.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "").trim())
+    .optional(),
   source: z
     .enum(["web", "portal", "social", "walkin", "chat", "trade_in"])
     .default("web"),
@@ -18,6 +36,7 @@ export const createLeadSchema = z.object({
       message: "You must consent to receiving contact under DPDP Act 2023",
     }),
   }),
+  website: z.string().optional(), // Honeypot field
 });
 
 export const updateLeadStatusSchema = z.object({

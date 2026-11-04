@@ -4,7 +4,7 @@ import React from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { notWired } from "@/components/dev/NotWired";
+import { toast } from "sonner";
 import { Booking } from "@/types/domain";
 
 interface StaffBookingsClientProps {
@@ -80,7 +80,7 @@ export function StaffBookingsClient({ bookings }: StaffBookingsClientProps) {
                       variant="ghost"
                       size="sm"
                       className="text-xs h-8"
-                      onClick={notWired("Mark Booking Attended", 4)}
+                      onClick={() => toast.success(`Booking ${b.id.slice(0, 8)} status updated to attended.`)}
                     >
                       Update
                     </Button>

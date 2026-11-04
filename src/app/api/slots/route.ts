@@ -54,7 +54,12 @@ export async function GET(request: NextRequest) {
     const date = searchParams.get("date") || undefined;
 
     const slots = await listSlots({ kind, showroomId, workshopId, demoCarId, date });
-    return NextResponse.json({ ok: true, data: slots });
+    const response = NextResponse.json({ ok: true, data: slots });
+    response.headers.set(
+      "Cache-Control",
+      "public, s-maxage=30, stale-while-revalidate=60"
+    );
+    return response;
   } catch (err: any) {
     return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
   }

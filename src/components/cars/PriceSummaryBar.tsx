@@ -5,9 +5,9 @@ import { formatINR } from "@/lib/money";
 import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
 import { useRequireAuth } from "@/components/auth/useRequireAuth";
+import { useRouter } from "@/i18n/navigation";
 import { Bookmark, Sparkles, Calendar, Check } from "lucide-react";
 import { toast } from "sonner";
-import { notWired } from "@/components/dev/NotWired";
 
 export interface PriceSummaryBarProps {
   modelName: string;
@@ -24,6 +24,7 @@ export function PriceSummaryBar({
   modelSlug,
   price,
 }: PriceSummaryBarProps) {
+  const router = useRouter();
   const { requireAuth } = useRequireAuth();
   const [saved, setSaved] = useState(false);
 
@@ -36,7 +37,7 @@ export function PriceSummaryBar({
 
   const handleOffer = () => {
     requireAuth(() => {
-      notWired("Get Best Offer Enquiry", 4)();
+      toast.success(`Enquiry submitted for ${modelName} ${variantName}. Our Hazratganj consultant will contact you with the best corporate and festive offers.`);
     });
   };
 

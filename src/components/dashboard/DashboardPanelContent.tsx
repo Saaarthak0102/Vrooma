@@ -2,7 +2,7 @@
 
 import React, { useState, useId } from "react";
 import Image from "next/image";
-import { Link } from "@/i18n/navigation";
+import { Link, useRouter } from "@/i18n/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { Booking, Lead, Model, UsedCar } from "@/types/domain";
 import { SavedVehicleRecord } from "@/server/repositories/saved";
@@ -12,6 +12,8 @@ import { formatINR } from "@/lib/money";
 import { BuyerStatusPill } from "./BuyerStatusPill";
 import { Button } from "@/components/ui/button";
 import { notWired } from "@/components/dev/NotWired";
+import { cancelBookingAction } from "@/server/actions/booking";
+import { toast } from "sonner";
 import {
   Calendar,
   Bookmark,
@@ -46,6 +48,7 @@ export function DashboardPanelContent({
   onRemoveSaved,
   isSheet = false,
 }: DashboardPanelContentProps) {
+  const router = useRouter();
   const locale = useLocale();
   const t = useTranslations("dashboard");
   const tablistId = useId();
@@ -272,7 +275,14 @@ export function DashboardPanelContent({
                             variant="secondary"
                             size="sm"
                             className="w-1/2 text-xs"
-                            onClick={notWired("Reschedule Booking", 4)}
+                            onClick={() => {
+                              toast.info("Please select a new appointment slot.");
+                              if (b.kind === "test_drive") {
+                                router.push("/book/test-drive");
+                              } else {
+                                router.push("/book/service");
+                              }
+                            }}
                           >
                             {t("reschedule")}
                           </Button>
@@ -280,7 +290,20 @@ export function DashboardPanelContent({
                             variant="outline"
                             size="sm"
                             className="w-1/2 text-xs text-danger hover:bg-danger/10"
-                            onClick={notWired("Cancel Booking", 4)}
+                            onClick={async () => {
+                              if (!confirm("Are you sure you want to cancel this booking?")) return;
+                              try {
+                                const res = await cancelBookingAction(b.id);
+                                if (res.ok) {
+                                  toast.success("Booking cancelled.");
+                                  router.refresh();
+                                } else {
+                                  toast.error(res.error.message || "Failed to cancel.");
+                                }
+                              } catch {
+                                toast.error("Failed to cancel.");
+                              }
+                            }}
                           >
                             {t("cancel")}
                           </Button>
@@ -425,7 +448,7 @@ export function DashboardPanelContent({
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8 text-ink-mute hover:text-danger rounded-lg"
-                            onClick={() => onRemoveSaved?.(record.id) || notWired("Remove Saved", 4)()}
+                            onClick={() => onRemoveSaved?.(record.id)}
                             aria-label={`${t("remove")} ${title}`}
                           >
                             <Trash2 className="h-3.5 w-3.5" />

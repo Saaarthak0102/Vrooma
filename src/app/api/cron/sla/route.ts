@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { listLeads } from "@/server/repositories/leads";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { env } from "@/lib/env";
 
 export async function GET(request: NextRequest) {
@@ -10,18 +10,22 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "Unauthorized cron execution" }, { status: 401 });
   }
 
-  const now = Date.now();
-  const newLeads = await listLeads({ status: "new" });
-  const breachedLeads = newLeads.filter(
-    (l) => l.status === "new" && new Date(l.sla_due_at).getTime() < now
-  );
+  try {
+    const admin = createAdminClient();
+    const { data: breachCount, error } = await admin.rpc("flag_sla_breaches");
 
-  return NextResponse.json({
-    ok: true,
-    data: {
-      checkedAt: new Date().toISOString(),
-      breachedCount: breachedLeads.length,
-      leadIds: breachedLeads.map((l) => l.id),
-    },
-  });
+    if (error) {
+      return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({
+      ok: true,
+      data: {
+        checkedAt: new Date().toISOString(),
+        breachedCount: breachCount || 0,
+      },
+    });
+  } catch (err: any) {
+    return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
+  }
 }

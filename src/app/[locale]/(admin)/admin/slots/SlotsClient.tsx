@@ -5,8 +5,9 @@ import { Slot } from "@/types/domain";
 import { DataTable, Column } from "@/components/admin/DataTable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { RefreshCw } from "lucide-react";
-import { notWired } from "@/components/dev/NotWired";
+import { RefreshCw, Loader2 } from "lucide-react";
+import { generateSlotsAction } from "@/server/actions/booking";
+import { toast } from "sonner";
 
 interface SlotsClientProps {
   initialSlots: Slot[];
@@ -14,6 +15,23 @@ interface SlotsClientProps {
 
 export function SlotsClient({ initialSlots }: SlotsClientProps) {
   const [slots] = useState<Slot[]>(initialSlots);
+  const [generating, setGenerating] = useState(false);
+
+  const handleGenerate = async () => {
+    setGenerating(true);
+    try {
+      const res = await generateSlotsAction(new Date().toISOString().slice(0, 10), 30);
+      if (res.ok) {
+        toast.success(`Generated ${res.data.createdCount} new future slots.`);
+      } else {
+        toast.error(res.error.message || "Failed to generate slots.");
+      }
+    } catch {
+      toast.error("Failed to generate slots.");
+    } finally {
+      setGenerating(false);
+    }
+  };
 
   const columns: Column<Slot>[] = [
     {
@@ -71,9 +89,15 @@ export function SlotsClient({ initialSlots }: SlotsClientProps) {
             Manages time slot allocations for showroom test drives and workshop maintenance bays.
           </p>
         </div>
-        <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={notWired("Regenerate Next 30 Days Slots", 3)}>
-          <RefreshCw className="h-3.5 w-3.5" />
-          <span>Regenerate 30-Day Calendar</span>
+        <Button
+          size="sm"
+          variant="outline"
+          className="gap-1.5 text-xs"
+          onClick={handleGenerate}
+          disabled={generating}
+        >
+          {generating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+          <span>{generating ? "Generating..." : "Regenerate 30-Day Calendar"}</span>
         </Button>
       </div>
 

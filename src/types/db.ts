@@ -864,6 +864,26 @@ export interface Database {
         };
         Returns: Database["public"]["Tables"]["bookings"]["Row"];
       };
+      reassign_lead: {
+        Args: {
+          p_lead_id: string;
+          p_to_consultant_id: string;
+          p_reason?: string | null;
+        };
+        Returns: Database["public"]["Tables"]["leads"]["Row"];
+      };
+      set_lead_status: {
+        Args: {
+          p_lead_id: string;
+          p_status: LeadStatus;
+          p_lost_reason?: string | null;
+        };
+        Returns: Database["public"]["Tables"]["leads"]["Row"];
+      };
+      flag_sla_breaches: {
+        Args: Record<PropertyKey, never>;
+        Returns: number;
+      };
       generate_slots: {
         Args: {
           p_start_date?: string;
