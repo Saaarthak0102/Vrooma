@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { env } from "@/lib/env";
-import { memoryStore } from "@/server/store";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const DPDP_POLICY_VERSION = "2026.1";
@@ -78,28 +76,7 @@ export async function POST(request: NextRequest) {
 
     const email = parsed.data.email.toLowerCase();
 
-    // Mock Mode Execution
-    if (env.NEXT_PUBLIC_USE_MOCK) {
-      const exists = memoryStore.subscribers.some(
-        (s) => s.email.toLowerCase() === email
-      );
-
-      if (!exists) {
-        memoryStore.subscribers.push({
-          id: `sub-${Date.now()}`,
-          email,
-          created_at: new Date().toISOString(),
-        });
-      }
-
-      // Return identical generic success message to prevent email enumeration
-      return NextResponse.json({
-        ok: true,
-        message: GENERIC_SUCCESS_MESSAGE,
-      });
-    }
-
-    // Supabase Mode: Execute via Service Role Admin Client
+    // Execute via Service Role Admin Client
     const adminClient = createAdminClient();
     if (!adminClient) {
       return NextResponse.json(

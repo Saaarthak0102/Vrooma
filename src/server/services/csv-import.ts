@@ -1,7 +1,6 @@
 import Papa from "papaparse";
 import { csvLeadRowSchema, CsvLeadRowInput } from "@/lib/validation/csv-row";
-import { createLead } from "@/server/repositories/leads";
-import { memoryStore } from "@/server/store";
+import { createLead, listLeads } from "@/server/repositories/leads";
 
 export interface ImportResult {
   total: number;
@@ -9,6 +8,8 @@ export interface ImportResult {
   skipped: number;
   errors: string[];
 }
+
+const DEFAULT_SHOWROOM_ID = "a0000001-0000-0000-0000-000000000001";
 
 /**
  * Parses and imports CSV rows into leads, deduplicating by phone.
@@ -35,19 +36,12 @@ export async function processLeadCsv(csvString: string): Promise<ImportResult> {
 
           const data: CsvLeadRowInput = parsed.data;
 
-          // Deduplicate by phone
-          const existing = memoryStore.leads.find((l) => l.phone === data.phone);
-          if (existing) {
-            skipped++;
-            continue;
-          }
-
           try {
             await createLead({
               name: data.name,
               phone: data.phone,
               email: data.email || null,
-              showroom_id: "sr-hazratganj",
+              showroom_id: DEFAULT_SHOWROOM_ID,
               message: data.notes || "Imported from portal CSV",
               source: "portal",
             });

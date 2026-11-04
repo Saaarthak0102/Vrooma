@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { profileUpdateSchema } from "@/lib/validation/profile";
 import { updateUser, getUserById } from "@/server/repositories/users";
-import { memoryStore } from "@/server/store";
 
 export async function GET(request: NextRequest) {
   try {

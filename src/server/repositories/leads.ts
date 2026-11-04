@@ -1,54 +1,156 @@
-import { env } from "@/lib/env";
-import { memoryStore } from "@/server/store";
-import { Lead, LeadStatus } from "@/types/domain";
-import { SLA_SECONDS } from "@/lib/constants";
-import { assignConsultant } from "@/server/services/lead-assignment";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { createPublicClient } from "@/lib/supabase/public";
+import { Lead, LeadStatus, LeadSource } from "@/types/domain";
+import { AppError } from "@/lib/errors";
+import type { Database } from "@/types/db";
+
+const LEAD_COLUMNS = `
+  id,
+  ref,
+  source,
+  user_id,
+  name,
+  phone,
+  email,
+  showroom_id,
+  model_id,
+  used_car_id,
+  message,
+  status,
+  assigned_to,
+  sla_due_at,
+  first_contacted_at,
+  ai_summary,
+  ai_draft,
+  consent_id,
+  created_at,
+  profiles:assigned_to (
+    full_name
+  ),
+  models:model_id (
+    name
+  ),
+  used_cars:used_car_id (
+    model_name,
+    stock_id
+  )
+`;
+
+function getClient() {
+  try {
+    return createAdminClient();
+  } catch {
+    return createPublicClient();
+  }
+}
+
+function mapRowToLead(row: any): Lead {
+  let modelName = "";
+  if (row.models?.name) {
+    modelName = row.models.name;
+  } else if (row.used_cars?.model_name) {
+    modelName = `Certified Used ${row.used_cars.model_name} (${row.used_cars.stock_id})`;
+  }
+
+  return {
+    id: row.id,
+    source: row.source as LeadSource,
+    user_id: row.user_id,
+    name: row.name,
+    phone: row.phone,
+    email: row.email,
+    showroom_id: row.showroom_id,
+    model_id: row.model_id,
+    used_car_id: row.used_car_id,
+    model_name: modelName,
+    message: row.message,
+    status: row.status as LeadStatus,
+    assigned_to: row.assigned_to,
+    assigned_consultant_name: row.profiles?.full_name || null,
+    sla_due_at: row.sla_due_at,
+    first_contacted_at: row.first_contacted_at,
+    ai_summary: row.ai_summary,
+    ai_draft: row.ai_draft,
+    consent_id: row.consent_id,
+    created_at: row.created_at,
+  };
+}
 
 export interface ListLeadsParams {
   assignedTo?: string;
   status?: string;
   source?: string;
   search?: string;
+  limit?: number;
 }
 
+/**
+ * List customer leads for sales desk and managers.
+ */
 export async function listLeads(params: ListLeadsParams = {}): Promise<Lead[]> {
-  if (env.NEXT_PUBLIC_USE_MOCK) {
-    let leads = [...memoryStore.leads];
+  const supabase = getClient();
+  let query = supabase
+    .from("leads")
+    .select(LEAD_COLUMNS);
 
-    if (params.assignedTo) {
-      leads = leads.filter((l) => l.assigned_to === params.assignedTo);
-    }
-    if (params.status && params.status !== "all") {
-      leads = leads.filter((l) => l.status === params.status);
-    }
-    if (params.source && params.source !== "all") {
-      leads = leads.filter((l) => l.source === params.source);
-    }
-    if (params.search) {
-      const q = params.search.toLowerCase();
-      leads = leads.filter(
-        (l) =>
-          l.name.toLowerCase().includes(q) ||
-          l.phone.includes(q) ||
-          (l.model_name && l.model_name.toLowerCase().includes(q))
-      );
-    }
-
-    // Sort by created_at desc
-    leads.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-    return leads;
+  if (params.assignedTo) {
+    query = query.eq("assigned_to", params.assignedTo);
+  }
+  if (params.status && params.status !== "all") {
+    query = query.eq("status", params.status as LeadStatus);
+  }
+  if (params.source && params.source !== "all") {
+    query = query.eq("source", params.source as LeadSource);
   }
 
-  throw new Error("TODO(day-4): Supabase listLeads not implemented yet");
+  const limit = Math.min(params.limit || 100, 200);
+  const { data, error } = await query
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: true })
+    .limit(limit);
+
+  if (error) {
+    throw new AppError("INTERNAL_ERROR", 500, `Failed to list leads: ${error.message}`);
+  }
+
+  let results = (data ?? []).map(mapRowToLead);
+
+  if (params.search) {
+    const q = params.search.toLowerCase().trim();
+    results = results.filter(
+      (l) =>
+        l.name.toLowerCase().includes(q) ||
+        l.phone.includes(q) ||
+        (l.model_name && l.model_name.toLowerCase().includes(q))
+    );
+  }
+
+  return results;
 }
 
+/**
+ * Fetch a single lead by ID.
+ */
 export async function getLeadById(id: string): Promise<Lead | null> {
-  if (env.NEXT_PUBLIC_USE_MOCK) {
-    return memoryStore.leads.find((l) => l.id === id) ?? null;
+  const supabase = getClient();
+  const { data, error } = await supabase
+    .from("leads")
+    .select(LEAD_COLUMNS)
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) {
+    throw new AppError("INTERNAL_ERROR", 500, `Failed to fetch lead ${id}: ${error.message}`);
   }
-  throw new Error("TODO(day-4): Supabase getLeadById not implemented yet");
+
+  if (!data) return null;
+  return mapRowToLead(data);
 }
 
+/**
+ * Create a new customer lead using database RPC create_lead.
+ * Handles deduplication, auto-assignment, and SLA initiation.
+ */
 export async function createLead(data: {
   name: string;
   phone: string;
@@ -60,73 +162,85 @@ export async function createLead(data: {
   source?: Lead["source"];
   consent_id?: string;
 }): Promise<Lead> {
-  if (env.NEXT_PUBLIC_USE_MOCK) {
-    const now = new Date();
-    const slaDue = new Date(now.getTime() + SLA_SECONDS * 1000);
+  const supabase = getClient();
 
-    // Auto-assignment
-    const assignedConsultant = assignConsultant({
-      showroomId: data.showroom_id,
-      modelId: data.model_id,
-    });
-
-    // Model name lookup
-    let modelName = "";
-    if (data.model_id) {
-      const m = memoryStore.models.find((model) => model.id === data.model_id);
-      if (m) modelName = m.name;
-    } else if (data.used_car_id) {
-      const uc = memoryStore.usedCars.find((c) => c.id === data.used_car_id);
-      if (uc) modelName = `Certified Used ${uc.model_name} (${uc.stock_id})`;
-    }
-
-    const newLead: Lead = {
-      id: `lead-${Date.now()}`,
-      source: data.source ?? "web",
-      name: data.name,
-      phone: data.phone,
-      email: data.email,
-      showroom_id: data.showroom_id,
-      model_id: data.model_id,
-      used_car_id: data.used_car_id,
-      model_name: modelName,
-      message: data.message,
-      status: "new",
-      assigned_to: assignedConsultant?.id ?? null,
-      assigned_consultant_name: assignedConsultant?.full_name ?? null,
-      sla_due_at: slaDue.toISOString(),
-      first_contacted_at: null,
-      ai_summary: `Web enquiry received for ${modelName || "vehicle line"}. Customer phone verified with DPDP consent.`,
-      ai_draft: `Namaste ${data.name}, thank you for choosing Vrooma. Our showroom specialist ${assignedConsultant?.full_name || ""} will assist you with pricing and test drives.`,
-      consent_id: data.consent_id ?? `consent-${Date.now()}`,
-      created_at: now.toISOString(),
-    };
-
-    return memoryStore.addLead(newLead);
+  // Clean phone to E.164 Indian format if needed
+  let cleanedPhone = data.phone.trim();
+  if (!cleanedPhone.startsWith("+91")) {
+    cleanedPhone = `+91${cleanedPhone.replace(/\D/g, "").slice(-10)}`;
   }
 
-  throw new Error("TODO(day-4): Supabase createLead not implemented yet");
+  const { data: leadRow, error } = await supabase.rpc("create_lead", {
+    p_name: data.name,
+    p_phone: cleanedPhone,
+    p_showroom_id: data.showroom_id,
+    p_model_id: data.model_id || null,
+    p_used_car_id: data.used_car_id || null,
+    p_email: data.email || null,
+    p_message: data.message || null,
+    p_source: (data.source as any) || "web",
+    p_consent_id: data.consent_id || null,
+  });
+
+  if (error) {
+    throw new AppError("INTERNAL_ERROR", 500, `Failed to create lead: ${error.message}`);
+  }
+
+  // Fetch enriched lead with relations
+  const fullLead = await getLeadById(leadRow.id);
+  return fullLead || mapRowToLead(leadRow);
 }
 
+/**
+ * Update the status of a lead (e.g. from new to contacted).
+ */
 export async function updateLeadStatus(id: string, status: LeadStatus): Promise<Lead | null> {
-  if (env.NEXT_PUBLIC_USE_MOCK) {
-    const updates: Partial<Lead> = { status };
-    if (status !== "new" && !memoryStore.leads.find((l) => l.id === id)?.first_contacted_at) {
+  const supabase = getClient();
+
+  const updates: Database["public"]["Tables"]["leads"]["Update"] = {
+    status,
+    status_changed_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+
+  if (status !== "new") {
+    // If not contacted yet, set first_contacted_at
+    const existing = await getLeadById(id);
+    if (existing && !existing.first_contacted_at) {
       updates.first_contacted_at = new Date().toISOString();
     }
-    return memoryStore.updateLead(id, updates);
   }
-  throw new Error("TODO(day-4): Supabase updateLeadStatus not implemented yet");
+
+  const { error } = await supabase
+    .from("leads")
+    .update(updates)
+    .eq("id", id);
+
+  if (error) {
+    throw new AppError("INTERNAL_ERROR", 500, `Failed to update lead status: ${error.message}`);
+  }
+
+  return getLeadById(id);
 }
 
+/**
+ * Reassign a lead to a specific consultant.
+ */
 export async function reassignLead(id: string, consultantId: string): Promise<Lead | null> {
-  if (env.NEXT_PUBLIC_USE_MOCK) {
-    const consultant = memoryStore.users.find((u) => u.id === consultantId);
-    return memoryStore.updateLead(id, {
-      assigned_to: consultantId,
-      assigned_consultant_name: consultant ? consultant.full_name : null,
-    });
-  }
-  throw new Error("TODO(day-4): Supabase reassignLead not implemented yet");
-}
+  const supabase = getClient();
 
+  const { error } = await supabase
+    .from("leads")
+    .update({
+      assigned_to: consultantId,
+      assigned_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id);
+
+  if (error) {
+    throw new AppError("INTERNAL_ERROR", 500, `Failed to reassign lead: ${error.message}`);
+  }
+
+  return getLeadById(id);
+}

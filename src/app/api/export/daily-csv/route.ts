@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { memoryStore } from "@/server/store";
+import { listLeads } from "@/server/repositories/leads";
 import Papa from "papaparse";
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
-    const leads = memoryStore.leads.map((l) => ({
+    const rawLeads = await listLeads({ limit: 1000 });
+    const leads = rawLeads.map((l) => ({
       lead_id: l.id,
       customer_name: l.name,
       phone: l.phone,
@@ -28,4 +29,3 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
   }
 }
-

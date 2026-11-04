@@ -119,12 +119,13 @@ export interface InspectionCheck {
 }
 
 export interface Inspection {
-  score: number; // e.g. 96 out of 100
-  totalChecks: number; // e.g. 140
-  date: string;
-  inspector: string;
-  checks: InspectionCheck[];
-  summary: string;
+  score?: number; // e.g. 96 out of 100
+  totalChecks?: number; // e.g. 140
+  date?: string;
+  inspector?: string;
+  checks?: InspectionCheck[];
+  summary?: string;
+  [key: string]: any;
 }
 
 export interface UsedCar {
@@ -143,11 +144,17 @@ export interface UsedCar {
   reg_no_masked: string; // UP32 ** **** 1234
   reg_no_private?: string; // Hidden from public
   showroom_id: string;
+  city_id?: string;
   inspection: Inspection;
+  inspection_report?: Inspection | Record<string, any>;
+  inspection_score?: number;
   certified: boolean;
+  is_certified?: boolean;
   images: string[];
+  photos?: string[];
   listed_at?: string;
   created_at?: string;
+  updated_at?: string;
 }
 
 export interface DemoCar {
@@ -173,6 +180,7 @@ export interface Slot {
 
 export interface Booking {
   id: string;
+  ref?: string;
   user_id: string;
   slot_id: string;
   kind: BookingKind;
@@ -257,9 +265,12 @@ export interface TradeInRequest {
   model: string;
   year: number;
   km: number;
+  fuel?: FuelType;
+  transmission?: TransmissionType;
   condition: "excellent" | "good" | "fair";
   notes?: string;
   images?: string[];
+  photos?: string[];
   estimated_range?: { min: number; max: number };
   created_at: string;
 }

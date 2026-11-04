@@ -1,11 +1,11 @@
 import React from "react";
 import { LeakCard } from "@/components/admin/LeakCard";
 import { StatCard } from "@/components/dashboard/StatCard";
-import { memoryStore } from "@/server/store";
+import { listLeads } from "@/server/repositories/leads";
 import { Clock, ShieldCheck, Car, PhoneCall } from "lucide-react";
 
-export default function AdminDashboardPage() {
-  const leads = memoryStore.leads;
+export default async function AdminDashboardPage() {
+  const leads = await listLeads({ limit: 100 });
   const contactedInSla = leads.filter((l) => l.first_contacted_at || l.status !== "new").length;
   const slaPercentage = Math.round((contactedInSla / Math.max(1, leads.length)) * 100);
 
@@ -51,9 +51,8 @@ export default function AdminDashboardPage() {
         />
       </div>
 
-      {/* The Famous ₹2.11 Crore Leak Monitor */}
+      {/* The ₹2.11 Crore Leakage Monitor */}
       <LeakCard />
     </div>
   );
 }
-

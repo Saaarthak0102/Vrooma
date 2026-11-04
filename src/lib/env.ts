@@ -3,10 +3,6 @@ import { z } from "zod";
 const envSchema = z.object({
   APP_ENV: z.enum(["development", "production", "test"]).default("development"),
   NEXT_PUBLIC_SITE_URL: z.string().url().default("http://localhost:3000"),
-  NEXT_PUBLIC_USE_MOCK: z
-    .string()
-    .default("true")
-    .transform((val) => val === "true" || val === "1"),
   NEXT_PUBLIC_SUPABASE_URL: z.string().optional().default(""),
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: z.string().optional().default(""),
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().optional().default(""),
@@ -33,7 +29,6 @@ const secretKey =
 const rawEnv = {
   APP_ENV: process.env.APP_ENV ?? (process.env.NODE_ENV === "production" ? "production" : "development"),
   NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
-  NEXT_PUBLIC_USE_MOCK: process.env.NEXT_PUBLIC_USE_MOCK ?? "true",
   NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: publishableKey,
   NEXT_PUBLIC_SUPABASE_ANON_KEY: publishableKey,
@@ -65,7 +60,6 @@ if (skipValidation) {
     parsedData = {
       APP_ENV: (rawEnv.APP_ENV as any) || "development",
       NEXT_PUBLIC_SITE_URL: rawEnv.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
-      NEXT_PUBLIC_USE_MOCK: rawEnv.NEXT_PUBLIC_USE_MOCK === "true" || rawEnv.NEXT_PUBLIC_USE_MOCK === "1",
       NEXT_PUBLIC_SUPABASE_URL: rawEnv.NEXT_PUBLIC_SUPABASE_URL || "",
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: publishableKey,
       NEXT_PUBLIC_SUPABASE_ANON_KEY: publishableKey,

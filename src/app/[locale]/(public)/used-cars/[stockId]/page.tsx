@@ -35,6 +35,7 @@ export async function generateMetadata({
       path: `/used-cars/${stockId}`,
       image: car.images[0],
       locale,
+      noIndex: car.status === "sold",
     });
   } catch (error) {
     console.warn(`[UsedCarPage:generateMetadata] Error fetching car ${stockId}:`, error);

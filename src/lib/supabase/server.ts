@@ -1,23 +1,19 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { env } from "@/lib/env";
+import type { Database } from "@/types/db";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
-export async function createClient() {
+export async function createClient(): Promise<SupabaseClient<Database>> {
   const publishableKey =
     env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
     env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  if (!env.NEXT_PUBLIC_SUPABASE_URL || !publishableKey) {
-    if (env.NEXT_PUBLIC_USE_MOCK) {
-      return null as any;
-    }
-  }
-
   const cookieStore = await cookies();
 
-  return createServerClient(
-    env.NEXT_PUBLIC_SUPABASE_URL,
-    publishableKey,
+  return createServerClient<Database>(
+    env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co",
+    publishableKey || "placeholder-key",
     {
       cookies: {
         getAll() {
@@ -34,5 +30,5 @@ export async function createClient() {
         },
       },
     }
-  );
+  ) as unknown as SupabaseClient<Database>;
 }

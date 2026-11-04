@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { memoryStore } from "@/server/store";
+import { listLeads } from "@/server/repositories/leads";
 import { env } from "@/lib/env";
 
 export async function GET(request: NextRequest) {
@@ -11,7 +11,8 @@ export async function GET(request: NextRequest) {
   }
 
   const now = Date.now();
-  const breachedLeads = memoryStore.leads.filter(
+  const newLeads = await listLeads({ status: "new" });
+  const breachedLeads = newLeads.filter(
     (l) => l.status === "new" && new Date(l.sla_due_at).getTime() < now
   );
 
@@ -24,4 +25,3 @@ export async function GET(request: NextRequest) {
     },
   });
 }
-

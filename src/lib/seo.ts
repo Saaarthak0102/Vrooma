@@ -9,6 +9,7 @@ export interface GenerateSeoProps {
   path?: string;
   image?: string;
   locale?: string;
+  noIndex?: boolean;
 }
 
 export function constructMetadata({
@@ -17,6 +18,7 @@ export function constructMetadata({
   path = "",
   image = DEFAULT_VEHICLE_ASSET,
   locale = "en",
+  noIndex = false,
 }: GenerateSeoProps = {}): Metadata {
   const fullTitle = title ? `${title} | ${BRAND_NAME}` : `${BRAND_NAME} - ${BRAND_TAGLINE}`;
   const siteUrl = env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "");
@@ -56,8 +58,8 @@ export function constructMetadata({
       images: [image.startsWith("http") ? image : `${siteUrl}${image}`],
     },
     robots: {
-      index: true,
-      follow: true,
+      index: !noIndex,
+      follow: !noIndex,
     },
   };
 }

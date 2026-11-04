@@ -33,7 +33,7 @@ export async function updateSession(request: NextRequest, initialResponse?: Next
     env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
     env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  if (env.NEXT_PUBLIC_USE_MOCK || !env.NEXT_PUBLIC_SUPABASE_URL || !publishableKey) {
+  if (!env.NEXT_PUBLIC_SUPABASE_URL || !publishableKey) {
     return response;
   }
 

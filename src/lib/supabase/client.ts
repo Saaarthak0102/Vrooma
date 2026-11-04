@@ -1,19 +1,15 @@
 import { createBrowserClient } from "@supabase/ssr";
 import { env } from "@/lib/env";
+import type { Database } from "@/types/db";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
-export function createClient() {
+export function createClient(): SupabaseClient<Database> {
   const publishableKey =
     env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
     env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  if (!env.NEXT_PUBLIC_SUPABASE_URL || !publishableKey) {
-    if (env.NEXT_PUBLIC_USE_MOCK) {
-      return null as any;
-    }
-  }
-
-  return createBrowserClient(
-    env.NEXT_PUBLIC_SUPABASE_URL,
-    publishableKey
-  );
+  return createBrowserClient<Database>(
+    env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co",
+    publishableKey || "placeholder-key"
+  ) as unknown as SupabaseClient<Database>;
 }

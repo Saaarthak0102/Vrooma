@@ -1,3 +1,8 @@
+/**
+ * TEST-ONLY IN-MEMORY STORE.
+ * Replaced in production by Supabase repositories (Phase 3).
+ * Retained exclusively for isolated Vitest unit test fixtures.
+ */
 import { mockModels } from "@/data/mock/models";
 import { mockVariants } from "@/data/mock/variants";
 import { mockUsedCars } from "@/data/mock/used-cars";

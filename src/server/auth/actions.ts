@@ -8,7 +8,6 @@ import { normalizeIndianPhone } from "@/lib/phone";
 import { safeNext } from "./safe-next";
 import { ActionResponse, successResponse, errorResponse, toAppError, AppError } from "@/lib/errors";
 import { env } from "@/lib/env";
-import { memoryStore } from "@/server/store";
 import { Profile } from "@/types/domain";
 
 const DPDP_POLICY_VERSION = "2026.1";
@@ -37,14 +36,6 @@ export async function requestOtp(
   try {
     const email = normalizeEmail(rawEmail);
     const sanitizedNext = safeNext(next, locale);
-
-    if (env.NEXT_PUBLIC_USE_MOCK) {
-      // In mock mode, pretend code was sent successfully
-      return successResponse({
-        email,
-        message: "Verification code sent to your email.",
-      });
-    }
 
     const supabase = await createClient();
     if (!supabase) {
@@ -87,15 +78,6 @@ export async function verifyOtp(
 
     if (token.length !== 6) {
       return errorResponse("INVALID_CODE", "Please enter the complete 6-digit verification code.");
-    }
-
-    if (env.NEXT_PUBLIC_USE_MOCK) {
-      const mockBuyer = memoryStore.users.find((u) => u.email === email) || memoryStore.users[0];
-      return successResponse({
-        verified: true,
-        isComplete: Boolean(mockBuyer?.onboarding_completed_at),
-        userId: mockBuyer?.id || "usr-buyer-1",
-      });
     }
 
     const supabase = await createClient();
@@ -145,10 +127,6 @@ export async function startGoogle(
     const sanitizedNext = safeNext(next, locale);
     const callbackUrl = `${env.NEXT_PUBLIC_SITE_URL}/auth/callback?next=${encodeURIComponent(sanitizedNext)}`;
 
-    if (env.NEXT_PUBLIC_USE_MOCK) {
-      return successResponse({ url: sanitizedNext });
-    }
-
     const supabase = await createClient();
     if (!supabase) {
       return errorResponse("INTERNAL_ERROR", "Auth service unavailable");
@@ -179,7 +157,7 @@ export async function startGoogle(
 
 /**
  * Saves completed profile details and records DPDP Act 2023 consents.
- * Enforces atomic profile creation and timestamping.
+ * Enforces atomic profile creation and timestamping via complete_profile RPC.
  */
 export async function completeProfile(
   input: CompleteProfileInput
@@ -201,26 +179,6 @@ export async function completeProfile(
     }
 
     const whatsappNormalized = data.whatsapp ? normalizeIndianPhone(data.whatsapp) : phoneNormalized;
-    const now = new Date().toISOString();
-
-    if (env.NEXT_PUBLIC_USE_MOCK) {
-      const updatedProfile: Profile = {
-        id: "usr-buyer-1",
-        email: data.email,
-        full_name: data.full_name,
-        phone: phoneNormalized,
-        whatsapp: whatsappNormalized,
-        city_id: data.city_id,
-        locale: data.locale,
-        address: data.address || null,
-        pincode: data.pincode || null,
-        role: "buyer",
-        is_active: true,
-        onboarding_completed_at: now,
-      };
-      memoryStore.updateUser("usr-buyer-1", updatedProfile);
-      return successResponse(updatedProfile);
-    }
 
     const supabase = await createClient();
     if (!supabase) {
@@ -264,10 +222,6 @@ export async function completeProfile(
  */
 export async function signOut(): Promise<ActionResponse<{ success: boolean }>> {
   try {
-    if (env.NEXT_PUBLIC_USE_MOCK) {
-      return successResponse({ success: true });
-    }
-
     const supabase = await createClient();
     if (supabase) {
       await supabase.auth.signOut({ scope: "local" });
@@ -290,42 +244,9 @@ export async function inviteStaff(
 ): Promise<ActionResponse<{ userId: string; role: string; invited: boolean; message: string }>> {
   try {
     // 1. Enforce admin role authorization
-    if (!env.NEXT_PUBLIC_USE_MOCK) {
-      await requireRole("admin");
-    }
+    await requireRole("admin");
 
     const email = normalizeEmail(rawEmail);
-
-    if (env.NEXT_PUBLIC_USE_MOCK) {
-      const existingUser = memoryStore.users.find((u) => u.email === email);
-      if (existingUser) {
-        memoryStore.updateUser(existingUser.id, { role, is_active: true });
-        return successResponse({
-          userId: existingUser.id,
-          role,
-          invited: false,
-          message: `Staff role updated to ${role} for existing user ${email}.`,
-        });
-      }
-
-      const newId = `usr-${role}-${Date.now()}`;
-      memoryStore.users.push({
-        id: newId,
-        email,
-        full_name: email.split("@")[0],
-        role,
-        is_active: true,
-        locale: "en",
-        onboarding_completed_at: new Date().toISOString(),
-      });
-
-      return successResponse({
-        userId: newId,
-        role,
-        invited: true,
-        message: `Invitation simulated for ${email} with role ${role}.`,
-      });
-    }
 
     const adminClient = createAdminClient();
     if (!adminClient) {
@@ -362,6 +283,7 @@ export async function inviteStaff(
             profile_id: existingProfile.id,
             showroom_id: sid,
             is_primary: idx === 0,
+            created_at: new Date().toISOString(),
           }))
         );
       }
@@ -396,6 +318,7 @@ export async function inviteStaff(
       id: userId,
       email,
       full_name: email.split("@")[0],
+      locale: "en" as const,
       role,
       is_active: true,
       onboarding_completed_at: now,
@@ -414,6 +337,7 @@ export async function inviteStaff(
           profile_id: userId,
           showroom_id: sid,
           is_primary: idx === 0,
+          created_at: now,
         }))
       );
     }
@@ -429,4 +353,3 @@ export async function inviteStaff(
     return errorResponse(appErr.code, appErr.message);
   }
 }
-

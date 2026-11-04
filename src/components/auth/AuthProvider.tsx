@@ -1,18 +1,22 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
-import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+} from "react";
+import { useRouter } from "@/i18n/navigation";
 import { Profile, Role } from "@/types/domain";
 import { createClient } from "@/lib/supabase/client";
 import { signOut as serverSignOut } from "@/server/auth/actions";
-import { env } from "@/lib/env";
-import { mockUsers } from "@/data/mock/users";
-import { useRouter } from "@/i18n/navigation";
+import { SignInSheet } from "./SignInSheet";
 
 export interface PendingIntent {
   type: string;
   payload?: any;
-  returnTo?: string;
   createdAt: number;
 }
 
@@ -60,14 +64,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Primary Auth hydration via Supabase SSR client
   useEffect(() => {
-    if (env.NEXT_PUBLIC_USE_MOCK) {
-      // In mock mode, default to buyer profile
-      const defaultBuyer = mockUsers.find((u) => u.role === "buyer") || null;
-      setUser(defaultBuyer);
-      setStatus(defaultBuyer ? "authenticated" : "unauthenticated");
-      return;
-    }
-
     const supabase = createClient();
     if (!supabase) {
       setStatus("unauthenticated");
@@ -112,9 +108,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     fetchSessionAndProfile();
 
-    // 2. Listen to live auth changes (syncs across browser tabs!)
+    // 2. Real-time auth state listener across tabs and OAuth redirects
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event: AuthChangeEvent, session: Session | null) => {
+      async (event, session) => {
         if (event === "SIGNED_OUT" || !session?.user) {
           setUser(null);
           setStatus("unauthenticated");
@@ -122,29 +118,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "USER_UPDATED") {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("*")
-            .eq("id", session.user.id)
-            .single();
+          try {
+            const { data: profile } = await supabase
+              .from("profiles")
+              .select("*")
+              .eq("id", session.user.id)
+              .single();
 
-          if (profile) {
-            setUser(profile as Profile);
-          } else {
-            setUser({
-              id: session.user.id,
-              email: session.user.email || "",
-              full_name: session.user.user_metadata?.full_name || session.user.email?.split("@")[0] || "User",
-              role: "buyer",
-              locale: "en",
-            });
-          }
-          setStatus("authenticated");
-
-          // Execute resumed callback if present
-          if (pendingCallback) {
-            pendingCallback();
-            setPendingCallback(null);
+            if (profile) {
+              setUser(profile as Profile);
+              setStatus("authenticated");
+            } else {
+              setUser({
+                id: session.user.id,
+                email: session.user.email || "",
+                full_name: session.user.user_metadata?.full_name || session.user.email?.split("@")[0] || "User",
+                role: "buyer",
+                locale: "en",
+              });
+              setStatus("authenticated");
+            }
+          } catch {
+            setUser(null);
+            setStatus("unauthenticated");
           }
         }
       }
@@ -153,7 +149,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       subscription.unsubscribe();
     };
-  }, [pendingCallback]);
+  }, []);
 
   const openSignInSheet = useCallback(
     (onSuccess?: () => void, intent?: Omit<PendingIntent, "createdAt">) => {
@@ -182,7 +178,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const switchRole = useCallback((newRole: Role) => {
-    const target = mockUsers.find((u) => u.role === newRole) || {
+    const target: Profile = {
       id: `usr-${newRole}-1`,
       email: `${newRole}@vrooma.in`,
       full_name: `${newRole.toUpperCase()} Specialist`,
@@ -228,30 +224,53 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     router.refresh();
   }, [clearPendingIntent, router]);
 
+  const handleSignInSuccess = useCallback(() => {
+    closeSignInSheet();
+    if (pendingCallback) {
+      pendingCallback();
+      setPendingCallback(null);
+    }
+  }, [closeSignInSheet, pendingCallback]);
+
+  const value = useMemo(
+    () => ({
+      user,
+      role: user?.role ?? null,
+      status,
+      signOut,
+      switchRole,
+      updateProfile,
+      isSignInSheetOpen,
+      openSignInSheet,
+      closeSignInSheet,
+      pendingIntent,
+      clearPendingIntent,
+    }),
+    [
+      user,
+      status,
+      signOut,
+      switchRole,
+      updateProfile,
+      isSignInSheetOpen,
+      openSignInSheet,
+      closeSignInSheet,
+      pendingIntent,
+      clearPendingIntent,
+    ]
+  );
+
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        role: user?.role ?? null,
-        status,
-        signOut,
-        switchRole,
-        updateProfile,
-        isSignInSheetOpen,
-        openSignInSheet,
-        closeSignInSheet,
-        pendingIntent,
-        clearPendingIntent,
-      }}
-    >
+    <AuthContext.Provider value={value}>
       {children}
+      <SignInSheet />
     </AuthContext.Provider>
   );
 }
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;

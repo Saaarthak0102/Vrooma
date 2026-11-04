@@ -56,7 +56,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       }
 
       for (const car of usedCars) {
-        if (car?.stock_id) {
+        if (car?.stock_id && car.status !== "sold") {
           entries.push({
             url: `${baseUrl}/${locale}/used-cars/${car.stock_id}`,
             lastModified: new Date(),

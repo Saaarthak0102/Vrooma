@@ -1,7 +1,5 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
-import { env } from "@/lib/env";
-import { memoryStore } from "@/server/store";
 import { Profile, Role } from "@/types/domain";
 import { AppError } from "@/lib/errors";
 
@@ -20,29 +18,6 @@ export interface Viewer {
  * Cached per server request using React cache().
  */
 export const getViewer = cache(async (): Promise<Viewer> => {
-  // Mock mode handling
-  if (env.NEXT_PUBLIC_USE_MOCK) {
-    const mockBuyer = memoryStore.users.find((u) => u.role === "buyer") || memoryStore.users[0];
-    if (mockBuyer) {
-      return {
-        user: { id: mockBuyer.id, email: mockBuyer.email },
-        profile: {
-          ...mockBuyer,
-          is_active: mockBuyer.is_active ?? true,
-          onboarding_completed_at: mockBuyer.onboarding_completed_at ?? new Date().toISOString(),
-        },
-        isAuthenticated: true,
-        isComplete: true,
-      };
-    }
-    return {
-      user: null,
-      profile: null,
-      isAuthenticated: false,
-      isComplete: false,
-    };
-  }
-
   const supabase = await createClient();
   if (!supabase) {
     return { user: null, profile: null, isAuthenticated: false, isComplete: false };
@@ -133,4 +108,3 @@ export async function requireRole(...allowedRoles: Role[]): Promise<{ user: { id
 
   return { user, profile };
 }
-

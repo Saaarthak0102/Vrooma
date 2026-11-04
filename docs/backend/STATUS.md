@@ -1,7 +1,7 @@
 # VROOMA BACKEND: IMPLEMENTATION STATUS & PROGRESSION
 
 **Last Updated:** 2026-11-04  
-**Current Phase:** Phase 2 Complete (Migrations, RLS, Seed, RPCs & Tests Ready for Remote DB Push)  
+**Current Phase:** Phase 3 Complete (Mock Layer Removed, Real Supabase Data Layer & RPC Integration Live)  
 **Branch / Worktree:** Main  
 
 ---
@@ -13,7 +13,7 @@
 | **0** | `docs/backend/01 audit.md` | Frontend-to-Backend Audit (Documentation only, zero code changes) | **COMPLETE** | 2026-11-04 |
 | **1** | `docs/backend/02 auth.md` | Real sign-in, sign-up, onboarding, sessions, roles, guards | **COMPLETE** | 2026-11-04 |
 | **2** | `docs/backend/03 schema.md` | Production schema, RLS, functions, cron, storage, seed | **COMPLETE** | 2026-11-04 |
-| **3** | `docs/backend/04 data layer catalog.md` | Mock removal; catalog, pricing, admin CRUD on real data | READY | — |
+| **3** | `docs/backend/04 data layer catalog.md` | Mock removal; catalog, pricing, admin CRUD on real data | **COMPLETE** | 2026-11-04 |
 | **4** | `docs/backend/05 booking lead.md` | Slots, test drives, service, leads, SLA, CSV import/export, outbox | PENDING | — |
 | **5** | `docs/backend/06 account privacy.md` | Profile, saved, enquiries, trade-in, consent, data rights, newsletter | PENDING | — |
 | **6** | `docs/backend/07 hardening release.md` | Security review, tests, observability, performance, release checklist | PENDING | — |
@@ -120,3 +120,40 @@ The agent must **NOT** run `db push` against any Supabase project until the user
 - Target DEV Project Ref: `ajumkjokagqfdikfguti`
 - Command to push when confirmed:
   `SUPABASE_PROJECT_REF=ajumkjokagqfdikfguti pnpm db:push --yes`
+
+---
+
+## 6. Phase 3 Implementation Summary (Real Data Layer, Pricing RPC & Admin CRUD)
+
+### 6.1 What Was Built & Replaced
+- **Full Mock Layer Decommissioning:**
+  - Deprecated and removed in-memory store and `USE_MOCK` branching across all domain repositories: `models`, `variants`, `pricing`, `used-cars`, `showrooms`, `offers`, `slots`, `bookings`, `leads`, `users`, `saved`, `trade-in`.
+  - Zero `TODO(day-` repository markers remaining (`node scripts/check-wiring.mjs` passes with 0 TODOs).
+  - Strict client separation enforced: `createPublicClient()` for static/ISR catalog reads; `createServerClient()` for authenticated user contexts; `createAdminClient()` strictly for elevated background tasks and admin CMS operations.
+  - `reg_no_private` column is strictly blocked from public listing queries and catalog endpoints.
+
+- **On-Road Pricing Engine RPC:**
+  - Integrated PostgreSQL `resolve_price_rule` stored procedure with UUID normalization and multi-tier priority fallback (Variant > Model > Fuel > City-wide).
+  - Cache tagging via `cachedQuery` on Next.js 15 App Router with tag `['price']`.
+
+- **Next.js 15 Tagged Caching Architecture (`src/server/cache.ts`):**
+  - High-performance cached query wrapper with deterministic key generation.
+  - Dedicated cache tags: `models`, `used`, `price`, `showrooms`, `workshops`, `offers`, `banners`.
+  - Selective on-demand revalidation helpers (`safeRevalidateTag`, `safeRevalidatePath`).
+
+- **Admin CMS & Catalog Server Actions (`src/server/actions/admin-catalog.ts`):**
+  - `saveModelAction`, `deactivateModelAction` (with optimistic concurrency check on `updated_at` and `['models']` cache invalidation).
+  - `savePriceRuleAction`, `deletePriceRuleAction` (with PostgreSQL exclusion constraint conflict handling [SQLSTATE `23P01`] and `['price']` cache invalidation).
+  - `saveUsedCarAction`, `updateUsedCarStatusAction` (with status transitions, PII masking guarantees, and `['used']` cache invalidation).
+  - `saveOfferAction`, `deleteOfferAction` (with `['offers']` cache invalidation).
+  - `saveBannerAction` (with `['banners']` cache invalidation).
+  - `setStaffRoleAction` (with RBAC enforcement and `audit_log` logging).
+
+- **Admin & Staff Console Server Components Migration:**
+  - Converted admin and staff pages to server components with client views (`AssignmentClient`, `BannersClient`, `ModelsClient`, `ModelDetailClient`, `OffersClient`, `PricesClient`, `ShowroomsClient`, `SlotsClient`, `UsedCarsClient`, `UsedCarDetailClient`, `UsersClient`, `StaffOverviewClient`, `StaffBookingsClient`, `StaffLeadsClient`, `LeadDetailClient`).
+
+### 6.2 Verification Status
+- **TypeScript Typecheck:** `npx tsc --noEmit` passed with 0 errors.
+- **ESLint:** `npm run lint` passed with 0 errors, 0 warnings.
+- **Vitest Suite:** 24/24 test files passed, 245/245 tests passing (100%).
+- **Production Build:** `npm run build` passed successfully, generating all 117 static & dynamic routes without warnings.
