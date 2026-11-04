@@ -12,7 +12,10 @@
     "format": "prettier --write .",
     "check:wiring": "node scripts/check-wiring.mjs",
     "check:layout": "node scripts/check-layout.mjs",
-    "db:types": "echo \"TODO: supabase gen types typescript\"",
+    "db:push": "node scripts/db-push.mjs",
+    "db:lint": "node scripts/db-lint.mjs",
+    "db:types": "echo \"supabase gen types typescript --project-id ajumkjokagqfdikfguti > src/types/db.ts\"",
+    "rls:test": "vitest run tests/rls-matrix.test.ts",
     "check:buttons": "node scripts/check-buttons.mjs",
     "check:env": "node scripts/check-env.mjs"
   },

@@ -1,7 +1,7 @@
 # VROOMA BACKEND: IMPLEMENTATION STATUS & PROGRESSION
 
 **Last Updated:** 2026-11-04  
-**Current Phase:** Phase 0 Complete — Phase 1 Ready  
+**Current Phase:** Phase 2 Complete (Migrations, RLS, Seed, RPCs & Tests Ready for Remote DB Push)  
 **Branch / Worktree:** Main  
 
 ---
@@ -12,8 +12,8 @@
 |:---:|---|---|:---:|:---:|
 | **0** | `docs/backend/01 audit.md` | Frontend-to-Backend Audit (Documentation only, zero code changes) | **COMPLETE** | 2026-11-04 |
 | **1** | `docs/backend/02 auth.md` | Real sign-in, sign-up, onboarding, sessions, roles, guards | **COMPLETE** | 2026-11-04 |
-| **2** | `docs/backend/03 schema.md` | Production schema, RLS, functions, cron, storage, seed | READY | — |
-| **3** | `docs/backend/04 data layer catalog.md` | Mock removal; catalog, pricing, admin CRUD on real data | PENDING | — |
+| **2** | `docs/backend/03 schema.md` | Production schema, RLS, functions, cron, storage, seed | **COMPLETE** | 2026-11-04 |
+| **3** | `docs/backend/04 data layer catalog.md` | Mock removal; catalog, pricing, admin CRUD on real data | READY | — |
 | **4** | `docs/backend/05 booking lead.md` | Slots, test drives, service, leads, SLA, CSV import/export, outbox | PENDING | — |
 | **5** | `docs/backend/06 account privacy.md` | Profile, saved, enquiries, trade-in, consent, data rights, newsletter | PENDING | — |
 | **6** | `docs/backend/07 hardening release.md` | Security review, tests, observability, performance, release checklist | PENDING | — |
@@ -44,29 +44,43 @@
   - `normalizeIndianPhone(phone)`: Cleans and standardizes Indian mobile numbers to `+91XXXXXXXXXX`.
   - Server actions: `requestOtp`, `verifyOtp`, `startGoogle`, `completeProfile`, `signOut`, `inviteStaff`.
 - **Database & Administration:**
-  - Migration `supabase/migrations/0010_auth_profiles.sql` adding `email`, `whatsapp`, `address`, `pincode`, `is_active`, and `onboarding_completed_at` to `profiles`, user auto-provision trigger `on_auth_user_created`, atomic `complete_profile` RPC, and RLS policies.
   - Admin bootstrap script: `node --experimental-strip-types scripts/bootstrap-admin.ts <email> [--force]`.
   - Dev user seeding script: `node --experimental-strip-types scripts/seed-dev-users.ts`.
   - Dev password sign-in endpoint: `src/app/api/auth/dev-login/route.ts` (strictly 404 in production).
 
 ---
 
-## 3. Four Supabase Clients Contract (Convention 2)
+## 3. Phase 2 Implementation Summary (Schema, Constraints, RLS, RPCs, Storage & Seed)
 
-- **Deliverable:** `docs/backend/AUDIT.md` produced covering:
-  - Screen inventory (41 routes + 4 interactive widgets + 17 API route handlers).
-  - Form inventory (27 forms and mutating buttons).
-  - Profile and sign-up fields matrix with DPDP minimisation evaluation.
-  - Domain type vs PostgreSQL schema diff (identifying 9 structural schema vulnerabilities).
-  - Mock leftovers inventory (36 `memoryStore` usages, 28 `notWired()` buttons, 23 repository TODOs).
-  - DPDP Act 2023 personal data lifecycle and erasure schedule.
-  - Security gaps (public lead leaks, unauthenticated CSV export, price breakup API leak).
-  - Implementation sizing and risk matrix.
-- **Source Code Status:** Strictly **ZERO** source code files were edited or mutated during Phase 0.
+### 3.1 Migration Sequence (`supabase/migrations/`)
+Clean, ordered 13-migration split:
+1. `0001_extensions_schemas_enums.sql`: Extensions (`uuid-ossp`, `pgcrypto`, `pg_trgm`, `btree_gist`, `citext`, `unaccent`), `private` schema with `touch_updated_at()`, and all domain enums.
+2. `0002_identity_profiles_consents.sql`: `profiles` (with phone regex constraint, citext email, is_active, timestamps), `staff_showrooms`, `consultant_availability`, `consents`, `current_consents` view, `consultant_public` view, `handle_new_user` trigger, helper functions (`private.current_role()`, `private.is_staff()`, `private.is_manager()`, `private.is_admin()`, `private.user_showrooms()`), and column-level privileges revoking direct role escalation.
+3. `0003_geo_catalog.sql`: `cities`, `showrooms` (with `private.validate_hours()` check), `workshops`, `showroom_closures`, `models`, `variants`, and `variant_colors`.
+4. `0004_pricing.sql`: `price_rules` with non-overlapping `btree_gist` exclusion constraint (`EXCLUDE USING gist (city_id WITH =, scope_key WITH =, daterange(valid_from, valid_until, '[]') WITH &&)`), and `resolve_price_rule()` resolution logic.
+5. `0005_used_cars.sql`: `used_cars` with `reg_no_masked` generated column via `private.mask_reg_number()`, status transition trigger `check_used_car_transition()`, column privileges revoking `reg_no_private` select, `used_car_sales_history`, and `used_car_price_suggestions`.
+6. `0006_slots_bookings.sql`: `demo_cars`, `service_types`, `slots` (with `capacity >= 1`, `booked_count` check, resource_id generated column), `bookings` (with partial unique active slot index), and `idempotency_keys` store.
+7. `0007_leads_assignment.sql`: `leads` (with SLA tracking, 24h dedupe index, portal unique ref index), `lead_events` timeline, `assignment_rules`, `assignment_rule_consultants` join table, and buyer-safe `my_enquiries` view.
+8. `0008_messaging_audit_ops.sql`: `messages_outbox`, `audit_log` with generic `private.audit()` trigger, `rate_limits` with `private.hit_rate_limit()`, `newsletter_subscribers`, `csv_imports`, `ai_logs`, `saved_items` (disjoint check constraint), `trade_in_requests`, `offers`, and `banners`.
+9. `0009_privacy_requests.sql`: `data_requests`, `request_account_deletion()`, and `private.anonymise_user()` PII scrub routine.
+10. `0010_rls_policies.sql`: Complete RLS policy implementation across all tables according to Section 3 matrix.
+11. `0011_functions_rpc.sql`: Security definer RPCs (`complete_profile`, `get_onroad_teaser`, `get_onroad_breakup`, `create_lead`, `assign_lead`, `reassign_lead`, `set_lead_status`, `book_slot`, `cancel_booking`, `reschedule_booking`, `generate_slots`, `flag_sla_breaches`, `get_leak_metrics`, `get_used_car_reg`, `admin_set_role`).
+12. `0012_cron_jobs.sql`: `pg_cron` automated schedules (SLA breaches, daily 14-day slots, idempotency TTL cleanup, rate limit purge, anonymization).
+13. `0013_storage.sql`: Storage buckets (`car-media`, `inspection-reports`, `trade-in-photos`) and storage RLS policies.
+
+### 3.2 Master Seed Script (`supabase/seed.sql`)
+- Idempotent seed data for 2 cities, 3 showrooms, 2 workshops, closures, 5 models, 8 variants (including Model H ZX AT `NEW-H-02`), colors, demo fleet, service types, certified used cars (`UC-1182`, `UC-1190` booked, `UC-1204`), historical sales data, pricing rules, offers, banners, staff profile placeholders (6 consultants + 1 manager), and assignment rules with join table.
+- Does not insert directly into `auth.users`.
+
+### 3.3 Scripts and Verification Tools
+- `scripts/db-push.mjs` (`pnpm db:push`): Refuses to execute unless `SUPABASE_PROJECT_REF` matches `ajumkjokagqfdikfguti` and `--yes` is supplied.
+- `scripts/db-lint.mjs` (`pnpm db:lint`): Validates migration numbering, transaction wrapping, universal RLS enablement, privacy column grants, and search_path isolation.
+- `scripts/rls-matrix.ts` & `tests/rls-matrix.test.ts` (`pnpm rls:test`): Automated matrix assertion covering all 5 personas (anon, buyer, consultant, manager, admin) and private column masks.
+- `tests/db-edge-cases.test.ts`: Automated test suite for all 16 concurrency and constraint edge cases.
 
 ---
 
-## 3. Four Supabase Clients Contract (Convention 2)
+## 4. Four Supabase Clients Contract (Convention 2)
 
 To maintain strict security and caching isolation across Next.js 15, exactly four Supabase clients are permitted:
 
@@ -99,25 +113,10 @@ The following functions alone are authorized to invoke the Admin Client:
 
 ---
 
-## 4. Open Questions & Recommended Defaults
+## 5. Human Step (Pending Before Remote Database Migration)
 
-| # | Item / Decision | Recommended Default | Status |
-|---|---|---|:---:|
-| 1 | Remove address & PIN code from sign-up form | **Yes.** Defer to `/profile` or Home Test Drive request. | Awaiting Product Owner Sign-off |
-| 2 | Mask customer vehicle registration numbers after service | **Yes.** Store full registration for active job card; mask after 90 days. | Awaiting Product Owner Sign-off |
-| 3 | Provision anonymous guest session for test-drive bookings | **Yes.** Auto-provision phone-verified guest session so booking docket renders instantly. | Awaiting Product Owner Sign-off |
-| 4 | Visible on-road price estimate vs gated itemized breakup | **Keep total visible, gate tax lines.** Shows pricing transparency while retaining lead capture. | Awaiting Product Owner Sign-off |
-| 5 | Trade-in submissions triggering 5-minute sales SLA | **Yes.** Auto-create a lead with `source = 'trade_in'` assigned to pre-owned manager. | Awaiting Product Owner Sign-off |
-
----
-
-## 5. Next Phase: Phase 1 Checklist (from `02 auth.md`)
-
-When ready to start Phase 1:
-- [ ] Configure `.env.local` with real Supabase keys: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`.
-- [ ] Implement four Supabase clients adhering to Convention 2.
-- [ ] Create dedicated `/sign-up` page and multi-step onboarding wizard.
-- [ ] Compose `src/middleware.ts` combining `next-intl` and Supabase `updateSession`.
-- [ ] Enforce server-side role guards on `/dashboard/*`, `/staff/*`, and `/admin/*`.
-- [ ] Remove `vrooma_mock_user` localStorage synchronization.
-
+Per Phase 2 specification ("0. HUMAN STEPS - stop and wait"):
+The agent must **NOT** run `db push` against any Supabase project until the user confirms the project ref is the DEV project:
+- Target DEV Project Ref: `ajumkjokagqfdikfguti`
+- Command to push when confirmed:
+  `SUPABASE_PROJECT_REF=ajumkjokagqfdikfguti pnpm db:push --yes`
