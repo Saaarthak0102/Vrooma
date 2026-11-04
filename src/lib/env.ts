@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 const envSchema = z.object({
+  APP_ENV: z.enum(["development", "production", "test"]).default("development"),
   NEXT_PUBLIC_SITE_URL: z.string().url().default("http://localhost:3000"),
   NEXT_PUBLIC_USE_MOCK: z
     .string()
@@ -17,6 +18,8 @@ const envSchema = z.object({
   CRON_SECRET: z.string().optional().default(""),
 });
 
+export type Env = z.infer<typeof envSchema>;
+
 const publishableKey =
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
@@ -27,7 +30,8 @@ const secretKey =
   process.env.SUPABASE_SERVICE_ROLE_KEY ||
   "";
 
-const parsed = envSchema.safeParse({
+const rawEnv = {
+  APP_ENV: process.env.APP_ENV ?? (process.env.NODE_ENV === "production" ? "production" : "development"),
   NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
   NEXT_PUBLIC_USE_MOCK: process.env.NEXT_PUBLIC_USE_MOCK ?? "true",
   NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -39,33 +43,62 @@ const parsed = envSchema.safeParse({
   RESEND_API_KEY: process.env.RESEND_API_KEY,
   AI_PROVIDER_API_KEY: process.env.AI_PROVIDER_API_KEY,
   CRON_SECRET: process.env.CRON_SECRET,
-});
+};
 
-if (!parsed.success) {
-  console.warn("⚠️ Invalid environment variables:", parsed.error.format());
-}
+// Support SKIP_ENV_VALIDATION=1 for CI pipelines
+const skipValidation = process.env.SKIP_ENV_VALIDATION === "1";
+const isBuildPhase = process.env.NEXT_PHASE === "phase-production-build";
 
-// Critical security check: Never allow dev login backdoor in production
-if (
-  process.env.NODE_ENV === "production" &&
-  (process.env.ALLOW_DEV_LOGIN === "true" || parsed.data?.ALLOW_DEV_LOGIN === "true")
-) {
-  throw new Error("FATAL SECURITY ERROR: ALLOW_DEV_LOGIN must never be enabled in production.");
-}
+let parsedData: Env;
 
-export const env = parsed.success
-  ? parsed.data
-  : {
-      NEXT_PUBLIC_SITE_URL: "http://localhost:3000",
-      NEXT_PUBLIC_USE_MOCK: true,
-      NEXT_PUBLIC_SUPABASE_URL: "",
-      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "",
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: "",
-      SUPABASE_SECRET_KEY: "",
-      SUPABASE_SERVICE_ROLE_KEY: "",
-      ALLOW_DEV_LOGIN: "false",
-      RESEND_API_KEY: "",
-      AI_PROVIDER_API_KEY: "",
-      CRON_SECRET: "",
+if (skipValidation) {
+  parsedData = envSchema.parse({});
+} else {
+  const parsed = envSchema.safeParse(rawEnv);
+  if (!parsed.success) {
+    if (isBuildPhase) {
+      console.warn("⚠️ [env] Missing or non-fatal environment variables during build:", parsed.error.format());
+    } else {
+      console.warn("⚠️ [env] Invalid environment configuration:", parsed.error.format());
+    }
+    // Fallback gracefully without throwing at module load time
+    parsedData = {
+      APP_ENV: (rawEnv.APP_ENV as any) || "development",
+      NEXT_PUBLIC_SITE_URL: rawEnv.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
+      NEXT_PUBLIC_USE_MOCK: rawEnv.NEXT_PUBLIC_USE_MOCK === "true" || rawEnv.NEXT_PUBLIC_USE_MOCK === "1",
+      NEXT_PUBLIC_SUPABASE_URL: rawEnv.NEXT_PUBLIC_SUPABASE_URL || "",
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: publishableKey,
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: publishableKey,
+      SUPABASE_SECRET_KEY: secretKey,
+      SUPABASE_SERVICE_ROLE_KEY: secretKey,
+      ALLOW_DEV_LOGIN: rawEnv.ALLOW_DEV_LOGIN || "false",
+      RESEND_API_KEY: rawEnv.RESEND_API_KEY || "",
+      AI_PROVIDER_API_KEY: rawEnv.AI_PROVIDER_API_KEY || "",
+      CRON_SECRET: rawEnv.CRON_SECRET || "",
     };
+  } else {
+    parsedData = parsed.data;
+  }
+}
 
+/**
+ * Validates critical runtime security constraints at server startup.
+ * Invoked by instrumentation.ts register() - NEVER throws on module import.
+ */
+export function validateRuntimeEnv() {
+  if (process.env.SKIP_ENV_VALIDATION === "1") {
+    return;
+  }
+
+  const currentAppEnv = process.env.APP_ENV || parsedData.APP_ENV;
+  const isDevLoginEnabled =
+    (process.env.ALLOW_DEV_LOGIN ?? parsedData.ALLOW_DEV_LOGIN) === "true";
+
+  if (currentAppEnv === "production" && isDevLoginEnabled) {
+    throw new Error(
+      "FATAL SECURITY ERROR: ALLOW_DEV_LOGIN must never be enabled in production environments (APP_ENV=production)."
+    );
+  }
+}
+
+export const env: Env = parsedData;

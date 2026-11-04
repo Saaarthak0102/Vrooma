@@ -1,10 +1,12 @@
 import { MetadataRoute } from "next";
-import { mockModels } from "@/data/mock/models";
-import { mockUsedCars } from "@/data/mock/used-cars";
+import { listModels } from "@/server/repositories/models";
+import { listUsedCars } from "@/server/repositories/used-cars";
 import { env } from "@/lib/env";
 
-export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "");
+export const revalidate = 3600;
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const baseUrl = (env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000").replace(/\/$/, "");
   const locales = ["en", "hi"];
 
   const staticRoutes = [
@@ -32,28 +34,41 @@ export default function sitemap(): MetadataRoute.Sitemap {
         priority: route === "" ? 1.0 : 0.8,
       });
     }
+  }
 
-    // Dynamic model pages
-    for (const model of mockModels) {
-      entries.push({
-        url: `${baseUrl}/${locale}/cars/${model.slug}`,
-        lastModified: new Date(),
-        changeFrequency: "daily",
-        priority: 0.9,
-      });
-    }
+  // Resiliently fetch models and used cars, falling back to static routes on any failure
+  try {
+    const [models, usedCars] = await Promise.all([
+      listModels().catch(() => []),
+      listUsedCars().catch(() => []),
+    ]);
 
-    // Dynamic used-car pages
-    for (const car of mockUsedCars) {
-      entries.push({
-        url: `${baseUrl}/${locale}/used-cars/${car.stock_id}`,
-        lastModified: new Date(),
-        changeFrequency: "daily",
-        priority: 0.8,
-      });
+    for (const locale of locales) {
+      for (const model of models) {
+        if (model?.slug) {
+          entries.push({
+            url: `${baseUrl}/${locale}/cars/${model.slug}`,
+            lastModified: new Date(),
+            changeFrequency: "daily",
+            priority: 0.9,
+          });
+        }
+      }
+
+      for (const car of usedCars) {
+        if (car?.stock_id) {
+          entries.push({
+            url: `${baseUrl}/${locale}/used-cars/${car.stock_id}`,
+            lastModified: new Date(),
+            changeFrequency: "daily",
+            priority: 0.8,
+          });
+        }
+      }
     }
+  } catch (error) {
+    console.warn("⚠️ [sitemap] Dynamic inventory route fetch failed, returning static routes:", error);
   }
 
   return entries;
 }
-

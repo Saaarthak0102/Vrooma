@@ -3,6 +3,7 @@ import path from "node:path";
 
 const isStrict = process.argv.includes("--strict");
 const srcDir = path.resolve(process.cwd(), "src");
+const repoDir = path.resolve(process.cwd(), "src/server/repositories");
 
 function walkDir(dir, fileList = []) {
   if (!fs.existsSync(dir)) return fileList;
@@ -37,13 +38,32 @@ for (const file of files) {
   }
 }
 
+// Check repository TODO(day- matches
+const repoFiles = walkDir(repoDir);
+const repoTodoMatches = [];
+const repoTodoRegex = /TODO\(day-(\d+)\):?\s*([^\n"]*)/g;
+
+for (const file of repoFiles) {
+  const content = fs.readFileSync(file, "utf-8");
+  let match;
+  while ((match = repoTodoRegex.exec(content)) !== null) {
+    const relPath = path.relative(process.cwd(), file).replace(/\\/g, "/");
+    repoTodoMatches.push({
+      file: relPath,
+      day: match[1],
+      description: match[2].trim().replace(/["';\)]+$/, ""),
+    });
+  }
+}
+
 console.log("==================================================");
-console.log("            VROOMA DEAD-BUTTON AUDIT              ");
+console.log("            VROOMA WIRING & REPOSITORY AUDIT      ");
 console.log("==================================================");
 
+let hasFailure = false;
+
 if (matches.length === 0) {
-  console.log("✅ 0 unwired buttons found! All actions wired.");
-  process.exit(0);
+  console.log("✅ 0 unwired buttons found! All UI actions wired.");
 } else {
   console.log(`Found ${matches.length} placeholder action(s) using notWired():\n`);
   console.log("| File | Action Label | Target Day |");
@@ -52,12 +72,27 @@ if (matches.length === 0) {
     console.log(`| ${m.file} | ${m.label} | Day ${m.day} |`);
   }
   console.log("\nRegistered in docs/WIRING.md");
+  if (isStrict) hasFailure = true;
+}
+
+if (repoTodoMatches.length === 0) {
+  console.log("\n✅ 0 repository TODO(day- markers found! All repositories implemented.");
+} else {
+  console.log(`\nFound ${repoTodoMatches.length} pending repository implementation(s) using TODO(day-):\n`);
+  console.log("| Repository File | Target Day | Description |");
+  console.log("|-----------------|------------|-------------|");
+  for (const r of repoTodoMatches) {
+    console.log(`| ${r.file} | Day ${r.day} | ${r.description} |`);
+  }
   if (isStrict) {
-    console.error("\n❌ Strict mode enabled: Unwired buttons remain. Exiting with 1.");
-    process.exit(1);
-  } else {
-    console.log("\nℹ️ Normal mode: Informational count only. Exiting with 0.");
-    process.exit(0);
+    hasFailure = true;
   }
 }
 
+if (isStrict && hasFailure) {
+  console.error("\n❌ Strict mode enabled: Unwired buttons or pending repository TODOs remain. Exiting with 1.");
+  process.exit(1);
+} else {
+  console.log("\nℹ️ Normal mode: Informational count only. Exiting with 0.\n");
+  process.exit(0);
+}

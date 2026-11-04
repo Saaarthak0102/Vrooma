@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { env } from "@/lib/env";
 
 const DEV_CREDENTIALS: Record<string, { email: string; pass: string }> = {
   buyer: { email: "dev-buyer@vrooma.in", pass: "VroomaDevPass2026!" },
@@ -10,11 +11,12 @@ const DEV_CREDENTIALS: Record<string, { email: string; pass: string }> = {
 };
 
 export async function POST(req: NextRequest) {
-  // Strict guard: 404 if not development or dev login disabled
-  if (
-    process.env.NODE_ENV !== "development" ||
-    process.env.ALLOW_DEV_LOGIN !== "true"
-  ) {
+  // Strict multi-layer guard: 404 unless NODE_ENV === 'development' AND APP_ENV !== 'production' AND ALLOW_DEV_LOGIN === 'true'
+  const isNodeDev = process.env.NODE_ENV === "development";
+  const isAppNotProd = (process.env.APP_ENV ?? env.APP_ENV) !== "production";
+  const isDevLoginEnabled = (process.env.ALLOW_DEV_LOGIN ?? env.ALLOW_DEV_LOGIN) === "true";
+
+  if (!isNodeDev || !isAppNotProd || !isDevLoginEnabled) {
     notFound();
   }
 

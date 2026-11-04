@@ -6,12 +6,17 @@ import { VehicleJsonLd, BreadcrumbJsonLd } from "@/components/seo/VehicleJsonLd"
 import { UsedCarDetailView } from "./UsedCarDetailView";
 import { env } from "@/lib/env";
 import { getVehicleAsset } from "@/constants/vehicle-assets";
+import { safeStaticParams } from "@/lib/static-params";
+
+export const dynamicParams = true;
 
 export async function generateStaticParams() {
-  const cars = await listUsedCars();
-  return cars.map((c) => ({
-    stockId: c.stock_id,
-  }));
+  return safeStaticParams(async () => {
+    const cars = await listUsedCars();
+    return cars.map((c) => ({
+      stockId: c.stock_id,
+    }));
+  });
 }
 
 export async function generateMetadata({
@@ -20,16 +25,21 @@ export async function generateMetadata({
   params: Promise<{ stockId: string; locale: string }>;
 }) {
   const { stockId, locale } = await params;
-  const car = await getUsedCarByStockId(stockId);
-  if (!car) return {};
+  try {
+    const car = await getUsedCarByStockId(stockId);
+    if (!car) return {};
 
-  return constructMetadata({
-    title: `${car.year} ${car.model_name} ${car.variant_name} (${car.stock_id}) - Certified Used Car`,
-    description: `Buy certified used ${car.model_name} in Lucknow with ${car.km.toLocaleString()} km. 140-point inspection report, non-accidental guarantee, and verified registration.`,
-    path: `/used-cars/${stockId}`,
-    image: car.images[0],
-    locale,
-  });
+    return constructMetadata({
+      title: `${car.year} ${car.model_name} ${car.variant_name} (${car.stock_id}) - Certified Used Car`,
+      description: `Buy certified used ${car.model_name} in Lucknow with ${car.km.toLocaleString()} km. 140-point inspection report, non-accidental guarantee, and verified registration.`,
+      path: `/used-cars/${stockId}`,
+      image: car.images[0],
+      locale,
+    });
+  } catch (error) {
+    console.warn(`[UsedCarPage:generateMetadata] Error fetching car ${stockId}:`, error);
+    return {};
+  }
 }
 
 export default async function UsedCarPage({
@@ -38,7 +48,12 @@ export default async function UsedCarPage({
   params: Promise<{ stockId: string; locale: string }>;
 }) {
   const { stockId, locale } = await params;
-  const car = await getUsedCarByStockId(stockId);
+  let car = null;
+  try {
+    car = await getUsedCarByStockId(stockId);
+  } catch (error) {
+    console.warn(`[UsedCarPage] Error loading car ${stockId}:`, error);
+  }
 
   if (!car) {
     notFound();

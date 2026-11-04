@@ -6,12 +6,17 @@ import { constructMetadata } from "@/lib/seo";
 import { VehicleJsonLd, BreadcrumbJsonLd } from "@/components/seo/VehicleJsonLd";
 import { ModelDetailView } from "./ModelDetailView";
 import { env } from "@/lib/env";
+import { safeStaticParams } from "@/lib/static-params";
+
+export const dynamicParams = true;
 
 export async function generateStaticParams() {
-  const models = await listModels();
-  return models.map((m) => ({
-    modelSlug: m.slug,
-  }));
+  return safeStaticParams(async () => {
+    const models = await listModels();
+    return models.map((m) => ({
+      modelSlug: m.slug,
+    }));
+  });
 }
 
 export async function generateMetadata({
@@ -20,16 +25,21 @@ export async function generateMetadata({
   params: Promise<{ modelSlug: string; locale: string }>;
 }) {
   const { modelSlug, locale } = await params;
-  const model = await getModelBySlug(modelSlug);
-  if (!model) return {};
+  try {
+    const model = await getModelBySlug(modelSlug);
+    if (!model) return {};
 
-  return constructMetadata({
-    title: `${model.name} Price in Lucknow, Specs & Test Drive`,
-    description: `${model.tagline}. View official Lucknow ex-showroom and on-road prices, EMI calculator, and book a test drive today.`,
-    path: `/cars/${modelSlug}`,
-    image: model.hero_image,
-    locale,
-  });
+    return constructMetadata({
+      title: `${model.name} Price in Lucknow, Specs & Test Drive`,
+      description: `${model.tagline}. View official Lucknow ex-showroom and on-road prices, EMI calculator, and book a test drive today.`,
+      path: `/cars/${modelSlug}`,
+      image: model.hero_image,
+      locale,
+    });
+  } catch (error) {
+    console.warn(`[ModelPage:generateMetadata] Error fetching model ${modelSlug}:`, error);
+    return {};
+  }
 }
 
 export default async function ModelPage({
@@ -38,8 +48,17 @@ export default async function ModelPage({
   params: Promise<{ modelSlug: string; locale: string }>;
 }) {
   const { modelSlug, locale } = await params;
-  const model = await getModelBySlug(modelSlug);
-  const allModels = await listModels();
+  let model = null;
+  let allModels: any[] = [];
+
+  try {
+    [model, allModels] = await Promise.all([
+      getModelBySlug(modelSlug),
+      listModels().catch(() => []),
+    ]);
+  } catch (error) {
+    console.warn(`[ModelPage] Error loading model ${modelSlug}:`, error);
+  }
 
   if (!model) {
     notFound();
@@ -47,13 +66,18 @@ export default async function ModelPage({
 
   // Pre-fetch default price rule for first variant in Lucknow
   const defaultVariant = model.variants?.[0];
-  const priceRule = defaultVariant
-    ? await getPriceRule({
+  let priceRule = null;
+  if (defaultVariant) {
+    try {
+      priceRule = await getPriceRule({
         cityId: "city-lucknow",
         variantId: defaultVariant.id,
         modelId: model.id,
-      })
-    : null;
+      });
+    } catch (e) {
+      console.warn(`[ModelPage] Price rule fetch failed for ${defaultVariant.id}:`, e);
+    }
+  }
 
   return (
     <>

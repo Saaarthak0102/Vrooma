@@ -98,15 +98,86 @@ export interface LandingData {
   bookNowPreview: BookNowPreviewData;
 }
 
+export function getFallbackLandingData(): LandingData {
+  const heroExShowroom = 1245000;
+  const principal = Math.round(heroExShowroom * (1 - EMI_DEFAULTS.downPaymentPct / 100));
+  const ratePct = EMI_DEFAULTS.annualRatePct;
+  const tenureMonths = EMI_DEFAULTS.tenureMonths;
+  const monthlyEmi = calculateEmi(principal, ratePct, tenureMonths);
+
+  return {
+    featuredModels: [],
+    heroModel: {
+      id: "model-h",
+      name: "Model H",
+      slug: "model-h",
+      variantId: "var-h-zx-at",
+      variantName: "ZX Automatic",
+      exShowroom: heroExShowroom,
+      teaserOnRoad: null,
+      validUntil: null,
+    },
+    nextSlot: null,
+    locations: [
+      {
+        id: "sh-hazratganj",
+        name: "Vrooma Flagship Hazratganj",
+        type: "showroom",
+        city: "Lucknow",
+        slug: "sh-hazratganj",
+        address: "14/A, MG Marg, Hazratganj, Lucknow 226001",
+      },
+      {
+        id: "ws-transport-nagar",
+        name: "Central Workshop Transport Nagar",
+        type: "workshop",
+        city: "Lucknow",
+        slug: "ws-transport-nagar",
+        address: "Plot 88, Phase 2, Transport Nagar, Lucknow 226012",
+      },
+      {
+        id: "yard-shaheed-path",
+        name: "Certified Used Hub Shaheed Path",
+        type: "yard",
+        city: "Lucknow",
+        slug: "shaheed-path-yard",
+        address: "Amar Shaheed Path, Sector 7, Gomti Nagar Extension, Lucknow 226010",
+      },
+    ],
+    stats: {
+      showrooms: 3,
+      workshops: 2,
+      usedCars: 0,
+      staff: COMPANY_FACTS.staff,
+      newCarsYear: COMPANY_FACTS.newCarsYear,
+      usedCarsYear: COMPANY_FACTS.usedCarsYear,
+    },
+    usedSample: null,
+    emiDefaults: {
+      principal,
+      ratePct,
+      tenureMonths,
+      monthlyEmi,
+      label: "indicative",
+    },
+    bookNowPreview: {
+      showrooms: [],
+      slots: [],
+      nextDayLabel: null,
+    },
+  };
+}
+
 export async function getLandingData(locale: string = "en"): Promise<LandingData> {
-  // 1. Fetch repositories concurrently
-  const [allModels, allUsedCars, showrooms, workshops, allSlots] = await Promise.all([
-    listModels(),
-    listUsedCars(),
-    listShowrooms(),
-    listWorkshops(),
-    listSlots({ kind: "test_drive" }),
-  ]);
+  try {
+    // 1. Fetch repositories concurrently
+    const [allModels, allUsedCars, showrooms, workshops, allSlots] = await Promise.all([
+      listModels().catch(() => []),
+      listUsedCars().catch(() => []),
+      listShowrooms().catch(() => []),
+      listWorkshops().catch(() => []),
+      listSlots({ kind: "test_drive" }).catch(() => []),
+    ]);
 
   // 2. Featured models with teaser on-road in Lucknow
   const topModels = allModels.slice(0, 4);
@@ -442,4 +513,8 @@ export async function getLandingData(locale: string = "en"): Promise<LandingData
     emiDefaults,
     bookNowPreview,
   };
+} catch (error) {
+  console.error("⚠️ [landing-data] Failed to load landing data, returning safe empty-state fallback:", error);
+  return getFallbackLandingData();
+}
 }
