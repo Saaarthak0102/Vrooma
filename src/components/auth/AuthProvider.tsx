@@ -1,152 +1,232 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
 import { Profile, Role } from "@/types/domain";
+import { createClient } from "@/lib/supabase/client";
+import { signOut as serverSignOut } from "@/server/auth/actions";
+import { env } from "@/lib/env";
 import { mockUsers } from "@/data/mock/users";
+import { useRouter } from "@/i18n/navigation";
+
+export interface PendingIntent {
+  type: string;
+  payload?: any;
+  returnTo?: string;
+  createdAt: number;
+}
 
 interface AuthContextType {
   user: Profile | null;
   role: Role | null;
   status: "loading" | "authenticated" | "unauthenticated";
-  signIn: (email: string, role?: Role, extraData?: Partial<Profile>) => Promise<void>;
-  signOut: () => void;
+  signOut: () => Promise<void>;
   switchRole: (role: Role) => void;
   updateProfile: (updates: Partial<Profile>) => Promise<Profile>;
   isSignInSheetOpen: boolean;
-  openSignInSheet: (onSuccess?: () => void) => void;
+  openSignInSheet: (onSuccess?: () => void, intent?: Omit<PendingIntent, "createdAt">) => void;
   closeSignInSheet: () => void;
+  pendingIntent: PendingIntent | null;
+  clearPendingIntent: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const STORAGE_KEY = "vrooma_mock_user";
+const INTENT_STORAGE_KEY = "vrooma_auth_intent";
+const INTENT_TTL_MS = 30 * 60 * 1000; // 30 minutes
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
   const [user, setUser] = useState<Profile | null>(null);
   const [status, setStatus] = useState<"loading" | "authenticated" | "unauthenticated">("loading");
   const [isSignInSheetOpen, setIsSignInSheetOpen] = useState(false);
   const [pendingCallback, setPendingCallback] = useState<(() => void) | null>(null);
+  const [pendingIntent, setPendingIntent] = useState<PendingIntent | null>(null);
 
+  // Load pending intent from sessionStorage
   useEffect(() => {
-    // Check localStorage on mount
     try {
-      const defaultBuyer = mockUsers.find((u) => u.role === "buyer") || null;
-      const stored = localStorage.getItem(STORAGE_KEY);
+      const stored = sessionStorage.getItem(INTENT_STORAGE_KEY);
       if (stored) {
-        const parsed = JSON.parse(stored);
-        const merged: Profile = {
-          ...defaultBuyer,
-          ...parsed,
-          whatsapp: parsed.whatsapp || parsed.phone || defaultBuyer?.whatsapp || "9876500001",
-          address: parsed.address || defaultBuyer?.address || "14/A, MG Marg, Hazratganj, Lucknow",
-          pincode: parsed.pincode || defaultBuyer?.pincode || "226001",
-        };
-        setUser(merged);
-        setStatus("authenticated");
-      } else {
-        // In mock mode, default to buyer profile for seamless exploration
-        setUser(defaultBuyer);
-        setStatus("authenticated");
+        const parsed: PendingIntent = JSON.parse(stored);
+        if (Date.now() - parsed.createdAt < INTENT_TTL_MS) {
+          setPendingIntent(parsed);
+        } else {
+          sessionStorage.removeItem(INTENT_STORAGE_KEY);
+        }
       }
-    } catch {
-      setStatus("unauthenticated");
-    }
+    } catch {}
   }, []);
 
-  const signIn = async (email: string, targetRole: Role = "buyer", extraData?: Partial<Profile>) => {
-    // Find matching mock user or synthesize one
-    let matched = mockUsers.find(
-      (u) => u.email.toLowerCase() === email.toLowerCase() || u.role === targetRole
-    );
-    if (!matched) {
-      matched = {
-        id: `usr-${Date.now()}`,
-        email,
-        full_name: extraData?.full_name || email.split("@")[0],
-        phone: extraData?.phone || extraData?.whatsapp || "9876500001",
-        whatsapp: extraData?.whatsapp || extraData?.phone || "9876500001",
-        address: extraData?.address || "14/A, MG Marg, Hazratganj, Lucknow",
-        pincode: extraData?.pincode || "226001",
-        role: targetRole,
-        locale: "en",
-        city_id: "city-lucknow",
-      };
-    } else if (extraData) {
-      matched = { ...matched, ...extraData };
+  // Primary Auth hydration via Supabase SSR client
+  useEffect(() => {
+    if (env.NEXT_PUBLIC_USE_MOCK) {
+      // In mock mode, default to buyer profile
+      const defaultBuyer = mockUsers.find((u) => u.role === "buyer") || null;
+      setUser(defaultBuyer);
+      setStatus(defaultBuyer ? "authenticated" : "unauthenticated");
+      return;
     }
 
-    setUser(matched);
-    setStatus("authenticated");
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(matched));
-    } catch {}
-
-    setIsSignInSheetOpen(false);
-    if (pendingCallback) {
-      pendingCallback();
-      setPendingCallback(null);
-    }
-  };
-
-  const updateProfile = async (updates: Partial<Profile>): Promise<Profile> => {
-    if (!user) {
-      throw new Error("No authenticated user session found");
+    const supabase = createClient();
+    if (!supabase) {
+      setStatus("unauthenticated");
+      return;
     }
 
-    const updatedUser: Profile = {
-      ...user,
-      ...updates,
+    // 1. Check initial session
+    const fetchSessionAndProfile = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) {
+          setUser(null);
+          setStatus("unauthenticated");
+          return;
+        }
+
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", session.user.id)
+          .single();
+
+        if (profile) {
+          setUser(profile as Profile);
+          setStatus("authenticated");
+        } else {
+          // Minimal fallback until profile is created
+          setUser({
+            id: session.user.id,
+            email: session.user.email || "",
+            full_name: session.user.user_metadata?.full_name || session.user.email?.split("@")[0] || "User",
+            role: "buyer",
+            locale: "en",
+          });
+          setStatus("authenticated");
+        }
+      } catch {
+        setUser(null);
+        setStatus("unauthenticated");
+      }
     };
 
-    setUser(updatedUser);
+    fetchSessionAndProfile();
+
+    // 2. Listen to live auth changes (syncs across browser tabs!)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event: AuthChangeEvent, session: Session | null) => {
+        if (event === "SIGNED_OUT" || !session?.user) {
+          setUser(null);
+          setStatus("unauthenticated");
+          return;
+        }
+
+        if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "USER_UPDATED") {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("id", session.user.id)
+            .single();
+
+          if (profile) {
+            setUser(profile as Profile);
+          } else {
+            setUser({
+              id: session.user.id,
+              email: session.user.email || "",
+              full_name: session.user.user_metadata?.full_name || session.user.email?.split("@")[0] || "User",
+              role: "buyer",
+              locale: "en",
+            });
+          }
+          setStatus("authenticated");
+
+          // Execute resumed callback if present
+          if (pendingCallback) {
+            pendingCallback();
+            setPendingCallback(null);
+          }
+        }
+      }
+    );
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [pendingCallback]);
+
+  const openSignInSheet = useCallback(
+    (onSuccess?: () => void, intent?: Omit<PendingIntent, "createdAt">) => {
+      if (onSuccess) setPendingCallback(() => onSuccess);
+      if (intent) {
+        const fullIntent: PendingIntent = { ...intent, createdAt: Date.now() };
+        setPendingIntent(fullIntent);
+        try {
+          sessionStorage.setItem(INTENT_STORAGE_KEY, JSON.stringify(fullIntent));
+        } catch {}
+      }
+      setIsSignInSheetOpen(true);
+    },
+    []
+  );
+
+  const closeSignInSheet = useCallback(() => {
+    setIsSignInSheetOpen(false);
+  }, []);
+
+  const clearPendingIntent = useCallback(() => {
+    setPendingIntent(null);
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser));
+      sessionStorage.removeItem(INTENT_STORAGE_KEY);
     } catch {}
+  }, []);
 
-    // Persist to server/store via API route
-    try {
-      await fetch("/api/me/profile", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: user.id, ...updates }),
-      });
-    } catch {
-      // In offline/mock mode, direct memoryStore update is also handled
-    }
+  const switchRole = useCallback((newRole: Role) => {
+    const target = mockUsers.find((u) => u.role === newRole) || {
+      id: `usr-${newRole}-1`,
+      email: `${newRole}@vrooma.in`,
+      full_name: `${newRole.toUpperCase()} Specialist`,
+      role: newRole,
+      locale: "en" as const,
+    };
+    setUser(target);
+    setStatus("authenticated");
+  }, []);
 
-    return updatedUser;
-  };
+  const updateProfile = useCallback(
+    async (updates: Partial<Profile>): Promise<Profile> => {
+      if (!user) {
+        throw new Error("No authenticated user session");
+      }
 
-  const signOut = () => {
+      const updatedUser: Profile = {
+        ...user,
+        ...updates,
+      };
+
+      setUser(updatedUser);
+
+      // Persist to server API route
+      try {
+        await fetch("/api/me/profile", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: user.id, ...updates }),
+        });
+      } catch {}
+
+      return updatedUser;
+    },
+    [user]
+  );
+
+  const signOut = useCallback(async () => {
     setUser(null);
     setStatus("unauthenticated");
-    try {
-      localStorage.removeItem(STORAGE_KEY);
-    } catch {}
-  };
-
-  const switchRole = (newRole: Role) => {
-    const targetUser = mockUsers.find((u) => u.role === newRole);
-    if (targetUser) {
-      setUser(targetUser);
-      setStatus("authenticated");
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(targetUser));
-      } catch {}
-    }
-  };
-
-  const openSignInSheet = (onSuccess?: () => void) => {
-    if (onSuccess) {
-      setPendingCallback(() => onSuccess);
-    }
-    setIsSignInSheetOpen(true);
-  };
-
-  const closeSignInSheet = () => {
-    setIsSignInSheetOpen(false);
-    setPendingCallback(null);
-  };
+    clearPendingIntent();
+    await serverSignOut();
+    router.refresh();
+  }, [clearPendingIntent, router]);
 
   return (
     <AuthContext.Provider
@@ -154,13 +234,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user,
         role: user?.role ?? null,
         status,
-        signIn,
         signOut,
         switchRole,
         updateProfile,
         isSignInSheetOpen,
         openSignInSheet,
         closeSignInSheet,
+        pendingIntent,
+        clearPendingIntent,
       }}
     >
       {children}
@@ -175,4 +256,3 @@ export function useAuth() {
   }
   return context;
 }
-

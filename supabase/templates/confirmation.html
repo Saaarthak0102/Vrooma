@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Confirm Your Vrooma Account</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #FAFAF9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1C1917;">
+  <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #FAFAF9; padding: 40px 16px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 520px; background-color: #FFFFFF; border-radius: 16px; border: 1px solid #E7E5E4; box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05); overflow: hidden;">
+          <!-- Header -->
+          <tr>
+            <td style="background-color: #0C0A09; padding: 28px 32px; text-align: left;">
+              <span style="font-size: 20px; font-weight: 900; letter-spacing: 0.05em; color: #FFFFFF; text-transform: uppercase;">VROOMA</span>
+              <span style="font-size: 11px; font-weight: 600; color: #E11D48; margin-left: 8px; text-transform: uppercase; letter-spacing: 0.1em;">Lucknow &bull; Brand X</span>
+            </td>
+          </tr>
+
+          <!-- Content -->
+          <tr>
+            <td style="padding: 36px 32px 24px 32px;">
+              <h1 style="font-size: 22px; font-weight: 800; color: #1C1917; margin: 0 0 12px 0;">Verify your email address</h1>
+              <p style="font-size: 14px; line-height: 1.6; color: #78716C; margin: 0 0 24px 0;">
+                Welcome to Vrooma. Use the 6-digit verification code below to confirm your account and unlock official on-road price breakups and test drive bookings.
+              </p>
+
+              <!-- 6-Digit Token Box -->
+              <div style="background-color: #F5F5F4; border: 1px solid #E7E5E4; border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 24px;">
+                <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #78716C; margin-bottom: 8px;">Your 6-Digit Verification Code</div>
+                <div style="font-family: 'Courier New', Courier, monospace; font-size: 34px; font-weight: 900; letter-spacing: 0.25em; color: #0C0A09;">{{ .Token }}</div>
+                <div style="font-size: 12px; color: #78716C; margin-top: 8px;">Valid for 10 minutes. Do not share this code.</div>
+              </div>
+
+              <!-- Hindi hint -->
+              <p style="font-size: 13px; line-height: 1.5; color: #A8A29E; margin: 0 0 28px 0; text-align: center; font-style: italic;">
+                यह सुरक्षा कोड 10 मिनट के लिए मान्य है। इसे किसी के साथ साझा न करें।
+              </p>
+
+              <!-- Direct link fallback -->
+              <div style="border-top: 1px solid #E7E5E4; padding-top: 24px; text-align: center;">
+                <p style="font-size: 13px; color: #78716C; margin: 0 0 16px 0;">Alternatively, verify instantly by clicking the button below:</p>
+                <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=signup&next=/onboarding" style="display: inline-block; background-color: #E11D48; color: #FFFFFF; text-decoration: none; font-size: 14px; font-weight: 700; padding: 12px 28px; border-radius: 9999px; box-shadow: 0 2px 8px rgba(225, 29, 72, 0.25);">
+                  Confirm Account &rarr;
+                </a>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #FAFAF9; padding: 20px 32px; border-top: 1px solid #E7E5E4; text-align: center;">
+              <p style="font-size: 11px; line-height: 1.5; color: #A8A29E; margin: 0;">
+                Vrooma Dealership &bull; Hazratganj &amp; Gomti Nagar, Lucknow, UP<br>
+                If you did not request this verification, you can safely ignore this email.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+

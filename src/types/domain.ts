@@ -224,6 +224,10 @@ export interface Profile {
   city_id?: string | null;
   role: Role;
   locale: "en" | "hi";
+  is_active?: boolean;
+  onboarding_completed_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface Offer {
