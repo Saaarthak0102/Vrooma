@@ -1,5 +1,7 @@
+
 -- 0004_booking_slots.sql
 
+-- 1. Demo cars
 CREATE TABLE IF NOT EXISTS demo_cars (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   showroom_id UUID REFERENCES showrooms(id) ON DELETE CASCADE,
@@ -10,6 +12,7 @@ CREATE TABLE IF NOT EXISTS demo_cars (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 2. Booking slots
 CREATE TABLE IF NOT EXISTS slots (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   kind booking_kind_type NOT NULL,
@@ -19,10 +22,20 @@ CREATE TABLE IF NOT EXISTS slots (
   starts_at TIMESTAMPTZ NOT NULL,
   ends_at TIMESTAMPTZ NOT NULL,
   capacity INT NOT NULL DEFAULT 1,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  CONSTRAINT uq_slot_unique_booking UNIQUE (kind, COALESCE(demo_car_id, workshop_id), starts_at)
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Unique expression index:
+-- Prevents duplicate booking slots for the same kind,
+-- demo car/workshop and start time.
+CREATE UNIQUE INDEX IF NOT EXISTS uq_slot_unique_booking
+ON public.slots (
+  kind,
+  (COALESCE(demo_car_id, workshop_id)),
+  starts_at
+);
+
+-- 3. Bookings
 CREATE TABLE IF NOT EXISTS bookings (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID NOT NULL, -- references auth.users
@@ -35,4 +48,3 @@ CREATE TABLE IF NOT EXISTS bookings (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
-

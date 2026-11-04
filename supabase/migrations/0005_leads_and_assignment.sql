@@ -1,5 +1,7 @@
+
 -- 0005_leads_and_assignment.sql
 
+-- 1. User profiles
 CREATE TABLE IF NOT EXISTS profiles (
   id UUID PRIMARY KEY, -- references auth.users(id)
   full_name TEXT NOT NULL,
@@ -11,6 +13,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 2. Leads
 CREATE TABLE IF NOT EXISTS leads (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   source lead_source_type NOT NULL DEFAULT 'web',
@@ -33,9 +36,16 @@ CREATE TABLE IF NOT EXISTS leads (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Deduplication index
-CREATE UNIQUE INDEX IF NOT EXISTS idx_leads_dedupe ON leads(phone, model_id, (created_at::date));
+-- 3. Deduplication index
+-- Explicit UTC conversion makes the date expression IMMUTABLE.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_leads_dedupe
+ON public.leads (
+  phone,
+  model_id,
+  ((created_at AT TIME ZONE 'UTC')::date)
+);
 
+-- 4. Lead events
 CREATE TABLE IF NOT EXISTS lead_events (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   lead_id UUID REFERENCES leads(id) ON DELETE CASCADE,
@@ -45,6 +55,7 @@ CREATE TABLE IF NOT EXISTS lead_events (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 5. Assignment rules
 CREATE TABLE IF NOT EXISTS assignment_rules (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   showroom_id UUID REFERENCES showrooms(id) ON DELETE CASCADE,
@@ -53,4 +64,3 @@ CREATE TABLE IF NOT EXISTS assignment_rules (
   priority INT NOT NULL DEFAULT 1,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
-
