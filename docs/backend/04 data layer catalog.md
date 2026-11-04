@@ -9,6 +9,15 @@ Prerequisite: Phase 2 accepted (schema pushed to the DEV project, seed loaded, R
 - Search: `/cars` and `/used-cars` search use `pg_trgm` + `unaccent` (typo tolerant), debounced on the client, with the filter set already in the UI (body type, fuel, transmission, budget range, city; model, year, km, price, owners). Parameters validated by zod (reject absurd ranges, clamp page size). Create the needed indexes (trigram on names, btree on filter columns) and check the plans with `EXPLAIN` on the seed data.
 - Caching: public catalog uses cached functions with tags (`models`, `model:<slug>`, `used`, `used:<stock>`, `offers`, `price`) and `revalidate` fallbacks; admin mutations call `revalidateTag` for the right tags (and `revalidatePath` for sitemap). The landing's `getLandingData` keeps working with the same shape; its next-slot chip and counts come from the DB. The landing page must stay static/ISR: no cookies() in anything it imports.
 
+## 1b. THE BUILD MUST NOT BREAK (learned from the first local build)
+- No module may throw when it is loaded (env validation, security guards). Check at server start in `instrumentation.ts`, or lazily; during `next build` (`NEXT_PHASE === 'phase-production-build'`) only warn. Use `APP_ENV` (development | production) for environment guards, never `NODE_ENV` (every `next build` is `production`, even locally).
+- `generateStaticParams`: use the PUBLIC client, cap the list (for example the 50 newest), wrap in try/catch returning `[]` with a console warning, and set `dynamicParams = true` so other slugs render on first request and are cached (ISR). Never throw.
+- `sitemap.ts`: `revalidate = 3600`; on failure fall back to the static routes only.
+- ISR pages need the database reachable at build time. The public catalog is readable with the publishable key, so CI can build against the dev project. An empty table must produce an empty state, never a build failure.
+- No `throw new Error("TODO` may remain in any repository; `pnpm check:wiring --strict` greps for `TODO(day-` and fails.
+- Edge runtime only for routes that import nothing server-only (for example the OG image); everything else uses the Node runtime.
+- Add `npm run build && npm start` and a smoke request to CI.
+
 ## 2. ON-ROAD PRICE (the hard part)
 - The pure function `computeOnRoad` stays (tested) and is fed by the rules from `get_onroad_breakup` / `get_onroad_teaser`. Do not duplicate the maths in SQL; the SQL functions only select and authorise.
 - Anonymous visitors get the TEASER (total, valid until, city) only; signed-in users get the full breakup. A direct call to the REST API must not leak more than the UI shows.
