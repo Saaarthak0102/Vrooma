@@ -15,6 +15,17 @@ DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_cron') THEN
 
+    -- Cleanly unschedule existing named jobs for idempotency on migration re-runs
+    PERFORM cron.unschedule(jobid)
+    FROM cron.job
+    WHERE jobname IN (
+      'eval_lead_sla_breaches',
+      'daily_slot_generation',
+      'purge_expired_idempotency',
+      'purge_stale_rate_limits',
+      'process_due_anonymisations'
+    );
+
     -- 1. Evaluate 5-Minute Lead SLA Breaches Every Minute
     PERFORM cron.schedule(
       'eval_lead_sla_breaches',
@@ -54,4 +65,3 @@ BEGIN
 END $$;
 
 COMMIT;
-

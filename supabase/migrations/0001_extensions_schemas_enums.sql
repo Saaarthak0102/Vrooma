@@ -13,17 +13,19 @@ CREATE EXTENSION IF NOT EXISTS "unaccent";
 
 -- 2. Schemas: public (exposed to PostgREST/client) and private (internal helpers)
 CREATE SCHEMA IF NOT EXISTS private;
-GRANT USAGE ON SCHEMA private TO anon, authenticated, service_role;
+GRANT USAGE ON SCHEMA private TO authenticated, service_role;
 REVOKE ALL ON ALL FUNCTIONS IN SCHEMA private FROM PUBLIC;
+ALTER DEFAULT PRIVILEGES IN SCHEMA private REVOKE ALL ON FUNCTIONS FROM PUBLIC;
+ALTER DEFAULT PRIVILEGES IN SCHEMA private REVOKE ALL ON ROUTINES FROM PUBLIC;
 
 -- 3. Generic timestamp trigger function
 CREATE OR REPLACE FUNCTION private.touch_updated_at()
 RETURNS trigger AS $$
 BEGIN
-  NEW.updated_at = NOW();
+  NEW.updated_at = pg_catalog.now();
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SET search_path = '';
 
 -- 4. Domain Enumerations
 DO $$ BEGIN
@@ -114,4 +116,3 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 COMMIT;
-

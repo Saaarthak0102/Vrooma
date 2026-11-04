@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS public.slots (
   booked_count INT NOT NULL DEFAULT 0,
   is_active BOOLEAN NOT NULL DEFAULT true,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT chk_slot_resource CHECK (demo_car_id IS NOT NULL OR workshop_id IS NOT NULL OR showroom_id IS NOT NULL),
   CONSTRAINT chk_slot_times CHECK (ends_at > starts_at),
   CONSTRAINT chk_slot_capacity CHECK (booked_count >= 0 AND booked_count <= capacity),
   CONSTRAINT uq_slot_resource_time UNIQUE (kind, resource_id, starts_at)
@@ -100,4 +101,3 @@ CREATE TABLE IF NOT EXISTS public.idempotency_keys (
 CREATE INDEX IF NOT EXISTS idx_idempotency_created ON public.idempotency_keys(created_at);
 
 COMMIT;
-

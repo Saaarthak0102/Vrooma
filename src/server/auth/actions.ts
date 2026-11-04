@@ -232,59 +232,25 @@ export async function completeProfile(
       return errorResponse("UNAUTHORIZED", "Active session required to complete onboarding.");
     }
 
-    // 1. Upsert profile with completed onboarding timestamp
-    const profileRow = {
-      id: user.id,
-      email: data.email,
-      full_name: data.full_name,
-      phone: phoneNormalized,
-      whatsapp: whatsappNormalized,
-      city_id: data.city_id,
-      locale: data.locale,
-      address: data.address || null,
-      pincode: data.pincode || null,
-      role: "buyer", // Never accept role from client input
-      is_active: true,
-      onboarding_completed_at: now,
-      updated_at: now,
-    };
+    // Call atomic complete_profile RPC which securely updates profile and appends DPDP statutory consents
+    const { data: savedProfile, error: rpcError } = await supabase.rpc(
+      "complete_profile",
+      {
+        p_full_name: data.full_name,
+        p_phone: phoneNormalized,
+        p_whatsapp: whatsappNormalized,
+        p_city_id: data.city_id,
+        p_locale: data.locale || "en",
+        p_address: data.address || null,
+        p_pincode: data.pincode || null,
+        p_marketing_consent: Boolean(data.marketing_consent),
+        p_policy_version: DPDP_POLICY_VERSION,
+      }
+    );
 
-    const { data: savedProfile, error: profileError } = await supabase
-      .from("profiles")
-      .upsert(profileRow)
-      .select()
-      .single();
-
-    if (profileError) {
-      return errorResponse("INTERNAL_ERROR", `Failed to save profile: ${profileError.message}`);
+    if (rpcError) {
+      return errorResponse("INTERNAL_ERROR", `Failed to complete profile: ${rpcError.message}`);
     }
-
-    // 2. Insert verifiable DPDP consents
-    const consentsToInsert = [
-      {
-        user_id: user.id,
-        purpose: "terms_and_privacy",
-        granted: true,
-        version: DPDP_POLICY_VERSION,
-        granted_at: now,
-      },
-      {
-        user_id: user.id,
-        purpose: "service_communications",
-        granted: true,
-        version: DPDP_POLICY_VERSION,
-        granted_at: now,
-      },
-      {
-        user_id: user.id,
-        purpose: "marketing_updates",
-        granted: data.marketing_consent ?? false,
-        version: DPDP_POLICY_VERSION,
-        granted_at: now,
-      },
-    ];
-
-    await supabase.from("consents").insert(consentsToInsert);
 
     return successResponse(savedProfile as Profile);
   } catch (err) {
@@ -388,6 +354,18 @@ export async function inviteStaff(
         return errorResponse("INTERNAL_ERROR", `Failed to update role: ${updateError.message}`);
       }
 
+      // Sync showroom assignments if provided
+      if (showroomIds.length > 0) {
+        await adminClient.from("staff_showrooms").delete().eq("profile_id", existingProfile.id);
+        await adminClient.from("staff_showrooms").insert(
+          showroomIds.map((sid, idx) => ({
+            profile_id: existingProfile.id,
+            showroom_id: sid,
+            is_primary: idx === 0,
+          }))
+        );
+      }
+
       return successResponse({
         userId: existingProfile.id,
         role,
@@ -426,6 +404,18 @@ export async function inviteStaff(
 
     if (profileUpsertError) {
       console.warn(`Profile upsert warning for invited staff: ${profileUpsertError.message}`);
+    }
+
+    // Sync showroom assignments if provided
+    if (showroomIds.length > 0) {
+      await adminClient.from("staff_showrooms").delete().eq("profile_id", userId);
+      await adminClient.from("staff_showrooms").insert(
+        showroomIds.map((sid, idx) => ({
+          profile_id: userId,
+          showroom_id: sid,
+          is_primary: idx === 0,
+        }))
+      );
     }
 
     return successResponse({

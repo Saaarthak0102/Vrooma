@@ -11,6 +11,8 @@
  *   6. Column-level privacy grants (reg_no_private revoked, profiles.role guarded).
  *   7. Custom SQLSTATE VR error codes compliance.
  *   8. Seed script idempotency and auth.users safety.
+ *   9. Immutable index expressions (no volatile/stable timestamptz casts without AT TIME ZONE).
+ *   10. Explicit schema qualification for extension functions (e.g. extensions.gen_random_bytes).
  */
 
 import fs from "node:fs";
@@ -117,6 +119,20 @@ function lint() {
     // Check for plain secret leaks (JWT tokens or secret keys)
     if (rawContent.includes("sb_secret_") || rawContent.includes("eyJhbGciOi")) {
       console.error(`❌ ${file}: Found potential hardcoded secret key or JWT token`);
+      errors++;
+    }
+
+    // Check for non-immutable timestamptz casts in index expressions
+    if (/CREATE\s+(UNIQUE\s+)?INDEX[\s\S]*?::date/i.test(rawContent)) {
+      if (!rawContent.includes("AT TIME ZONE")) {
+        console.error(`❌ ${file}: Index expression casts to date without explicit AT TIME ZONE conversion (not IMMUTABLE)`);
+        errors++;
+      }
+    }
+
+    // Check for unqualified pgcrypto / extension functions (e.g. gen_random_bytes)
+    if (rawContent.includes("gen_random_bytes(") && !rawContent.includes("extensions.gen_random_bytes(")) {
+      console.error(`❌ ${file}: gen_random_bytes must be schema-qualified with 'extensions.gen_random_bytes()'`);
       errors++;
     }
 

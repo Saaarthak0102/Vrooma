@@ -2,6 +2,7 @@
  * scripts/seed-dev-users.ts
  *
  * Seeds local development test users in Supabase Auth and the profiles table.
+ * Uses deterministic RFC 4122 hex UUIDs aligned with supabase/seed.sql.
  * Strictly restricted to development environments (refuses to run in production).
  *
  * Usage:
@@ -40,8 +41,20 @@ function loadEnv() {
   }
 }
 
-const DEV_TEST_USERS = [
+interface DevUser {
+  id: string;
+  email: string;
+  password: string;
+  full_name: string;
+  phone: string;
+  role: "buyer" | "consultant" | "manager" | "admin";
+  locale: "en" | "hi";
+  showroom_id?: string;
+}
+
+const DEV_TEST_USERS: DevUser[] = [
   {
+    id: "00000000-0000-0000-0000-000000000001",
     email: "dev-buyer@vrooma.in",
     password: "VroomaDevPass2026!",
     full_name: "Aditya Mishra (Dev Buyer)",
@@ -50,22 +63,97 @@ const DEV_TEST_USERS = [
     locale: "en",
   },
   {
+    id: "00000000-0000-0000-0000-000000000010",
     email: "dev-consultant@vrooma.in",
+    password: "VroomaDevPass2026!",
+    full_name: "Dev Consultant",
+    phone: "+919876500010",
+    role: "consultant",
+    locale: "en",
+    showroom_id: "a0000001-0000-0000-0000-000000000001",
+  },
+  {
+    id: "00000000-0000-0000-0000-000000000011",
+    email: "rohit.verma@vrooma.in",
     password: "VroomaDevPass2026!",
     full_name: "Rohit Verma (Dev Consultant)",
     phone: "+919876500011",
     role: "consultant",
     locale: "en",
+    showroom_id: "a0000001-0000-0000-0000-000000000001",
   },
   {
+    id: "00000000-0000-0000-0000-000000000012",
+    email: "ananya.shukla@vrooma.in",
+    password: "VroomaDevPass2026!",
+    full_name: "Ananya Shukla (Dev Consultant)",
+    phone: "+919876500012",
+    role: "consultant",
+    locale: "en",
+    showroom_id: "a0000001-0000-0000-0000-000000000001",
+  },
+  {
+    id: "00000000-0000-0000-0000-000000000013",
+    email: "faizan.khan@vrooma.in",
+    password: "VroomaDevPass2026!",
+    full_name: "Faizan Khan (Dev Consultant)",
+    phone: "+919876500013",
+    role: "consultant",
+    locale: "en",
+    showroom_id: "a0000001-0000-0000-0000-000000000002",
+  },
+  {
+    id: "00000000-0000-0000-0000-000000000014",
+    email: "deepak.tripathi@vrooma.in",
+    password: "VroomaDevPass2026!",
+    full_name: "Deepak Tripathi (Dev Consultant)",
+    phone: "+919876500014",
+    role: "consultant",
+    locale: "hi",
+    showroom_id: "a0000001-0000-0000-0000-000000000002",
+  },
+  {
+    id: "00000000-0000-0000-0000-000000000015",
+    email: "pooja.singh@vrooma.in",
+    password: "VroomaDevPass2026!",
+    full_name: "Pooja Singh (Dev Consultant)",
+    phone: "+919876500015",
+    role: "consultant",
+    locale: "en",
+    showroom_id: "a0000001-0000-0000-0000-000000000003",
+  },
+  {
+    id: "00000000-0000-0000-0000-000000000016",
+    email: "sameer.gupta@vrooma.in",
+    password: "VroomaDevPass2026!",
+    full_name: "Sameer Gupta (Dev Consultant)",
+    phone: "+919876500016",
+    role: "consultant",
+    locale: "hi",
+    showroom_id: "a0000001-0000-0000-0000-000000000001",
+  },
+  {
+    id: "00000000-0000-0000-0000-000000000019",
     email: "dev-manager@vrooma.in",
+    password: "VroomaDevPass2026!",
+    full_name: "Dev Manager",
+    phone: "+919876500019",
+    role: "manager",
+    locale: "en",
+    showroom_id: "a0000001-0000-0000-0000-000000000001",
+  },
+  {
+    id: "00000000-0000-0000-0000-000000000020",
+    email: "usedcars.manager@vrooma.in",
     password: "VroomaDevPass2026!",
     full_name: "Vivek Saxena (Dev Manager)",
     phone: "+919876500020",
     role: "manager",
     locale: "en",
+    showroom_id: "a0000001-0000-0000-0000-000000000001",
   },
   {
+    id: "00000000-0000-0000-0000-000000000099",
     email: "dev-admin@vrooma.in",
     password: "VroomaDevPass2026!",
     full_name: "Sanjay Singhania (Dev Admin)",
@@ -78,7 +166,7 @@ const DEV_TEST_USERS = [
 async function main() {
   loadEnv();
 
-  if (process.env.NODE_ENV === "production") {
+  if (process.env.NODE_ENV === "production" || process.env.APP_ENV === "production") {
     console.error("FATAL: Cannot run dev seeding in production!");
     process.exit(1);
   }
@@ -96,7 +184,7 @@ async function main() {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
-  console.log("Seeding development test users...");
+  console.log("Seeding development test users with deterministic UUIDs...");
 
   const { data: usersData } = await supabase.auth.admin.listUsers();
   const existingUsers = usersData?.users || [];
@@ -105,12 +193,13 @@ async function main() {
 
   for (const testUser of DEV_TEST_USERS) {
     let authUser = existingUsers.find(
-      (u) => u.email?.toLowerCase() === testUser.email.toLowerCase()
+      (u) => u.email?.toLowerCase() === testUser.email.toLowerCase() || u.id === testUser.id
     );
 
     if (!authUser) {
-      console.log(`Creating auth user: ${testUser.email}`);
+      console.log(`Creating auth user: ${testUser.email} (id: ${testUser.id})`);
       const { data, error } = await supabase.auth.admin.createUser({
+        id: testUser.id,
         email: testUser.email,
         password: testUser.password,
         email_confirm: true,
@@ -125,7 +214,7 @@ async function main() {
       }
       authUser = data.user;
     } else {
-      console.log(`Updating password for existing user: ${testUser.email}`);
+      console.log(`Updating user: ${testUser.email}`);
       await supabase.auth.admin.updateUserById(authUser.id, {
         password: testUser.password,
         email_confirm: true,
@@ -148,7 +237,16 @@ async function main() {
     if (profileError) {
       console.error(`Failed to update profile for ${testUser.email}:`, profileError.message);
     } else {
-      console.log(`✓ Seeded ${testUser.role}: ${testUser.email}`);
+      console.log(`✓ Seeded profile (${testUser.role}): ${testUser.email}`);
+    }
+
+    // Assign showroom if specified
+    if (testUser.showroom_id) {
+      await supabase.from("staff_showrooms").upsert({
+        profile_id: authUser.id,
+        showroom_id: testUser.showroom_id,
+        is_primary: true,
+      });
     }
   }
 
@@ -159,4 +257,3 @@ main().catch((err) => {
   console.error("Fatal error:", err);
   process.exit(1);
 });
-

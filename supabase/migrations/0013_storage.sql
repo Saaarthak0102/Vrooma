@@ -28,33 +28,38 @@ CREATE POLICY "Admin can manage car media"
   USING (bucket_id = 'car-media' AND private.is_admin())
   WITH CHECK (bucket_id = 'car-media' AND private.is_admin());
 
--- Inspection Reports: Authenticated buyers & staff can view signed reports; Administrators can upload
+-- Inspection Reports: Authenticated buyers & staff can view signed reports; Managers and Administrators can upload
 DROP POLICY IF EXISTS "Authenticated users view inspection reports" ON storage.objects;
 CREATE POLICY "Authenticated users view inspection reports"
   ON storage.objects FOR SELECT TO authenticated
   USING (bucket_id = 'inspection-reports');
 
 DROP POLICY IF EXISTS "Admin manage inspection reports" ON storage.objects;
-CREATE POLICY "Admin manage inspection reports"
+DROP POLICY IF EXISTS "Managers and Admin manage inspection reports" ON storage.objects;
+CREATE POLICY "Managers and Admin manage inspection reports"
   ON storage.objects FOR ALL TO authenticated
-  USING (bucket_id = 'inspection-reports' AND private.is_admin())
-  WITH CHECK (bucket_id = 'inspection-reports' AND private.is_admin());
+  USING (bucket_id = 'inspection-reports' AND (private.is_manager() OR private.is_admin()))
+  WITH CHECK (bucket_id = 'inspection-reports' AND (private.is_manager() OR private.is_admin()));
 
--- Trade-In Photos: Users can upload and view photos within their own folder (<user_id>/...); Staff can view
+-- Trade-In Photos: Users manage files only within their own folder (<user_id>/...); Authorized staff can view
 DROP POLICY IF EXISTS "Users manage own trade in photos" ON storage.objects;
 CREATE POLICY "Users manage own trade in photos"
   ON storage.objects FOR ALL TO authenticated
   USING (
     bucket_id = 'trade-in-photos'
-    AND (
-      (storage.foldername(name))[1] = auth.uid()::text
-      OR private.is_staff()
-    )
+    AND (storage.foldername(name))[1] = auth.uid()::text
   )
   WITH CHECK (
     bucket_id = 'trade-in-photos'
     AND (storage.foldername(name))[1] = auth.uid()::text
   );
 
-COMMIT;
+DROP POLICY IF EXISTS "Staff view trade in photos" ON storage.objects;
+CREATE POLICY "Staff view trade in photos"
+  ON storage.objects FOR SELECT TO authenticated
+  USING (
+    bucket_id = 'trade-in-photos'
+    AND private.is_staff()
+  );
 
+COMMIT;

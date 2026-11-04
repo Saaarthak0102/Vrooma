@@ -151,11 +151,18 @@ CREATE POLICY "Admin view consents" ON public.consents FOR SELECT TO authenticat
 CREATE POLICY "Buyers read own bookings" ON public.bookings FOR SELECT TO authenticated
   USING (user_id = (SELECT auth.uid()));
 
-CREATE POLICY "Staff view showroom bookings" ON public.bookings FOR SELECT TO authenticated
+-- Staff view bookings for their assigned showroom(s) or workshops in the same city territory
+CREATE POLICY "Staff view showroom and workshop bookings" ON public.bookings FOR SELECT TO authenticated
   USING (
     private.is_staff() AND (
       slot_id IN (
-        SELECT id FROM public.slots WHERE showroom_id IN (SELECT private.user_showrooms())
+        SELECT s.id FROM public.slots s
+        WHERE s.showroom_id IN (SELECT private.user_showrooms())
+           OR (s.workshop_id IS NOT NULL AND s.workshop_id IN (
+                SELECT w.id FROM public.workshops w
+                JOIN public.showrooms sh ON sh.city_id = w.city_id
+                WHERE sh.id IN (SELECT private.user_showrooms())
+              ))
       ) OR
       private.is_admin()
     )
@@ -207,7 +214,8 @@ CREATE POLICY "Admin write assignment consultants" ON public.assignment_rule_con
 -- 8. OPERATIONS, AUDIT & DATA RIGHTS POLICIES
 -- =========================================================================
 
--- messages_outbox, rate_limits, idempotency_keys have zero client policies (service_role only)
+-- Operational tables with zero client policies: messages_outbox, rate_limits, idempotency_keys, newsletter_subscribers.
+-- Strictly accessible only via service_role context. Public/client newsletter writes route through server-side createAdminClient().
 
 CREATE POLICY "Manager view AI logs" ON public.ai_logs FOR SELECT TO authenticated
   USING (private.is_manager());
@@ -230,4 +238,3 @@ CREATE POLICY "Admin manage data requests" ON public.data_requests FOR ALL TO au
   USING (private.is_admin());
 
 COMMIT;
-

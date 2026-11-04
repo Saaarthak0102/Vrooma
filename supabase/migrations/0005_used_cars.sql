@@ -14,17 +14,17 @@ BEGIN
     RETURN '';
   END IF;
 
-  clean := regexp_replace(upper(reg), '[^A-Z0-9]', '', 'g');
-  len := length(clean);
+  clean := pg_catalog.regexp_replace(pg_catalog.upper(reg), '[^A-Z0-9]', '', 'g');
+  len := pg_catalog.length(clean);
 
-  IF len <= 4 THEN
+  IF len < 8 THEN
     RETURN clean;
   END IF;
 
   -- Example: UP32BC4120 -> UP32 ** **** 4120
-  RETURN substring(clean FROM 1 FOR 4) || ' ** **** ' || substring(clean FROM len - 3);
+  RETURN pg_catalog.substr(clean, 1, 4) || ' ** **** ' || pg_catalog.substr(clean, len - 3);
 END;
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql IMMUTABLE SECURITY DEFINER SET search_path = '';
 
 -- 2. Used Cars Table
 CREATE TABLE IF NOT EXISTS public.used_cars (
@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS public.used_cars (
   model_name TEXT NOT NULL,
   variant_name TEXT NOT NULL,
   fuel fuel_type NOT NULL,
-  year INT NOT NULL CHECK (year >= 2000 AND year <= EXTRACT(YEAR FROM NOW()) + 1),
+  year INT NOT NULL CHECK (year >= 2000 AND year <= 2100),
   km INT NOT NULL CHECK (km >= 0),
   owners INT NOT NULL DEFAULT 1 CHECK (owners >= 1),
   price INT NOT NULL CHECK (price > 0),
@@ -71,12 +71,12 @@ BEGIN
   END IF;
 
   IF NEW.status = 'sold' AND OLD.status != 'sold' THEN
-    NEW.sold_at := NOW();
+    NEW.sold_at := pg_catalog.now();
   END IF;
 
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
 
 DROP TRIGGER IF EXISTS trg_check_used_car_status ON public.used_cars;
 CREATE TRIGGER trg_check_used_car_status
@@ -137,4 +137,3 @@ GRANT SELECT (
 ) ON public.used_cars TO anon, authenticated;
 
 COMMIT;
-

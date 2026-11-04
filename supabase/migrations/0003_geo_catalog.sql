@@ -27,7 +27,7 @@ BEGIN
   END IF;
   RETURN TRUE;
 END;
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql IMMUTABLE SET search_path = '';
 
 -- 3. Showrooms Table
 CREATE TABLE IF NOT EXISTS public.showrooms (
@@ -161,4 +161,3 @@ CREATE TABLE IF NOT EXISTS public.variant_colors (
 CREATE INDEX IF NOT EXISTS idx_variant_colors_variant ON public.variant_colors(variant_id);
 
 COMMIT;
-

@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS public.leads (
   status lead_status_type NOT NULL DEFAULT 'new',
   assigned_to UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
   assigned_at TIMESTAMPTZ,
-  sla_due_at TIMESTAMPTZ NOT NULL,
+  sla_due_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '5 minutes'),
   first_contacted_at TIMESTAMPTZ,
   sla_breached_at TIMESTAMPTZ,
   status_changed_at TIMESTAMPTZ,
@@ -38,9 +38,9 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_leads_source_ref
   ON public.leads(source, source_ref)
   WHERE source_ref IS NOT NULL;
 
--- 24-hour enquiry deduplication index
+-- 24-hour enquiry deduplication index (immutable UTC date expression)
 CREATE INDEX IF NOT EXISTS idx_leads_phone_model_date
-  ON public.leads(phone, model_id, (created_at::date));
+  ON public.leads(phone, model_id, ((created_at AT TIME ZONE 'UTC')::date));
 
 CREATE INDEX IF NOT EXISTS idx_leads_assigned ON public.leads(assigned_to, status);
 CREATE INDEX IF NOT EXISTS idx_leads_showroom ON public.leads(showroom_id, status);
@@ -98,7 +98,8 @@ CREATE TABLE IF NOT EXISTS public.assignment_rule_consultants (
 CREATE INDEX IF NOT EXISTS idx_arc_consultant ON public.assignment_rule_consultants(consultant_id);
 
 -- 5. Buyer-Safe Enquiries View (Own enquiries only, masking internal notes & AI drafts)
-CREATE OR REPLACE VIEW public.my_enquiries AS
+CREATE OR REPLACE VIEW public.my_enquiries
+WITH (security_barrier = true) AS
 SELECT
   l.id,
   l.ref,
@@ -111,5 +112,7 @@ FROM public.leads l
 LEFT JOIN public.profiles p ON l.assigned_to = p.id
 WHERE l.user_id = auth.uid();
 
-COMMIT;
+GRANT SELECT ON public.my_enquiries TO authenticated;
+REVOKE ALL ON public.my_enquiries FROM anon;
 
+COMMIT;

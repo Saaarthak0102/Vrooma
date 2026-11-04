@@ -1,4 +1,6 @@
-import "server-only";
+if (typeof window !== "undefined") {
+  throw new Error("createAdminClient must never be called from the browser/client side.");
+}
 
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { env } from "@/lib/env";

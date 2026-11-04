@@ -99,12 +99,12 @@ WHERE role IN ('consultant', 'manager')
 
 -- 7. Internal Role & Membership Helper Functions
 CREATE OR REPLACE FUNCTION private.current_role()
-RETURNS role_type AS $$
+RETURNS public.role_type AS $$
   SELECT role FROM public.profiles
   WHERE id = auth.uid()
     AND is_active = true
     AND deleted_at IS NULL;
-$$ LANGUAGE sql STABLE SECURITY DEFINER;
+$$ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = '';
 
 CREATE OR REPLACE FUNCTION private.is_staff()
 RETURNS boolean AS $$
@@ -115,7 +115,7 @@ RETURNS boolean AS $$
       AND is_active = true
       AND deleted_at IS NULL
   );
-$$ LANGUAGE sql STABLE SECURITY DEFINER;
+$$ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = '';
 
 CREATE OR REPLACE FUNCTION private.is_manager()
 RETURNS boolean AS $$
@@ -126,7 +126,7 @@ RETURNS boolean AS $$
       AND is_active = true
       AND deleted_at IS NULL
   );
-$$ LANGUAGE sql STABLE SECURITY DEFINER;
+$$ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = '';
 
 CREATE OR REPLACE FUNCTION private.is_admin()
 RETURNS boolean AS $$
@@ -137,13 +137,28 @@ RETURNS boolean AS $$
       AND is_active = true
       AND deleted_at IS NULL
   );
-$$ LANGUAGE sql STABLE SECURITY DEFINER;
+$$ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = '';
 
 CREATE OR REPLACE FUNCTION private.user_showrooms()
 RETURNS TABLE (showroom_id UUID) AS $$
   SELECT showroom_id FROM public.staff_showrooms
   WHERE profile_id = auth.uid();
-$$ LANGUAGE sql STABLE SECURITY DEFINER;
+$$ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = '';
+
+REVOKE ALL ON FUNCTION private.current_role() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION private.current_role() TO authenticated, service_role;
+
+REVOKE ALL ON FUNCTION private.is_staff() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION private.is_staff() TO authenticated, service_role;
+
+REVOKE ALL ON FUNCTION private.is_manager() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION private.is_manager() TO authenticated, service_role;
+
+REVOKE ALL ON FUNCTION private.is_admin() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION private.is_admin() TO authenticated, service_role;
+
+REVOKE ALL ON FUNCTION private.user_showrooms() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION private.user_showrooms() TO authenticated, service_role;
 
 -- 8. Trigger to Provision Minimal Profile on auth.users Creation
 CREATE OR REPLACE FUNCTION public.handle_new_user()
@@ -191,4 +206,3 @@ GRANT UPDATE (
 ) ON public.profiles TO authenticated;
 
 COMMIT;
-

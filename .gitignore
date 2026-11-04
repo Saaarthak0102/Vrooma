@@ -24,6 +24,10 @@ pnpm-debug.log*
 .DS_Store
 *.pem
 
+# supabase local cli state
+supabase/.temp/
+.temp/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

@@ -46,14 +46,14 @@ DECLARE
   v_id TEXT := '';
 BEGIN
   IF TG_OP = 'DELETE' THEN
-    v_old := to_jsonb(OLD);
+    v_old := pg_catalog.to_jsonb(OLD);
     v_id := COALESCE(OLD.id::text, '');
   ELSIF TG_OP = 'UPDATE' THEN
-    v_old := to_jsonb(OLD);
-    v_new := to_jsonb(NEW);
+    v_old := pg_catalog.to_jsonb(OLD);
+    v_new := pg_catalog.to_jsonb(NEW);
     v_id := COALESCE(NEW.id::text, '');
   ELSIF TG_OP = 'INSERT' THEN
-    v_new := to_jsonb(NEW);
+    v_new := pg_catalog.to_jsonb(NEW);
     v_id := COALESCE(NEW.id::text, '');
   END IF;
 
@@ -62,7 +62,9 @@ BEGIN
 
   RETURN COALESCE(NEW, OLD);
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+
+REVOKE ALL ON FUNCTION private.audit() FROM PUBLIC;
 
 -- Audit critical operational tables
 DROP TRIGGER IF EXISTS trg_audit_price_rules ON public.price_rules;
@@ -103,7 +105,7 @@ DECLARE
   v_window TIMESTAMPTZ;
   v_count INT;
 BEGIN
-  v_window := to_timestamp(floor(extract(epoch from NOW()) / p_window_seconds) * p_window_seconds);
+  v_window := pg_catalog.to_timestamp(pg_catalog.floor(pg_catalog.date_part('epoch', pg_catalog.now()) / p_window_seconds) * p_window_seconds);
 
   INSERT INTO public.rate_limits (key, window_start, count)
   VALUES (p_key, v_window, 1)
@@ -113,7 +115,10 @@ BEGIN
 
   RETURN v_count <= p_limit;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+
+REVOKE ALL ON FUNCTION private.hit_rate_limit(TEXT, INT, INT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION private.hit_rate_limit(TEXT, INT, INT) TO authenticated, service_role;
 
 -- 4. Newsletter Subscribers (DPDP compliant double-opt-in / withdrawal)
 CREATE TABLE IF NOT EXISTS public.newsletter_subscribers (
@@ -121,7 +126,7 @@ CREATE TABLE IF NOT EXISTS public.newsletter_subscribers (
   email CITEXT UNIQUE NOT NULL,
   consent_id UUID REFERENCES public.consents(id) ON DELETE SET NULL,
   unsubscribed_at TIMESTAMPTZ,
-  unsubscribe_token TEXT UNIQUE NOT NULL DEFAULT encode(gen_random_bytes(16), 'hex'),
+  unsubscribe_token TEXT UNIQUE NOT NULL DEFAULT encode(extensions.gen_random_bytes(16), 'hex'),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -175,7 +180,7 @@ CREATE TABLE IF NOT EXISTS public.trade_in_requests (
   lead_id UUID REFERENCES public.leads(id) ON DELETE SET NULL,
   make TEXT NOT NULL,
   model TEXT NOT NULL,
-  year INT NOT NULL CHECK (year >= 2000 AND year <= EXTRACT(YEAR FROM NOW()) + 1),
+  year INT NOT NULL CHECK (year >= 2000 AND year <= 2100),
   km INT NOT NULL CHECK (km >= 0),
   condition TEXT NOT NULL,
   notes TEXT,
@@ -218,4 +223,3 @@ CREATE TABLE IF NOT EXISTS public.banners (
 CREATE INDEX IF NOT EXISTS idx_banners_sort ON public.banners(sort, is_active);
 
 COMMIT;
-

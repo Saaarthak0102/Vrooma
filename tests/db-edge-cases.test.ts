@@ -27,6 +27,8 @@ const slotsSql = fs.readFileSync(path.join(MIGRATIONS_DIR, "0006_slots_bookings.
 const usedCarsSql = fs.readFileSync(path.join(MIGRATIONS_DIR, "0005_used_cars.sql"), "utf-8");
 const identitySql = fs.readFileSync(path.join(MIGRATIONS_DIR, "0002_identity_profiles_consents.sql"), "utf-8");
 const privacySql = fs.readFileSync(path.join(MIGRATIONS_DIR, "0009_privacy_requests.sql"), "utf-8");
+const leadsSql = fs.readFileSync(path.join(MIGRATIONS_DIR, "0007_leads_assignment.sql"), "utf-8");
+const messagingSql = fs.readFileSync(path.join(MIGRATIONS_DIR, "0008_messaging_audit_ops.sql"), "utf-8");
 
 describe("Phase 2: Database Edge Cases & Concurrency Guarantees", () => {
 
@@ -55,13 +57,13 @@ describe("Phase 2: Database Edge Cases & Concurrency Guarantees", () => {
   it("Edge Case 4: Inactive or consultants on leave are excluded from assignment pool", () => {
     expect(rpcSql).toMatch(/p\.is_active = true/);
     expect(rpcSql).toMatch(/a\.is_available = true/);
-    expect(rpcSql).toMatch(/a\.until IS NULL OR a\.until > NOW\(\)/);
+    expect(rpcSql).toMatch(/a\.until IS NULL OR a\.until > (pg_catalog\.)?NOW\(\)/i);
   });
 
   it("Edge Case 5: 24-hour lead deduplication creates a repeat_enquiry event rather than a new lead", () => {
     expect(rpcSql).toMatch(/WHERE phone = p_phone\s+AND model_id = p_model_id[\s\S]*?INTERVAL '24 hours'/);
     expect(rpcSql).toMatch(/'repeat_enquiry'/);
-    expect(rpcSql).toMatch(/UPDATE public\.leads SET updated_at = NOW\(\)/);
+    expect(rpcSql).toMatch(/UPDATE public\.leads SET updated_at = (pg_catalog\.)?NOW\(\)/i);
   });
 
   it("Edge Case 6: Price rules prevent overlapping validity ranges using btree_gist exclusion", () => {
@@ -97,7 +99,7 @@ describe("Phase 2: Database Edge Cases & Concurrency Guarantees", () => {
   });
 
   it("Edge Case 11: Booking inside lead-time window or in the past is rejected with VR002", () => {
-    expect(rpcSql).toMatch(/starts_at <= NOW\(\) \+ INTERVAL '2 hours'/);
+    expect(rpcSql).toMatch(/(starts_at|v_slot\.starts_at) <= (pg_catalog\.)?NOW\(\) \+ INTERVAL '2 hours'/i);
     expect(rpcSql).toMatch(/Booking lead time required/);
     expect(rpcSql).toMatch(/USING ERRCODE = 'VR002'/);
   });
@@ -105,7 +107,7 @@ describe("Phase 2: Database Edge Cases & Concurrency Guarantees", () => {
   it("Edge Case 12: Booking cancellation releases slot capacity exactly once (double-cancel is no-op)", () => {
     expect(rpcSql).toMatch(/FUNCTION public\.cancel_booking/);
     expect(rpcSql).toMatch(/IF v_booking\.status = 'cancelled' THEN[\s\S]*?RETURN v_booking;/);
-    expect(rpcSql).toMatch(/UPDATE public\.slots\s+SET booked_count = GREATEST\(0, booked_count - 1\)/);
+    expect(rpcSql).toMatch(/UPDATE public\.slots\s+SET booked_count = (pg_catalog\.)?GREATEST\(0, booked_count - 1\)/i);
   });
 
   it("Edge Case 13: Reschedule to a full slot executes atomically and preserves old booking", () => {
@@ -130,5 +132,24 @@ describe("Phase 2: Database Edge Cases & Concurrency Guarantees", () => {
 
   it("Edge Case 16: Unique booking constraints prevent duplicate active bookings on the same slot", () => {
     expect(slotsSql).toMatch(/CREATE UNIQUE INDEX IF NOT EXISTS idx_bookings_user_slot_active[\s\S]*?ON public\.bookings\(user_id, slot_id\)[\s\S]*?WHERE status = 'confirmed'/);
+  });
+
+  it("Edge Case 17: Lead deduplication index uses immutable UTC date expression without timezone volatility", () => {
+    // 1. Index must never use session-timezone dependent cast (created_at::date)
+    expect(leadsSql).not.toMatch(/public\.leads\([^)]*\(created_at::date\)/);
+
+    // 2. Index must use explicit immutable UTC expression ((created_at AT TIME ZONE 'UTC')::date)
+    expect(leadsSql).toMatch(/CREATE INDEX IF NOT EXISTS idx_leads_phone_model_date\s+ON public\.leads\(phone,\s*model_id,\s*\(\(created_at AT TIME ZONE 'UTC'\)::date\)\);/);
+
+    // 3. RPC create_lead query must match UTC date expression while preserving 24-hour business interval
+    expect(rpcSql).toMatch(/\(created_at AT TIME ZONE 'UTC'\)::date >= \(\(pg_catalog\.now\(\) AT TIME ZONE 'UTC'\)::date - 1\)/);
+    expect(rpcSql).toMatch(/created_at >= pg_catalog\.now\(\) - INTERVAL '24 hours'/);
+  });
+
+  it("Edge Case 18: Unsubscribe token generator in 0008 uses schema-qualified extensions.gen_random_bytes", () => {
+    expect(messagingSql).not.toMatch(/DEFAULT\s+encode\(gen_random_bytes\(16\)/);
+    expect(messagingSql).toMatch(
+      /unsubscribe_token\s+TEXT\s+UNIQUE\s+NOT\s+NULL\s+DEFAULT\s+encode\(extensions\.gen_random_bytes\(16\),\s*'hex'\)/
+    );
   });
 });

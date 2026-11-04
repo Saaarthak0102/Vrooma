@@ -12,11 +12,11 @@ DECLARE
   i INT;
 BEGIN
   FOR i IN 1..6 LOOP
-    res := res || substr(alphabet, floor(random() * length(alphabet) + 1)::int, 1);
+    res := res || pg_catalog.substr(alphabet, pg_catalog.floor(pg_catalog.random() * pg_catalog.length(alphabet) + 1)::int, 1);
   END LOOP;
   RETURN res;
 END;
-$$ LANGUAGE plpgsql VOLATILE;
+$$ LANGUAGE plpgsql VOLATILE SET search_path = '';
 
 -- 1. Complete Profile (Atomic Profile + DPDP Consents)
 CREATE OR REPLACE FUNCTION public.complete_profile(
@@ -33,7 +33,7 @@ CREATE OR REPLACE FUNCTION public.complete_profile(
 RETURNS public.profiles AS $$
 DECLARE
   v_uid UUID;
-  v_now TIMESTAMPTZ := NOW();
+  v_now TIMESTAMPTZ := pg_catalog.now();
   v_profile public.profiles;
 BEGIN
   v_uid := auth.uid();
@@ -74,7 +74,10 @@ BEGIN
 
   RETURN v_profile;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+
+REVOKE ALL ON FUNCTION public.complete_profile(TEXT, TEXT, TEXT, UUID, TEXT, TEXT, TEXT, BOOLEAN, TEXT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.complete_profile(TEXT, TEXT, TEXT, UUID, TEXT, TEXT, TEXT, BOOLEAN, TEXT) TO authenticated, service_role;
 
 -- 2. Pricing RPC: Public On-Road Teaser (Total & Validity Date Only)
 CREATE OR REPLACE FUNCTION public.get_onroad_teaser(
@@ -99,9 +102,9 @@ BEGIN
     RETURN NULL;
   END IF;
 
-  v_road_tax := round(v_variant.ex_showroom * (v_rule.road_tax_pct / 100.0));
+  v_road_tax := pg_catalog.round(v_variant.ex_showroom * (v_rule.road_tax_pct / 100.0));
   IF v_variant.ex_showroom > 1000000 THEN
-    v_tcs := round(v_variant.ex_showroom * (v_rule.tcs_pct / 100.0));
+    v_tcs := pg_catalog.round(v_variant.ex_showroom * (v_rule.tcs_pct / 100.0));
   END IF;
 
   v_total := v_variant.ex_showroom + v_road_tax + v_rule.registration + v_rule.insurance + v_rule.handling + v_rule.accessories + v_tcs;
@@ -112,7 +115,10 @@ BEGIN
     'is_estimate', true
   );
 END;
-$$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = '';
+
+REVOKE ALL ON FUNCTION public.get_onroad_teaser(UUID, UUID) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.get_onroad_teaser(UUID, UUID) TO anon, authenticated, service_role;
 
 -- 3. Pricing RPC: Authenticated Full On-Road Breakup (Itemized Lines)
 CREATE OR REPLACE FUNCTION public.get_onroad_breakup(
@@ -141,9 +147,9 @@ BEGIN
     RETURN NULL;
   END IF;
 
-  v_road_tax := round(v_variant.ex_showroom * (v_rule.road_tax_pct / 100.0));
+  v_road_tax := pg_catalog.round(v_variant.ex_showroom * (v_rule.road_tax_pct / 100.0));
   IF v_variant.ex_showroom > 1000000 THEN
-    v_tcs := round(v_variant.ex_showroom * (v_rule.tcs_pct / 100.0));
+    v_tcs := pg_catalog.round(v_variant.ex_showroom * (v_rule.tcs_pct / 100.0));
   END IF;
 
   v_total := v_variant.ex_showroom + v_road_tax + v_rule.registration + v_rule.insurance + v_rule.handling + v_rule.accessories + v_tcs;
@@ -163,7 +169,10 @@ BEGIN
     'notes', v_rule.notes
   );
 END;
-$$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = '';
+
+REVOKE ALL ON FUNCTION public.get_onroad_breakup(UUID, UUID) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.get_onroad_breakup(UUID, UUID) TO authenticated, service_role;
 
 -- 4. Lead Creation with 24-Hour Deduplication & 5-Minute SLA
 CREATE OR REPLACE FUNCTION public.create_lead(
@@ -174,7 +183,7 @@ CREATE OR REPLACE FUNCTION public.create_lead(
   p_used_car_id UUID DEFAULT NULL,
   p_email TEXT DEFAULT NULL,
   p_message TEXT DEFAULT NULL,
-  p_source lead_source_type DEFAULT 'web',
+  p_source public.lead_source_type DEFAULT 'web',
   p_source_ref TEXT DEFAULT NULL,
   p_consent_id UUID DEFAULT NULL
 )
@@ -183,7 +192,7 @@ DECLARE
   v_existing public.leads;
   v_new_lead public.leads;
   v_assigned_consultant UUID := NULL;
-  v_sla_due TIMESTAMPTZ := NOW() + INTERVAL '5 minutes';
+  v_sla_due TIMESTAMPTZ := pg_catalog.now() + INTERVAL '5 minutes';
   v_ref TEXT;
 BEGIN
   -- Deduplication check: Open lead for same phone & model within 24 hours
@@ -193,7 +202,8 @@ BEGIN
     WHERE phone = p_phone
       AND model_id = p_model_id
       AND status NOT IN ('won', 'lost')
-      AND created_at >= NOW() - INTERVAL '24 hours'
+      AND (created_at AT TIME ZONE 'UTC')::date >= ((pg_catalog.now() AT TIME ZONE 'UTC')::date - 1)
+      AND created_at >= pg_catalog.now() - INTERVAL '24 hours'
     ORDER BY created_at DESC
     LIMIT 1;
 
@@ -202,7 +212,7 @@ BEGIN
       INSERT INTO public.lead_events (lead_id, type, payload, actor_id)
       VALUES (v_existing.id, 'repeat_enquiry', jsonb_build_object('message', p_message, 'source', p_source), auth.uid());
 
-      UPDATE public.leads SET updated_at = NOW() WHERE id = v_existing.id;
+      UPDATE public.leads SET updated_at = pg_catalog.now() WHERE id = v_existing.id;
       RETURN v_existing;
     END IF;
   END IF;
@@ -224,7 +234,7 @@ BEGIN
     AND (r.model_id IS NULL OR r.model_id = p_model_id)
     AND r.is_active = true
     AND p.is_active = true
-    AND (a.is_available IS NULL OR (a.is_available = true AND (a.until IS NULL OR a.until > NOW())))
+    AND (a.is_available IS NULL OR (a.is_available = true AND (a.until IS NULL OR a.until > pg_catalog.now())))
   ORDER BY COALESCE(loads.active_load, 0) ASC, p.created_at ASC
   LIMIT 1
   FOR UPDATE OF c SKIP LOCKED;
@@ -239,7 +249,7 @@ BEGIN
   VALUES (
     v_ref, p_source, p_source_ref, auth.uid(), p_name, p_phone, p_email::citext, p_showroom_id,
     p_model_id, p_used_car_id, p_message, 'new', v_assigned_consultant,
-    CASE WHEN v_assigned_consultant IS NOT NULL THEN NOW() ELSE NULL END,
+    CASE WHEN v_assigned_consultant IS NOT NULL THEN pg_catalog.now() ELSE NULL END,
     v_sla_due, p_consent_id
   )
   RETURNING * INTO v_new_lead;
@@ -291,7 +301,10 @@ BEGIN
 
   RETURN v_new_lead;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+
+REVOKE ALL ON FUNCTION public.create_lead(TEXT, TEXT, UUID, UUID, UUID, TEXT, TEXT, public.lead_source_type, TEXT, UUID) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.create_lead(TEXT, TEXT, UUID, UUID, UUID, TEXT, TEXT, public.lead_source_type, TEXT, UUID) TO anon, authenticated, service_role;
 
 -- 5. Lead Reassignment RPC
 CREATE OR REPLACE FUNCTION public.reassign_lead(
@@ -317,8 +330,8 @@ BEGIN
 
   UPDATE public.leads
   SET assigned_to = p_to_consultant_id,
-      assigned_at = NOW(),
-      updated_at = NOW()
+      assigned_at = pg_catalog.now(),
+      updated_at = pg_catalog.now()
   WHERE id = p_lead_id
   RETURNING * INTO v_lead;
 
@@ -332,18 +345,21 @@ BEGIN
 
   RETURN v_lead;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+
+REVOKE ALL ON FUNCTION public.reassign_lead(UUID, UUID, TEXT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.reassign_lead(UUID, UUID, TEXT) TO authenticated, service_role;
 
 -- 6. Update Lead Status RPC (Records first_contacted_at on transition from new)
 CREATE OR REPLACE FUNCTION public.set_lead_status(
   p_lead_id UUID,
-  p_status lead_status_type,
+  p_status public.lead_status_type,
   p_lost_reason TEXT DEFAULT NULL
 )
 RETURNS public.leads AS $$
 DECLARE
   v_lead public.leads;
-  v_now TIMESTAMPTZ := NOW();
+  v_now TIMESTAMPTZ := pg_catalog.now();
 BEGIN
   IF NOT private.is_staff() THEN
     RAISE EXCEPTION 'Permission denied' USING ERRCODE = 'VR005';
@@ -374,12 +390,15 @@ BEGIN
 
   RETURN v_lead;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+
+REVOKE ALL ON FUNCTION public.set_lead_status(UUID, public.lead_status_type, TEXT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.set_lead_status(UUID, public.lead_status_type, TEXT) TO authenticated, service_role;
 
 -- 7. Atomic Slot Booking RPC (Concurrency-safe via booked_count check)
 CREATE OR REPLACE FUNCTION public.book_slot(
   p_slot_id UUID,
-  p_kind booking_kind_type,
+  p_kind public.booking_kind_type,
   p_vehicle_info JSONB DEFAULT '{}'::jsonb,
   p_service_type_id UUID DEFAULT NULL,
   p_notes TEXT DEFAULT NULL,
@@ -398,7 +417,12 @@ BEGIN
     RAISE EXCEPTION 'Booking slot not found' USING ERRCODE = 'VR007';
   END IF;
 
-  IF v_slot.starts_at <= NOW() + INTERVAL '2 hours' THEN
+  -- Validate requested booking kind matches target slot type
+  IF v_slot.kind != p_kind THEN
+    RAISE EXCEPTION 'Booking kind (%) does not match slot type (%)', p_kind, v_slot.kind USING ERRCODE = 'VR002';
+  END IF;
+
+  IF v_slot.starts_at <= pg_catalog.now() + INTERVAL '2 hours' THEN
     RAISE EXCEPTION 'Booking lead time required: appointment must be at least 2 hours in advance' USING ERRCODE = 'VR002';
   END IF;
 
@@ -428,9 +452,12 @@ BEGIN
 
   RETURN v_booking;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
 
--- 8. Cancel Booking RPC (Enforces window & releases slot capacity)
+REVOKE ALL ON FUNCTION public.book_slot(UUID, public.booking_kind_type, JSONB, UUID, TEXT, UUID, TEXT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.book_slot(UUID, public.booking_kind_type, JSONB, UUID, TEXT, UUID, TEXT) TO anon, authenticated, service_role;
+
+-- 8. Cancel Booking RPC (Enforces ownership & releases slot capacity)
 CREATE OR REPLACE FUNCTION public.cancel_booking(
   p_booking_id UUID,
   p_reason TEXT DEFAULT NULL
@@ -444,28 +471,40 @@ BEGIN
     RAISE EXCEPTION 'Booking not found' USING ERRCODE = 'VR007';
   END IF;
 
+  -- Enforce authorization: must be authenticated and own the booking, or be authorized staff
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'Authentication required to cancel booking' USING ERRCODE = 'VR005';
+  END IF;
+
+  IF v_booking.user_id != auth.uid() AND NOT private.is_staff() THEN
+    RAISE EXCEPTION 'Permission denied: Cannot cancel another customer appointment' USING ERRCODE = 'VR005';
+  END IF;
+
   IF v_booking.status = 'cancelled' THEN
     RETURN v_booking; -- Idempotent no-op
   END IF;
 
   -- Release slot capacity
   UPDATE public.slots
-  SET booked_count = GREATEST(0, booked_count - 1)
+  SET booked_count = pg_catalog.greatest(0, booked_count - 1)
   WHERE id = v_booking.slot_id;
 
   UPDATE public.bookings
   SET status = 'cancelled',
-      cancelled_at = NOW(),
+      cancelled_at = pg_catalog.now(),
       cancel_reason = p_reason,
-      updated_at = NOW()
+      updated_at = pg_catalog.now()
   WHERE id = p_booking_id
   RETURNING * INTO v_booking;
 
   RETURN v_booking;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
 
--- 9. Reschedule Booking RPC (Atomic swap in one transaction)
+REVOKE ALL ON FUNCTION public.cancel_booking(UUID, TEXT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.cancel_booking(UUID, TEXT) TO authenticated, service_role;
+
+-- 9. Reschedule Booking RPC (Atomic swap in one transaction with ownership check)
 CREATE OR REPLACE FUNCTION public.reschedule_booking(
   p_booking_id UUID,
   p_new_slot_id UUID
@@ -473,11 +512,31 @@ CREATE OR REPLACE FUNCTION public.reschedule_booking(
 RETURNS public.bookings AS $$
 DECLARE
   v_old_booking public.bookings;
+  v_new_slot public.slots;
   v_new_booking public.bookings;
 BEGIN
   SELECT * INTO v_old_booking FROM public.bookings WHERE id = p_booking_id;
   IF NOT FOUND THEN
     RAISE EXCEPTION 'Original booking not found' USING ERRCODE = 'VR007';
+  END IF;
+
+  -- Enforce authorization: must be authenticated and own the booking, or be authorized staff
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'Authentication required to reschedule booking' USING ERRCODE = 'VR005';
+  END IF;
+
+  IF v_old_booking.user_id != auth.uid() AND NOT private.is_staff() THEN
+    RAISE EXCEPTION 'Permission denied: Cannot reschedule another customer appointment' USING ERRCODE = 'VR005';
+  END IF;
+
+  -- Validate target slot
+  SELECT * INTO v_new_slot FROM public.slots WHERE id = p_new_slot_id AND is_active = true;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Target booking slot not found' USING ERRCODE = 'VR007';
+  END IF;
+
+  IF v_new_slot.kind != v_old_booking.kind THEN
+    RAISE EXCEPTION 'Target slot type (%) does not match existing booking kind (%)', v_new_slot.kind, v_old_booking.kind USING ERRCODE = 'VR002';
   END IF;
 
   -- 1. Book new slot
@@ -492,14 +551,20 @@ BEGIN
   -- 2. Cancel old booking and release capacity
   PERFORM public.cancel_booking(p_booking_id, 'Rescheduled to ' || v_new_booking.ref);
 
-  -- Link lineage
-  UPDATE public.bookings SET rescheduled_from = p_booking_id WHERE id = v_new_booking.id;
+  -- Link lineage and preserve original customer ownership
+  UPDATE public.bookings
+  SET rescheduled_from = p_booking_id,
+      user_id = v_old_booking.user_id
+  WHERE id = v_new_booking.id;
 
   RETURN v_new_booking;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
 
--- 10. Generate 14-Day Slots (Idempotent Generator)
+REVOKE ALL ON FUNCTION public.reschedule_booking(UUID, UUID) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.reschedule_booking(UUID, UUID) TO authenticated, service_role;
+
+-- 10. Generate 14-Day Slots (Idempotent Generator - Service Role / Cron only)
 CREATE OR REPLACE FUNCTION public.generate_slots(
   p_start_date DATE DEFAULT CURRENT_DATE,
   p_days INT DEFAULT 14
@@ -562,9 +627,12 @@ BEGIN
 
   RETURN v_created_count;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
 
--- 11. SLA Breach Evaluator Worker
+REVOKE ALL ON FUNCTION public.generate_slots(DATE, INT) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.generate_slots(DATE, INT) TO service_role;
+
+-- 11. SLA Breach Evaluator Worker (Internal Background Routine)
 CREATE OR REPLACE FUNCTION public.flag_sla_breaches()
 RETURNS INT AS $$
 DECLARE
@@ -578,16 +646,16 @@ BEGIN
     WHERE l.status = 'new'
       AND l.first_contacted_at IS NULL
       AND l.sla_breached_at IS NULL
-      AND l.sla_due_at < NOW()
+      AND l.sla_due_at < pg_catalog.now()
     FOR UPDATE OF l SKIP LOCKED
   LOOP
     UPDATE public.leads
-    SET sla_breached_at = NOW(),
-        updated_at = NOW()
+    SET sla_breached_at = pg_catalog.now(),
+        updated_at = pg_catalog.now()
     WHERE id = v_lead.id;
 
     INSERT INTO public.lead_events (lead_id, type, payload)
-    VALUES (v_lead.id, 'sla_breached', jsonb_build_object('breached_at', NOW(), 'due_at', v_lead.sla_due_at));
+    VALUES (v_lead.id, 'sla_breached', jsonb_build_object('breached_at', pg_catalog.now(), 'due_at', v_lead.sla_due_at));
 
     -- Alert Showroom Manager
     INSERT INTO public.messages_outbox (
@@ -607,7 +675,10 @@ BEGIN
 
   RETURN v_count;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+
+REVOKE ALL ON FUNCTION public.flag_sla_breaches() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.flag_sla_breaches() TO service_role;
 
 -- 12. Dealer Principal Leak Metrics Function (Calculates brief formulas)
 CREATE OR REPLACE FUNCTION public.get_leak_metrics(
@@ -622,6 +693,10 @@ DECLARE
   v_lost_leads INT;
   v_estimated_lost_rev BIGINT;
 BEGIN
+  IF NOT private.is_staff() THEN
+    RAISE EXCEPTION 'Permission denied: Only dealership staff can access performance metrics' USING ERRCODE = 'VR005';
+  END IF;
+
   SELECT count(*) INTO v_total_leads
   FROM public.leads
   WHERE created_at BETWEEN p_from AND p_to;
@@ -633,7 +708,7 @@ BEGIN
     AND first_contacted_at <= sla_due_at;
 
   IF v_total_leads > 0 THEN
-    v_sla_pct := round((v_contacted_in_sla::numeric / v_total_leads::numeric) * 100.0, 2);
+    v_sla_pct := pg_catalog.round((v_contacted_in_sla::numeric / v_total_leads::numeric) * 100.0, 2);
   ELSE
     v_sla_pct := 100.0;
   END IF;
@@ -653,7 +728,10 @@ BEGIN
     'estimated_lost_dealer_contribution', v_estimated_lost_rev
   );
 END;
-$$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = '';
+
+REVOKE ALL ON FUNCTION public.get_leak_metrics(TIMESTAMPTZ, TIMESTAMPTZ) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.get_leak_metrics(TIMESTAMPTZ, TIMESTAMPTZ) TO authenticated, service_role;
 
 -- 13. Staff Privileged RPC: Retrieve Unmasked Vehicle Registration Number
 CREATE OR REPLACE FUNCTION public.get_used_car_reg(p_stock_id TEXT)
@@ -675,16 +753,19 @@ BEGIN
 
   -- Audit access to personal registration data
   INSERT INTO public.audit_log (table_name, record_id, action, new_values, actor_id)
-  VALUES ('used_cars', p_stock_id, 'VIEW_UNMASKED_REG', jsonb_build_object('accessed_at', NOW()), auth.uid());
+  VALUES ('used_cars', p_stock_id, 'VIEW_UNMASKED_REG', jsonb_build_object('accessed_at', pg_catalog.now()), auth.uid());
 
   RETURN v_reg;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+
+REVOKE ALL ON FUNCTION public.get_used_car_reg(TEXT) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.get_used_car_reg(TEXT) TO authenticated, service_role;
 
 -- 14. Admin User Management RPCs
 CREATE OR REPLACE FUNCTION public.admin_set_role(
   p_user_id UUID,
-  p_new_role role_type
+  p_new_role public.role_type
 )
 RETURNS VOID AS $$
 DECLARE
@@ -709,12 +790,15 @@ BEGIN
 
   UPDATE public.profiles
   SET role = p_new_role,
-      updated_at = NOW()
+      updated_at = pg_catalog.now()
   WHERE id = p_user_id;
 
   INSERT INTO public.audit_log (table_name, record_id, action, new_values, actor_id)
   VALUES ('profiles', p_user_id::text, 'ROLE_CHANGED', jsonb_build_object('new_role', p_new_role), auth.uid());
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+
+REVOKE ALL ON FUNCTION public.admin_set_role(UUID, public.role_type) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.admin_set_role(UUID, public.role_type) TO authenticated, service_role;
 
 COMMIT;

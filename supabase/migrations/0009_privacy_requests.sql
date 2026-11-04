@@ -30,7 +30,7 @@ RETURNS UUID AS $$
 DECLARE
   v_uid UUID;
   v_req_id UUID;
-  v_role role_type;
+  v_role public.role_type;
 BEGIN
   v_uid := auth.uid();
   IF v_uid IS NULL THEN
@@ -44,7 +44,7 @@ BEGIN
 
   -- Mark profile soft-deleted
   UPDATE public.profiles
-  SET deleted_at = NOW(),
+  SET deleted_at = pg_catalog.now(),
       is_active = false
   WHERE id = v_uid;
 
@@ -59,18 +59,26 @@ BEGIN
 
   RETURN v_req_id;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+
+REVOKE ALL ON FUNCTION public.request_account_deletion() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.request_account_deletion() TO authenticated, service_role;
 
 -- 3. Permanent PII Anonymization Function (Executed after cooling-off period)
 CREATE OR REPLACE FUNCTION private.anonymise_user(p_uid UUID)
 RETURNS VOID AS $$
 DECLARE
-  v_now TIMESTAMPTZ := NOW();
+  v_now TIMESTAMPTZ := pg_catalog.now();
 BEGIN
+  -- Validate that user exists in profiles
+  IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE id = p_uid) THEN
+    RETURN;
+  END IF;
+
   -- 1. Scrub Profile personal details
   UPDATE public.profiles
   SET
-    email = ('anonymised_' || substr(p_uid::text, 1, 8) || '@vrooma.internal')::citext,
+    email = ('anonymised_' || pg_catalog.substr(p_uid::text, 1, 8) || '@vrooma.internal')::citext,
     full_name = 'Deleted Account',
     phone = NULL,
     whatsapp = NULL,
@@ -106,11 +114,22 @@ BEGIN
     photos = '[]'::jsonb
   WHERE user_id = p_uid;
 
-  -- 6. Log audit event
+  -- 6. Transition pending deletion requests for this user to 'done'
+  UPDATE public.data_requests
+  SET status = 'done',
+      updated_at = v_now,
+      note = COALESCE(note, '') || ' [Anonymised at ' || v_now::text || ']'
+  WHERE user_id = p_uid
+    AND kind = 'delete'
+    AND status IN ('received', 'in_progress');
+
+  -- 7. Log audit event
   INSERT INTO public.audit_log (table_name, record_id, action, new_values, actor_id)
   VALUES ('profiles', p_uid::text, 'ANONYMISED', jsonb_build_object('anonymised_at', v_now), auth.uid());
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+
+REVOKE ALL ON FUNCTION private.anonymise_user(UUID) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION private.anonymise_user(UUID) TO service_role;
 
 COMMIT;
-
