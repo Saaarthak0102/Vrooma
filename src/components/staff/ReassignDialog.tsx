@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { Profile } from "@/types/domain";
-import { reassignLead } from "@/server/repositories/leads";
+import { reassignLeadAction } from "@/server/actions/leads";
 import {
   Dialog,
   DialogContent,
@@ -40,17 +40,20 @@ export function ReassignDialog({
     setLoading(true);
     setStatus("loading");
     try {
-      await reassignLead(leadId, selectedConsultant);
+      const res = await reassignLeadAction(leadId, selectedConsultant, "Manager reassignment via staff console");
+      if (!res.ok) {
+        throw new Error(res.error?.message || "Failed to reassign lead");
+      }
       setStatus("success");
       toast.success("Lead successfully reassigned");
       setTimeout(() => {
         setOpen(false);
         onReassigned?.();
       }, 500);
-    } catch {
+    } catch (err: any) {
       setStatus("error");
       setTimeout(() => setStatus("idle"), 600);
-      toast.error("Failed to reassign lead");
+      toast.error(err?.message || "Failed to reassign lead");
     } finally {
       setLoading(false);
     }

@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { Link } from "@/i18n/navigation";
-import { processLeadCsv, ImportResult } from "@/server/services/csv-import";
+import type { ImportResult } from "@/server/services/csv-import";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
@@ -42,7 +42,18 @@ Sunita Singh,9876543213,sunita.singh@example.com,Model H,portal,Wants corporate 
     setLoading(true);
     setStatus("loading");
     try {
-      const result = await processLeadCsv(csvContent);
+      const res = await fetch("/api/leads/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ csv: csvContent, filename: "portal_leads.csv" }),
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json.ok) {
+        throw new Error(json.error || "Failed to parse CSV file.");
+      }
+
+      const result: ImportResult = json.data;
       setImportResult(result);
       if (result.created > 0) {
         setStatus("success");
@@ -52,10 +63,10 @@ Sunita Singh,9876543213,sunita.singh@example.com,Model H,portal,Wants corporate 
         setStatus("idle");
         toast.info(`0 new leads created. ${result.skipped} duplicates or errors.`);
       }
-    } catch {
+    } catch (err: any) {
       setStatus("error");
       setTimeout(() => setStatus("idle"), 600);
-      toast.error("Failed to parse CSV file.");
+      toast.error(err?.message || "Failed to parse CSV file.");
     } finally {
       setLoading(false);
     }

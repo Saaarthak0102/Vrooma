@@ -1,7 +1,7 @@
 # VROOMA BACKEND: IMPLEMENTATION STATUS & PROGRESSION
 
 **Last Updated:** 2026-11-05  
-**Current Phase:** Phase 4 Complete (Slots, Bookings, Leads, SLA, CSV Import/Export & Outbox Engine Live)  
+**Current Phase:** Phase 6 Complete (Hardening, Security Review, Observability, Tests & Release Checklist)  
 **Branch / Worktree:** Main  
 
 ---
@@ -16,7 +16,7 @@
 | **3** | `docs/backend/04 data layer catalog.md` | Mock removal; catalog, pricing, admin CRUD on real data | **COMPLETE** | 2026-11-04 |
 | **4** | `docs/backend/05 booking lead.md` | Slots, test drives, service, leads, SLA, CSV import/export, outbox | **COMPLETE** | 2026-11-05 |
 | **5** | `docs/backend/06 account privacy.md` | Profile, saved, enquiries, trade-in, consent, data rights, newsletter | **COMPLETE** | 2026-11-05 |
-| **6** | `docs/backend/07 hardening release.md` | Security review, tests, observability, performance, release checklist | PENDING | — |
+| **6** | `docs/backend/07 hardening release.md` | Security review, tests, observability, performance, release checklist | **COMPLETE** | 2026-11-05 |
 
 ---
 
@@ -275,3 +275,50 @@ The agent must **NOT** run `db push` against any Supabase project until the user
 - **ESLint:** `npm run lint` passed with 0 errors, 0 warnings.
 - **Vitest Suite:** 28/28 test files passed, 272/272 tests passing (100%).
 - **Production Build:** `npm run build` compiled all 119 routes (100% static & dynamic generation) with exit code 0.
+
+---
+
+## 9. Phase 6 Implementation Summary (Hardening, Security Review, Observability, Tests & Release Checklist)
+
+### 9.1 What Was Built & Verified
+
+1. **Comprehensive Security Audit & Secret Scrubbing (`docs/backend/SECURITY.md`):**
+   - Verified 0 secrets in git history via repository-wide search (`sb_secret_`, `service_role`, `eyJ`, `re_`).
+   - Inspected `.next/static/**/*.js` client chunks; verified 0 secret keys leaked to the browser.
+   - Enforced `import "server-only";` in `src/lib/supabase/admin.ts`.
+   - Verified all 40+ call sites of `createAdminClient()`; confirmed all table references are static string literals without user-controlled dynamic queries or SQL injection risks.
+   - Strict web security headers configured in `next.config.ts`: `Content-Security-Policy`, `Strict-Transport-Security` (2-year HSTS + preload), `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy`.
+   - Origin & CSRF verification in `src/lib/security.ts` (`verifyRequestOrigin`) cross-checking `Sec-Fetch-Site` and `Origin` vs `Host`.
+   - CSV formula injection escaping in `/api/export/daily-csv` and `/api/leads/import`.
+   - DPDP Act 2023 compliance: used car registration masking (`UP32 ** **** 1234`), unmasked access restricted to authorized staff via audited security definer RPC `get_used_car_reg`.
+
+2. **Role-Based Access Control Matrix (`docs/backend/ROLE_MATRIX.md`):**
+   - Exhaustive RBAC authorization matrix covering all 23 Server Actions and 28 Route Handlers across 5 personas: Anon, Buyer, Sales Consultant, Manager, Admin, and Cron.
+   - Enforces `requireRole()`, `requireCompleteProfile()`, and `requireUser()` with typed error responses and redirect guards.
+
+3. **Observability & System Diagnostics:**
+   - Lightweight public healthcheck endpoint `GET /api/health` performing cheap database connectivity ping, returning `{ status: "healthy", version: "2026.1", database: "connected" }`.
+   - Admin System Health dashboard `/[locale]/(admin)/admin/system` displaying live metrics: outbox queue depth, dead letters, recent cron runs, SLA compliance breaches, CSV imports, and pending DPDP data requests.
+   - Added "System Health" navigation item with `Activity` icon in `AdminSidebar.tsx`.
+
+4. **Operations & Disaster Recovery Manual (`docs/backend/OPERATIONS.md`):**
+   - Documented Supabase free tier limitations vs Pro tier requirements (\$25/mo) for automated 7-day backups and zero inactivity sleep.
+   - Schema and seed backup automation scripts: `scripts/backup-schema.sh` and `scripts/backup-schema.bat`.
+   - Disaster recovery restore rehearsal checklist from clean project provisioning to RLS verification.
+   - Forward-fixing migration policy and multi-environment promotion workflow (DEV -> PROD).
+
+5. **Automated Testing Suite (`docs/backend/TESTING.md`):**
+   - 28 test suites covering 272 automated unit, integration, and security tests with 100% passing rate.
+   - Production smoke test runner `scripts/smoke-test.mjs` and `npm run smoke` verifying 15 critical endpoints and APIs across English and Hindi in ~1.2s.
+   - Multi-stage GitHub Actions CI workflow in `.github/workflows/ci.yml`.
+
+6. **Production Release Checklist (`docs/backend/RELEASE.md`):**
+   - Complete production release checklist with concrete evidence for all items: domain, HTTPS, Supabase keys, SMTP SPF/DKIM, Google OAuth consent, admin bootstrap, catalog data, price rules, slots, crons, robots/sitemap, legal texts, grievance contacts, and error pages.
+
+### 9.2 Final Verification Status
+- **TypeScript Typecheck:** `npx tsc --noEmit` passed with 0 errors.
+- **ESLint:** `npm run lint` passed with 0 errors, 0 warnings.
+- **Vitest Suite:** 28/28 test files passed, 272/272 tests passing (100%).
+- **Production Build:** `npm run build` compiled all 121 static and dynamic routes with exit code 0.
+- **Production Smoke Test:** `npm run smoke` passed 15/15 checks (100%).
+

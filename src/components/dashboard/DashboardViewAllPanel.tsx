@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { Booking, Lead } from "@/types/domain";
-import { SavedVehicleRecord } from "@/server/repositories/saved";
+import { Booking, Lead, SavedVehicleRecord } from "@/types/domain";
 import { DashboardPanelContent } from "./DashboardPanelContent";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";

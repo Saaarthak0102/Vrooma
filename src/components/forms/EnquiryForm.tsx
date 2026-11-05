@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createLeadSchema, CreateLeadInput } from "@/lib/validation/lead";
-import { createLead } from "@/server/repositories/leads";
 import { FormField } from "./PhoneField";
 import { PhoneField } from "./PhoneField";
 import { ConsentCheckbox } from "./ConsentCheckbox";
@@ -63,16 +62,25 @@ export function EnquiryForm({
     setLoading(true);
     setStatus("loading");
     try {
-      await createLead({
-        name: data.name,
-        phone: data.phone,
-        email: data.email || null,
-        showroom_id: data.showroom_id,
-        model_id: data.model_id,
-        used_car_id: data.used_car_id,
-        message: data.message,
-        source: data.source,
+      const res = await fetch("/api/leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: data.name,
+          phone: data.phone,
+          email: data.email || null,
+          showroom_id: data.showroom_id,
+          model_id: data.model_id,
+          used_car_id: data.used_car_id,
+          message: data.message,
+          source: data.source,
+          consent: data.consent,
+        }),
       });
+
+      if (!res.ok) {
+        throw new Error("Failed to submit enquiry");
+      }
 
       setStatus("success");
       setSubmitted(true);

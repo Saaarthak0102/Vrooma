@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { containsForbiddenDiscountWords } from "@/server/actions/leads";
+import { containsForbiddenDiscountWords } from "@/lib/validation/discount";
 import { BRIEF_LEAK_CONSTANTS } from "@/server/actions/admin-leak";
 
 describe("Phase 4: Leads Pipeline & Guardrails", () => {

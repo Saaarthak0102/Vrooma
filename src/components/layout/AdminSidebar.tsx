@@ -14,6 +14,7 @@ import {
   Bot,
   ArrowLeft,
   Sparkles,
+  Activity,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -31,6 +32,7 @@ export function AdminSidebar() {
     { href: "/admin/assignment", label: "Lead Assignment", icon: UserCheck },
     { href: "/admin/users", label: "Staff & Permissions", icon: ShieldCheck },
     { href: "/admin/ai-logs", label: "AI Outbox Logs", icon: Bot },
+    { href: "/admin/system", label: "System Health", icon: Activity },
   ];
 
   return (

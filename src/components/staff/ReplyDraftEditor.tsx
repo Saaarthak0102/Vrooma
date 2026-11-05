@@ -3,8 +3,7 @@
 import React, { useState } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { dispatchMessage } from "@/server/services/outbox";
-import { updateLeadStatus } from "@/server/repositories/leads";
+import { sendLeadReplyAction } from "@/server/actions/leads";
 import { toast } from "sonner";
 import { Send, AlertTriangle, Sparkles, CheckCircle2 } from "lucide-react";
 
@@ -60,26 +59,19 @@ export function ReplyDraftEditor({
     setSending(true);
     setStatus("loading");
     try {
-      // 1. Dispatch outbox message
-      await dispatchMessage({
-        channel: "whatsapp",
-        to: leadPhone,
-        template: "first_reply_copilot",
-        body: draft,
-        leadId,
-      });
-
-      // 2. Mark lead as contacted (stops SLA timer)
-      await updateLeadStatus(leadId, "contacted");
+      const res = await sendLeadReplyAction(leadId, draft, "whatsapp");
+      if (!res.ok) {
+        throw new Error(res.error?.message || "Failed to send message");
+      }
 
       setStatus("success");
       setSentSuccess(true);
       toast.success("First reply sent via WhatsApp! SLA timer stopped.");
       onSent?.();
-    } catch {
+    } catch (err: any) {
       setStatus("error");
       setTimeout(() => setStatus("idle"), 600);
-      toast.error("Failed to send message.");
+      toast.error(err?.message || "Failed to send message.");
     } finally {
       setSending(false);
     }

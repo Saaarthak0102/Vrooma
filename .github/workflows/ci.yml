@@ -1,0 +1,97 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master, develop]
+  workflow_dispatch:
+    inputs:
+      run_integration_tests:
+        description: 'Run integration tests against Supabase DEV project'
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality-gate:
+    name: Typecheck, Lint & Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Check Environment Validation
+        run: npm run check:env
+        env:
+          APP_ENV: production
+          SKIP_ENV_VALIDATION: 1
+
+      - name: Typecheck TypeScript
+        run: npm run typecheck
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Check Dead Buttons & Wiring
+        run: |
+          npm run check:wiring
+          npm run check:buttons
+
+      - name: Run Unit & RLS Tests
+        run: npm test
+        env:
+          NEXT_PUBLIC_USE_MOCK: false
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_DEV_URL || 'https://eobtzcwinjmimzisypca.supabase.co' }}
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_DEV_PUBLISHABLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.dummy' }}
+
+      - name: Production Build
+        run: npm run build
+        env:
+          APP_ENV: production
+          NEXT_PUBLIC_USE_MOCK: false
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_DEV_URL || 'https://eobtzcwinjmimzisypca.supabase.co' }}
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_DEV_PUBLISHABLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.dummy' }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_DEV_SERVICE_ROLE_KEY || 'sb_secret_dummy' }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET || 'cron_secret_dummy' }}
+
+  integration-tests:
+    name: Supabase Live Integration Suite
+    needs: quality-gate
+    if: github.event.inputs.run_integration_tests == 'true' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Database Integration Tests
+        run: npm run test -- tests/leads-lifecycle.test.ts tests/rls-matrix.test.ts tests/booking-engine.test.ts
+        env:
+          APP_ENV: development
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_DEV_URL }}
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_DEV_PUBLISHABLE_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_DEV_SERVICE_ROLE_KEY }}
+

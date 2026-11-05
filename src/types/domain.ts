@@ -313,5 +313,13 @@ export interface AiLog {
   created_at: string;
 }
 
+export type SavedItemType = "model" | "used";
+
+export interface SavedVehicleRecord {
+  id: string;
+  type: SavedItemType;
+  item: Model | UsedCar;
+}
+
 export type { PriceLine, OnRoadBreakup };
 

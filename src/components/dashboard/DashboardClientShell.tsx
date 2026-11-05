@@ -3,8 +3,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import { useQueryState, parseAsStringEnum } from "nuqs";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
-import { Booking, Lead } from "@/types/domain";
-import { SavedVehicleRecord } from "@/server/repositories/saved";
+import { Booking, Lead, SavedVehicleRecord } from "@/types/domain";
 import { DashboardGreeting } from "./DashboardGreeting";
 import { DashboardCountStrip } from "./DashboardCountStrip";
 import { NextAppointmentCard } from "./NextAppointmentCard";

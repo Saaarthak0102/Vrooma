@@ -1,17 +1,11 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createPublicClient } from "@/lib/supabase/public";
-import { Model, UsedCar } from "@/types/domain";
+import { Model, UsedCar, SavedItemType, SavedVehicleRecord } from "@/types/domain";
 import { getModelBySlug, listModels } from "./models";
 import { getUsedCarByStockId, listUsedCars } from "./used-cars";
 import { memoryStore } from "@/server/store";
 
-export type SavedItemType = "model" | "used";
-
-export interface SavedVehicleRecord {
-  id: string;
-  type: SavedItemType;
-  item: Model | UsedCar;
-}
+export type { SavedItemType, SavedVehicleRecord };
 
 const DEFAULT_DEV_BUYER_ID = "00000000-0000-0000-0000-000000000001";
 
