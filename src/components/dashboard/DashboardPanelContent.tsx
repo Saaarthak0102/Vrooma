@@ -224,7 +224,7 @@ export function DashboardPanelContent({
                             {isTestDrive ? t("testDrive") : t("service")}
                           </span>
                           <span className="text-xs font-mono font-medium text-ink-mute">
-                            {bookingRef(b.id)}
+                            {b.ref || bookingRef(b.id)}
                           </span>
                         </div>
                         <span className="text-[11px] font-semibold uppercase tracking-wider text-ink-soft">
@@ -386,6 +386,30 @@ export function DashboardPanelContent({
                   const isUsed = record.type === "used";
                   const car = record.item as UsedCar;
                   const model = record.item as Model;
+                  const isSoldOrMissing = !record.item || (isUsed && car?.status === "sold");
+
+                  if (isSoldOrMissing) {
+                    return (
+                      <article
+                        key={record.id}
+                        className="rounded-[14px] border border-border bg-stone-50 p-4 flex flex-col justify-between space-y-3"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-semibold text-ink-mute">No longer available</span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-ink-mute hover:text-danger rounded-lg"
+                            onClick={() => onRemoveSaved?.(record.id)}
+                            aria-label="Remove vehicle"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                        <p className="text-xs text-ink-soft">This vehicle has been sold or delisted from inventory.</p>
+                      </article>
+                    );
+                  }
 
                   const title = isUsed ? car.model_name : model.name;
                   const subtitle = isUsed ? car.variant_name : model.tagline || "";

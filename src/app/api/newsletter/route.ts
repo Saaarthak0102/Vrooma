@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { recordConsent, generateUnsubscribeToken } from "@/server/privacy/consent";
+import { env } from "@/lib/env";
 
-const DPDP_POLICY_VERSION = "2026.1";
 const GENERIC_SUCCESS_MESSAGE = "Successfully subscribed to verified showroom updates.";
 
 const newsletterSchema = z.object({
@@ -14,12 +15,14 @@ const newsletterSchema = z.object({
   consent: z.literal(true, {
     errorMap: () => ({ message: "You must provide explicit consent to receive updates" }),
   }),
+  website: z.string().optional(), // Honeypot trap
+  botCheck: z.string().optional(), // Honeypot trap
 });
 
-// In-memory sliding window rate limiter
+// Sliding window rate limiter for IPs and emails
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
-const MAX_REQUESTS_PER_WINDOW = 10;
+const MAX_REQUESTS_PER_WINDOW = 5;
 
 function isRateLimited(identifier: string): boolean {
   const now = Date.now();
@@ -46,7 +49,7 @@ function getClientIdentifier(request: NextRequest): string {
 export async function POST(request: NextRequest) {
   try {
     const clientId = getClientIdentifier(request);
-    if (clientId !== "unknown-client" && isRateLimited(clientId)) {
+    if (clientId !== "unknown-client" && isRateLimited(`ip:${clientId}`)) {
       return NextResponse.json(
         { ok: false, error: "Too many subscription requests. Please try again later." },
         { status: 429 }
@@ -63,6 +66,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Honeypot check: automated spambots filling hidden fields
+    if (body.website || body.botCheck) {
+      // Silently return generic success without inserting
+      return NextResponse.json({ ok: true, message: GENERIC_SUCCESS_MESSAGE });
+    }
+
     const parsed = newsletterSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
@@ -74,9 +83,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const email = parsed.data.email.toLowerCase();
+    const email = parsed.data.email.toLowerCase().trim();
 
-    // Execute via Service Role Admin Client
+    if (isRateLimited(`email:${email}`)) {
+      return NextResponse.json(
+        { ok: false, error: "Too many requests for this email. Please try again later." },
+        { status: 429 }
+      );
+    }
+
     const adminClient = createAdminClient();
     if (!adminClient) {
       return NextResponse.json(
@@ -85,24 +100,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 1. Record DPDP consent in public.consents
-    const { data: consentRecord, error: consentError } = await adminClient
-      .from("consents")
-      .insert({
-        subject_email: email,
+    // 1. Record immutable DPDP consent in public.consents
+    let consentId: string | null = null;
+    try {
+      consentId = await recordConsent({
+        email,
         purpose: "newsletter",
         granted: true,
-        policy_version: DPDP_POLICY_VERSION,
         source: "newsletter",
-      })
-      .select("id")
-      .maybeSingle();
-
-    if (consentError) {
-      console.error("[newsletter] Failed to record consent:", consentError.message);
+        consentText: "I consent to receive showroom updates, launch notifications, and festive offers from Vrooma under the DPDP Act 2023.",
+      });
+    } catch (cErr: any) {
+      console.warn(`[newsletter] Consent record warning: ${cErr?.message}`);
     }
 
-    const consentId = consentRecord?.id || null;
+    const unsubToken = generateUnsubscribeToken(email);
 
     // 2. Check for existing subscriber
     const { data: existingSub, error: selectError } = await adminClient
@@ -126,9 +138,11 @@ export async function POST(request: NextRequest) {
           .update({
             unsubscribed_at: null,
             consent_id: consentId,
+            unsubscribe_token: unsubToken,
           })
           .eq("id", existingSub.id);
       }
+
       // Return identical generic success message to prevent email enumeration
       return NextResponse.json({
         ok: true,
@@ -142,20 +156,31 @@ export async function POST(request: NextRequest) {
       .insert({
         email,
         consent_id: consentId,
+        unsubscribe_token: unsubToken,
       });
 
-    if (insertError) {
-      // 23505 is PostgreSQL unique_violation
-      if (insertError.code === "23505") {
-        return NextResponse.json({
-          ok: true,
-          message: GENERIC_SUCCESS_MESSAGE,
-        });
-      }
+    if (insertError && insertError.code !== "23505") {
       return NextResponse.json(
         { ok: false, error: "Subscription could not be processed" },
         { status: 500 }
       );
+    }
+
+    // 4. Queue double opt-in / confirmation welcome email with statutory unsubscribe link
+    try {
+      const siteUrl = env.NEXT_PUBLIC_SITE_URL || "https://vrooma.in";
+      const unsubLink = `${siteUrl}/unsubscribe/${unsubToken}`;
+
+      await adminClient.from("messages_outbox").insert({
+        channel: "email",
+        to_address: email,
+        template: "newsletter_subscription_confirmed",
+        body: `Namaste! You are confirmed for Vrooma showroom updates and price notifications. To manage preferences or unsubscribe anytime in compliance with the DPDP Act 2023, click here: ${unsubLink}`,
+        idempotency_key: `newsletter_confirm_${email}_${Date.now()}`,
+        status: "pending",
+      });
+    } catch (outboxErr: any) {
+      console.warn(`[newsletter] Outbox queue warning: ${outboxErr?.message}`);
     }
 
     return NextResponse.json({

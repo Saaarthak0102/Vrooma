@@ -921,6 +921,12 @@ export interface Database {
         Args: Record<PropertyKey, never>;
         Returns: string;
       };
+      anonymise_user: {
+        Args: {
+          p_uid: string;
+        };
+        Returns: void;
+      };
     };
   };
 }

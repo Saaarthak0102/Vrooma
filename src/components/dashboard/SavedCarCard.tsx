@@ -20,6 +20,37 @@ export function SavedCarCard({
   const isUsed = type === "used";
   const car = item as UsedCar;
   const model = item as Model;
+  const isSoldOrMissing = !item || (isUsed && car?.status === "sold");
+
+  if (isSoldOrMissing) {
+    return (
+      <article className="notch-card !p-4 flex-row items-center justify-between gap-4 bg-stone-50 border-stone-200">
+        <div className="flex items-center gap-4 min-w-0">
+          <div className="relative h-16 w-24 rounded-[12px] bg-stone-200 flex items-center justify-center shrink-0 text-ink-mute text-xs">
+            Unavailable
+          </div>
+          <div className="min-w-0">
+            <h4 className="font-semibold text-sm text-ink-soft">
+              No longer available
+            </h4>
+            <p className="text-xs text-ink-mute mt-0.5">
+              This vehicle has been sold or delisted
+            </p>
+          </div>
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          shape="soft"
+          className="h-[38px] w-[38px] text-ink-mute hover:text-danger rounded-xl"
+          onClick={() => onRemove?.(item?.id || "")}
+          aria-label="Remove unavailable vehicle"
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </article>
+    );
+  }
 
   const title = isUsed ? `${car.model_name} ${car.variant_name}` : model.name;
   const image = isUsed ? car.images[0] : model.hero_image;

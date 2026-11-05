@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/forms/PhoneField";
+import { updateBuyerProfileAction } from "@/server/actions/profile";
 import { toast } from "sonner";
-import { notWired } from "@/components/dev/NotWired";
 
 export function ProfileForm() {
   const { user } = useAuth();
@@ -15,16 +15,39 @@ export function ProfileForm() {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (user) {
+      setName(user.full_name || "");
+      setPhone(user.phone || "");
+    }
+  }, [user]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setStatus("loading");
-    setTimeout(() => {
-      setLoading(false);
+
+    try {
+      const res = await updateBuyerProfileAction({
+        fullName: name.trim(),
+        phone: phone.trim(),
+        expectedUpdatedAt: user?.updated_at,
+      });
+
+      if (!res.ok) {
+        throw new Error(res.error.message);
+      }
+
       setStatus("success");
       toast.success("Profile preferences updated");
       setTimeout(() => setStatus("idle"), 1400);
-    }, 500);
+    } catch (err: any) {
+      setStatus("error");
+      toast.error(err?.message || "Failed to update profile");
+      setTimeout(() => setStatus("idle"), 1400);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -55,4 +78,3 @@ export function ProfileForm() {
     </form>
   );
 }
-

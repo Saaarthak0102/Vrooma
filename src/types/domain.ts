@@ -30,6 +30,21 @@ export type TransmissionType = "manual" | "automatic";
 
 export type BodyType = "sedan" | "suv" | "hatchback" | "ev" | "mpv";
 
+export type ConsentPurpose =
+  | "terms_privacy"
+  | "service_contact"
+  | "marketing"
+  | "newsletter"
+  | "lead_contact";
+
+export type ConsentSource =
+  | "signup"
+  | "onboarding"
+  | "enquiry"
+  | "booking"
+  | "newsletter"
+  | "trade_in";
+
 export interface City {
   id: string;
   name: string;

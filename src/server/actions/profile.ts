@@ -1,0 +1,227 @@
+"use server";
+
+import { z } from "zod";
+import { cookies } from "next/headers";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
+import { requireUser, requireCompleteProfile } from "@/server/auth/viewer";
+import { ActionResponse, successResponse, errorResponse } from "@/lib/errors";
+import { normalizeIndianPhone } from "@/lib/phone";
+import { recordConsent } from "@/server/privacy/consent";
+import { Profile } from "@/types/domain";
+
+const profileUpdateSchema = z.object({
+  fullName: z.string().trim().min(2, "Full name must be at least 2 characters"),
+  phone: z.string().transform((val) => normalizeIndianPhone(val) || "").refine((val) => val.length === 13, {
+    message: "Valid 10-digit Indian mobile number required",
+  }),
+  whatsapp: z.string().optional().nullable(),
+  address: z.string().max(250).optional().nullable(),
+  pincode: z.string().regex(/^[1-9][0-9]{5}$/, "Valid 6-digit Indian PIN code required").optional().nullable(),
+  cityId: z.string().uuid().optional().nullable(),
+  locale: z.enum(["en", "hi"]).optional(),
+  marketingConsent: z.boolean().optional(),
+  expectedUpdatedAt: z.string().optional(),
+});
+
+export type ProfileUpdateInput = z.infer<typeof profileUpdateSchema>;
+
+/**
+ * Updates the authenticated buyer's profile details with concurrency protection and DPDP consent tracking.
+ */
+export async function updateBuyerProfileAction(
+  input: ProfileUpdateInput
+): Promise<ActionResponse<Profile>> {
+  try {
+    const { user, profile } = await requireCompleteProfile();
+    const parsed = profileUpdateSchema.safeParse(input);
+
+    if (!parsed.success) {
+      return errorResponse("VALIDATION_FAILED", parsed.error.errors[0]?.message || "Invalid input");
+    }
+
+    const admin = createAdminClient();
+
+    // 1. Optimistic concurrency check
+    if (parsed.data.expectedUpdatedAt && profile.updated_at !== parsed.data.expectedUpdatedAt) {
+      return errorResponse("CONFLICT", "Profile was updated in another window. Please reload to see latest details.");
+    }
+
+    const nowISO = new Date().toISOString();
+    const cleanWhatsapp = parsed.data.whatsapp ? normalizeIndianPhone(parsed.data.whatsapp) : parsed.data.phone;
+
+    // 2. Update profile record
+    const { data: updated, error: updateErr } = await admin
+      .from("profiles")
+      .update({
+        full_name: parsed.data.fullName,
+        phone: parsed.data.phone,
+        whatsapp: cleanWhatsapp || parsed.data.phone,
+        address: parsed.data.address || null,
+        pincode: parsed.data.pincode || null,
+        city_id: parsed.data.cityId || profile.city_id,
+        locale: parsed.data.locale || profile.locale,
+        updated_at: nowISO,
+      })
+      .eq("id", user.id)
+      .select("*")
+      .single();
+
+    if (updateErr) {
+      return errorResponse("INTERNAL_ERROR", `Failed to update profile: ${updateErr.message}`);
+    }
+
+    // 3. If marketing consent is toggled, append immutable consent row
+    if (parsed.data.marketingConsent !== undefined) {
+      await recordConsent({
+        userId: user.id,
+        purpose: "marketing",
+        granted: parsed.data.marketingConsent,
+        source: "profile",
+      });
+    }
+
+    // 4. Update Next.js locale cookie if changed
+    if (parsed.data.locale && parsed.data.locale !== profile.locale) {
+      const cookieStore = await cookies();
+      cookieStore.set("NEXT_LOCALE", parsed.data.locale, {
+        path: "/",
+        maxAge: 365 * 24 * 60 * 60,
+      });
+    }
+
+    return successResponse(updated as Profile);
+  } catch (err: any) {
+    if (err?.code === "UNAUTHORIZED") {
+      return errorResponse("UNAUTHORIZED", "Please sign in to update your profile.");
+    }
+    return errorResponse("INTERNAL_ERROR", err?.message || "Profile update failed.");
+  }
+}
+
+/**
+ * Initiates an email address change request via Supabase Auth.
+ * Supabase automatically sends confirmation emails to the new address.
+ */
+export async function requestEmailChangeAction(
+  newEmail: string
+): Promise<ActionResponse<{ message: string }>> {
+  try {
+    const { user } = await requireUser();
+    const supabase = await createClient();
+
+    const cleanEmail = newEmail.toLowerCase().trim();
+    if (!cleanEmail.includes("@") || cleanEmail.length < 5) {
+      return errorResponse("VALIDATION_FAILED", "Please provide a valid email address.");
+    }
+
+    if (!supabase) {
+      return errorResponse("INTERNAL_ERROR", "Auth client unavailable.");
+    }
+
+    const { error } = await supabase.auth.updateUser({ email: cleanEmail });
+
+    if (error) {
+      return errorResponse("INTERNAL_ERROR", error.message);
+    }
+
+    return successResponse({
+      message: `A confirmation link has been sent to ${cleanEmail}. Please click the link to confirm your email update.`,
+    });
+  } catch (err: any) {
+    return errorResponse("INTERNAL_ERROR", err?.message || "Failed to initiate email change.");
+  }
+}
+
+/**
+ * Self-service account deletion under DPDP Act 2023.
+ * Releases upcoming booked slots, closes open leads, initiates 7-day cooling off grace period, and signs out.
+ */
+export async function requestAccountDeletionAction(): Promise<ActionResponse<{ requestId: string; gracePeriodDays: number }>> {
+  try {
+    const { user, profile } = await requireUser();
+
+    // Administrative safeguard: staff and admin accounts cannot self-delete
+    if (profile && profile.role !== "buyer") {
+      return errorResponse(
+        "FORBIDDEN",
+        "Staff and Administrator accounts cannot self-delete. Please contact the Dealer Principal to revoke credentials."
+      );
+    }
+
+    const admin = createAdminClient();
+    const userClient = await createClient();
+
+    // 1. Cancel any upcoming confirmed bookings so slots are immediately released to other buyers
+    const { data: upcomingBookings } = await admin
+      .from("bookings")
+      .select("id, ref, slots:slot_id(starts_at)")
+      .eq("user_id", user.id)
+      .eq("status", "confirmed");
+
+    const now = Date.now();
+    for (const b of upcomingBookings || []) {
+      const slotTime = (b.slots as any)?.starts_at;
+      if (slotTime && new Date(slotTime).getTime() > now) {
+        try {
+          await admin.rpc("cancel_booking", {
+            p_booking_id: b.id,
+            p_reason: "Cancelled due to DPDP account erasure request",
+          });
+        } catch (cErr: any) {
+          console.warn(`[deletion] Slot release warning: ${cErr?.message}`);
+        }
+      }
+    }
+
+    // 2. Close open leads and notify assigned consultants
+    const { data: openLeads } = await admin
+      .from("leads")
+      .select("id, ref, assigned_to")
+      .eq("user_id", user.id)
+      .not("status", "in", '("won","lost")');
+
+    for (const lead of openLeads || []) {
+      await admin
+        .from("leads")
+        .update({
+          status: "lost",
+          lost_reason: "Customer requested DPDP erasure",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", lead.id);
+
+      if (lead.assigned_to) {
+        await admin.from("messages_outbox").insert({
+          channel: "email",
+          to_address: "staff@vrooma.in",
+          template: "lead_closed_deletion",
+          body: `Notice: Lead ${lead.ref} was automatically closed because the buyer submitted an account erasure request under the DPDP Act 2023.`,
+          lead_id: lead.id,
+          idempotency_key: `outbox_del_lead_${lead.id}`,
+          status: "pending",
+        });
+      }
+    }
+
+    // 3. Call database RPC request_account_deletion
+    const { data: reqId, error: rpcErr } = await (userClient || admin).rpc("request_account_deletion");
+
+    if (rpcErr) {
+      return errorResponse("INTERNAL_ERROR", `Failed to queue deletion request: ${rpcErr.message}`);
+    }
+
+    // 4. Sign user out
+    if (userClient) {
+      await userClient.auth.signOut();
+    }
+
+    return successResponse({
+      requestId: reqId,
+      gracePeriodDays: 7,
+    });
+  } catch (err: any) {
+    return errorResponse("INTERNAL_ERROR", err?.message || "Account deletion request failed.");
+  }
+}
+

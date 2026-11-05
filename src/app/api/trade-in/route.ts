@@ -1,23 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
-import { tradeInSchema } from "@/lib/validation/trade-in";
-import { createTradeInRequest } from "@/server/repositories/trade-in";
+import { submitTradeInAction } from "@/server/actions/trade-in";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const parsed = tradeInSchema.safeParse(body);
+    const result = await submitTradeInAction(body);
 
-    if (!parsed.success) {
-      return NextResponse.json(
-        { ok: false, error: "Validation failed", details: parsed.error.format() },
-        { status: 400 }
-      );
+    if (!result.ok) {
+      const status = result.error.code === "VALIDATION_FAILED" ? 400 : 500;
+      return NextResponse.json({ ok: false, error: result.error.message }, { status });
     }
 
-    const item = await createTradeInRequest(parsed.data);
-    return NextResponse.json({ ok: true, data: item }, { status: 201 });
+    return NextResponse.json({ ok: true, data: result.data }, { status: 201 });
   } catch (err: any) {
-    return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
+    return NextResponse.json({ ok: false, error: err.message || "Failed to process trade-in request" }, { status: 500 });
   }
 }
-

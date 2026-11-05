@@ -1,103 +1,246 @@
 "use client";
 
 import React, { useState } from "react";
+import { useAuth } from "@/components/auth/AuthProvider";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  generateUserDataExportAction,
+  submitPublicDataRequestAction,
+} from "@/server/actions/data-rights";
+import { requestAccountDeletionAction } from "@/server/actions/profile";
 import { toast } from "sonner";
-import { ShieldCheck, AlertTriangle } from "lucide-react";
-import { notWired } from "@/components/dev/NotWired";
+import { ShieldCheck, AlertTriangle, Download, Mail, CheckCircle2, FileText } from "lucide-react";
 
 export function DataRightsPanel() {
+  const { user, status: authStatus, signOut } = useAuth();
   const [optOutMarketing, setOptOutMarketing] = useState(false);
-  const [deleteInput, setDeleteInput] = useState("");
-  const [deleteStatus, setDeleteStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [exportLoading, setExportLoading] = useState(false);
 
-  const handleToggleOptOut = (checked: boolean) => {
-    setOptOutMarketing(checked);
-    toast.success(
-      checked
-        ? "Opt-out recorded: You will receive only transactional booking updates."
-        : "Preferences updated: Marketing and launch updates enabled."
-    );
+  // Signed-in deletion
+  const [deleteInput, setDeleteInput] = useState("");
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  // Signed-out public request
+  const [publicEmail, setPublicEmail] = useState("");
+  const [publicKind, setPublicKind] = useState<"export" | "delete">("export");
+  const [publicLoading, setPublicLoading] = useState(false);
+  const [publicSuccessMessage, setPublicSuccessMessage] = useState<string | null>(null);
+
+  const handleExportDownload = async () => {
+    setExportLoading(true);
+    try {
+      const res = await generateUserDataExportAction();
+      if (!res.ok) {
+        throw new Error(res.error.message);
+      }
+
+      // Trigger client-side JSON docket download
+      const jsonStr = JSON.stringify(res.data, null, 2);
+      const blob = new Blob([jsonStr], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `vrooma-dpdp-export-${Date.now()}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast.success("Personal data docket downloaded successfully.");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to generate personal data export.");
+    } finally {
+      setExportLoading(false);
+    }
   };
 
-  const handleDeleteRequest = (e: React.FormEvent) => {
+  const handleSignedInDelete = async (e: React.FormEvent) => {
     e.preventDefault();
     if (deleteInput !== "DELETE MY DATA") {
-      setDeleteStatus("error");
-      setTimeout(() => setDeleteStatus("idle"), 600);
       toast.error("Please type DELETE MY DATA exactly to confirm.");
       return;
     }
-    setDeleteStatus("loading");
-    setTimeout(() => {
-      setDeleteStatus("success");
+
+    setDeleteLoading(true);
+    try {
+      const res = await requestAccountDeletionAction();
+      if (!res.ok) {
+        throw new Error(res.error.message);
+      }
+
       toast.success(
-        "DPDP Erasure Request Registered. Our Data Protection Officer will permanently purge your customer records within 48 hours."
+        "Account erasure requested. Future bookings cancelled. You will be signed out now."
       );
       setDeleteInput("");
-      setTimeout(() => setDeleteStatus("idle"), 1400);
-    }, 500);
+      await signOut();
+      window.location.href = "/";
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to process erasure request.");
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  const handlePublicRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!publicEmail || !publicEmail.includes("@")) {
+      toast.error("Please enter a valid email address.");
+      return;
+    }
+
+    setPublicLoading(true);
+    try {
+      const res = await submitPublicDataRequestAction(publicEmail, publicKind);
+      if (!res.ok) {
+        throw new Error(res.error.message);
+      }
+
+      setPublicSuccessMessage(res.data.message);
+      toast.success("Request recorded.");
+      setPublicEmail("");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to submit data request.");
+    } finally {
+      setPublicLoading(false);
+    }
   };
 
   return (
     <div className="space-y-6">
-      {/* Consent Toggles */}
-      <div className="rounded-xl border border-border bg-white p-5 shadow-card space-y-4">
-        <div className="flex items-center gap-2">
-          <ShieldCheck className="h-5 w-5 text-accent-ink" />
-          <h4 className="text-sm font-bold text-ink">DPDP Act 2023 Communications Consent</h4>
-        </div>
-
-        <div className="flex items-center justify-between py-2 border-t border-border">
-          <div>
-            <p className="text-xs font-semibold text-ink">Opt-out of Promotional Updates</p>
-            <p className="text-[11px] text-ink-mute">
-              Stop receiving seasonal festival offers and price revision broadcasts.
-            </p>
-          </div>
-          <Switch checked={optOutMarketing} onCheckedChange={handleToggleOptOut} />
-        </div>
-      </div>
-
-      {/* Permanent Deletion Request */}
-      <div className="rounded-xl border border-danger/30 bg-danger/[0.02] p-5 space-y-4">
-        <div className="flex items-center gap-2 text-danger">
-          <AlertTriangle className="h-5 w-5" />
-          <h4 className="text-sm font-bold">Right to Erasure & Data Deletion</h4>
+      {/* 1. Self-Service Data Export (Section 11) */}
+      <div className="rounded-xl border border-border bg-white p-6 shadow-card space-y-4">
+        <div className="flex items-center gap-2.5">
+          <FileText className="h-5 w-5 text-accent-ink" />
+          <h4 className="text-sm font-bold text-ink">Right to Access & Data Portability (Section 11)</h4>
         </div>
         <p className="text-xs text-ink-soft leading-relaxed">
-          Under Section 12 of the Digital Personal Data Protection Act 2023, you have the right to request permanent deletion of your phone number, leads, and enquiry records from Vrooma systems.
+          You are legally entitled to receive a complete summary of your personal data held by Vrooma (Company A, Lucknow), including your profile details, past test drives, workshop bookings, statutory consent audit trails, and vehicle enquiries.
         </p>
 
-        <form onSubmit={handleDeleteRequest} className="space-y-3 pt-2">
-          <label className="text-[11px] font-semibold text-ink-soft uppercase tracking-wider block">
-            Type <span className="text-danger font-mono font-bold">DELETE MY DATA</span> to confirm
-          </label>
-          <div className="flex gap-2 max-w-md">
-            <Input
-              value={deleteInput}
-              onChange={(e) => setDeleteInput(e.target.value)}
-              placeholder="DELETE MY DATA"
-              className="text-xs font-mono h-10"
-              required
-            />
+        {user ? (
+          <div className="pt-2">
             <Button
-              type="submit"
-              variant="destructive"
+              type="button"
+              variant="outline"
               size="sm"
-              status={deleteStatus}
-              loadingText="Purging..."
-              successText="Purge Requested"
-              className="text-xs shrink-0 h-10 px-4"
+              onClick={handleExportDownload}
+              disabled={exportLoading}
+              className="text-xs h-10 px-4 flex items-center gap-2"
             >
-              Request Purge
+              <Download className="h-4 w-4 text-accent-ink" />
+              <span>{exportLoading ? "Compiling Docket..." : "Download Personal Data Docket (.json)"}</span>
             </Button>
           </div>
-        </form>
+        ) : (
+          <p className="text-xs text-ink-mute bg-stone-50 p-3 rounded-lg border border-border">
+            Please sign in to immediately download your personal data docket, or use the signed-out email verification portal below.
+          </p>
+        )}
       </div>
+
+      {/* 2. Public / Guest Request Portal (Signed-Out users) */}
+      {!user && (
+        <div className="rounded-xl border border-border bg-white p-6 shadow-card space-y-4">
+          <div className="flex items-center gap-2.5">
+            <Mail className="h-5 w-5 text-accent-ink" />
+            <h4 className="text-sm font-bold text-ink">Signed-Out Visitor Data Rights Form</h4>
+          </div>
+          <p className="text-xs text-ink-soft leading-relaxed">
+            If you do not have a signed-in session or submitted enquiries previously, enter your email address to submit a statutory data request. We will verify address control before compiling or purging records.
+          </p>
+
+          {publicSuccessMessage ? (
+            <div className="rounded-lg bg-success-soft/30 border border-success/40 p-4 flex items-start gap-3">
+              <CheckCircle2 className="h-5 w-5 text-success shrink-0 mt-0.5" />
+              <p className="text-xs text-ink font-medium leading-relaxed">{publicSuccessMessage}</p>
+            </div>
+          ) : (
+            <form onSubmit={handlePublicRequest} className="space-y-4 pt-1">
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2 text-xs text-ink cursor-pointer">
+                  <input
+                    type="radio"
+                    name="reqKind"
+                    checked={publicKind === "export"}
+                    onChange={() => setPublicKind("export")}
+                    className="accent-accent"
+                  />
+                  <span>Data Export Request</span>
+                </label>
+                <label className="flex items-center gap-2 text-xs text-ink cursor-pointer">
+                  <input
+                    type="radio"
+                    name="reqKind"
+                    checked={publicKind === "delete"}
+                    onChange={() => setPublicKind("delete")}
+                    className="accent-accent"
+                  />
+                  <span>Erasure & Marketing Opt-Out</span>
+                </label>
+              </div>
+
+              <div className="flex gap-2 max-w-md">
+                <Input
+                  type="email"
+                  value={publicEmail}
+                  onChange={(e) => setPublicEmail(e.target.value)}
+                  placeholder="your.email@example.com"
+                  className="text-xs h-10"
+                  required
+                />
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="sm"
+                  disabled={publicLoading}
+                  className="text-xs shrink-0 h-10 px-4"
+                >
+                  {publicLoading ? "Submitting..." : "Submit Request"}
+                </Button>
+              </div>
+            </form>
+          )}
+        </div>
+      )}
+
+      {/* 3. Permanent Deletion & Erasure (Section 12) */}
+      {user && (
+        <div className="rounded-xl border border-danger/30 bg-danger/[0.02] p-6 space-y-4">
+          <div className="flex items-center gap-2.5 text-danger">
+            <AlertTriangle className="h-5 w-5" />
+            <h4 className="text-sm font-bold">Right to Erasure & Account Deletion (Section 12)</h4>
+          </div>
+          <p className="text-xs text-ink-soft leading-relaxed">
+            Under Section 12 of the DPDP Act 2023, you have the right to request permanent deletion of your phone number, leads, and enquiry records from Vrooma systems. Any upcoming test drive or workshop bookings will be cancelled and slots released. A 7-day cooling off grace period applies.
+          </p>
+
+          <form onSubmit={handleSignedInDelete} className="space-y-3 pt-2">
+            <label className="text-[11px] font-semibold text-ink-soft uppercase tracking-wider block">
+              Type <span className="text-danger font-mono font-bold">DELETE MY DATA</span> to confirm
+            </label>
+            <div className="flex gap-2 max-w-md">
+              <Input
+                value={deleteInput}
+                onChange={(e) => setDeleteInput(e.target.value)}
+                placeholder="DELETE MY DATA"
+                className="text-xs font-mono h-10"
+                required
+              />
+              <Button
+                type="submit"
+                variant="destructive"
+                size="sm"
+                disabled={deleteLoading}
+                className="text-xs shrink-0 h-10 px-4"
+              >
+                {deleteLoading ? "Queueing Erasure..." : "Request Erasure"}
+              </Button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 }
-

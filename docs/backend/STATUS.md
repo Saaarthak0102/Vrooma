@@ -15,7 +15,7 @@
 | **2** | `docs/backend/03 schema.md` | Production schema, RLS, functions, cron, storage, seed | **COMPLETE** | 2026-11-04 |
 | **3** | `docs/backend/04 data layer catalog.md` | Mock removal; catalog, pricing, admin CRUD on real data | **COMPLETE** | 2026-11-04 |
 | **4** | `docs/backend/05 booking lead.md` | Slots, test drives, service, leads, SLA, CSV import/export, outbox | **COMPLETE** | 2026-11-05 |
-| **5** | `docs/backend/06 account privacy.md` | Profile, saved, enquiries, trade-in, consent, data rights, newsletter | PENDING | — |
+| **5** | `docs/backend/06 account privacy.md` | Profile, saved, enquiries, trade-in, consent, data rights, newsletter | **COMPLETE** | 2026-11-05 |
 | **6** | `docs/backend/07 hardening release.md` | Security review, tests, observability, performance, release checklist | PENDING | — |
 
 ---
@@ -217,3 +217,61 @@ The agent must **NOT** run `db push` against any Supabase project until the user
 - **Wiring Placeholders:** All Phase 4 placeholders wired; 0 repository `TODO(day-` markers.
 - **Vitest Suite:** 27/27 test files passed, 261/261 tests passing (100%).
 - **Production Build:** `npm run build` compiled all 118 static and dynamic routes with exit code 0.
+
+---
+
+## 8. Phase 5 Implementation Summary (Account, Privacy [DPDP Act 2023], Saved, Enquiries, Trade-In & Newsletter)
+
+### 8.1 What Was Built
+
+1. **Buyer Dashboard Data Engine (`src/server/actions/buyer-dashboard.ts`):**
+   - Single coordinated action `getBuyerDashboardDataAction` fetching real database appointments, saved items, and enquiries.
+   - Upcoming appointments joined with slots, facilities, profiles, and display names, sorted soonest-first and capped at 50.
+   - Saved items joined with live catalog: models and certified used cars; count and list from the SAME query.
+   - Graceful handling of sold or deactivated used cars ("No longer available" card with remove button, never an error or missing row).
+   - Sanitized buyer enquiries view (`my_enquiries`) completely hiding internal notes, staff commentary, and AI drafts.
+   - Gated save/unsave actions (`toggleSaveVehicleAction`, `removeSavedVehicleAction`) with optimistic client UI and rollback on error.
+   - Real `ref` column used with fallback to `bookingRef()`.
+
+2. **Real Profile View & Concurrency (`src/server/actions/profile.ts` & `src/components/profile/ProfileView.tsx`):**
+   - Profile updates via `updateBuyerProfileAction` with phone re-normalization (`+91XXXXXXXXXX`), PIN code, address, and city.
+   - Concurrency protection: optimistic lock checking `expectedUpdatedAt` vs `profile.updated_at` to reject stale writes.
+   - Email change flow via `requestEmailChangeAction` using Supabase `auth.updateUser({ email })` with inbox verification explanation.
+   - DPDP marketing consent toggle appending immutable consent audit records rather than mutable booleans.
+   - Bilingual language preference updating both profile and `NEXT_LOCALE` cookie.
+   - Danger zone account erasure trigger with 7-day cooling-off grace period notice.
+
+3. **Statutory DPDP Consent Module (`src/server/privacy/consent.ts`):**
+   - Append-only consent logging (`recordConsent`, `withdrawConsent`, `hasCurrentConsent`).
+   - Constant `POLICY_VERSION = "2026.1"`.
+   - Deterministic SHA-256 consent text hashing (`computeConsentTextHash`).
+   - Tamper-proof HMAC unsubscribe token generation (`generateUnsubscribeToken`) and verification (`verifyUnsubscribeToken`).
+   - One-click unsubscribe page `/[locale]/unsubscribe/[token]` recording statutory consent withdrawal without login requirement.
+
+4. **Self-Service DPDP Data Rights Portal (`/legal/data-rights` & `src/server/actions/data-rights.ts`):**
+   - Personal data portability docket (`generateUserDataExportAction`): exports complete user data dossier (profile, consents, bookings, enquiries, saved items, trade-ins) as downloadable JSON with audit record.
+   - Signed-out public rights intake (`submitPublicDataRequestAction`) queueing verification notices to customer in `messages_outbox`.
+   - Right to erasure workflow (`requestAccountDeletionAction`): releases upcoming bookings, closes open leads as `lost` ("Customer requested DPDP erasure"), notifies assigned staff, queues deletion tracking record, and signs out.
+
+5. **Certified Trade-In Intake Engine (`/trade-in` & `src/server/actions/trade-in.ts`):**
+   - Photo upload signing via `getTradeInUploadUrlsAction` (up to 6 photos, <= 5 MB each, JPEG/PNG/WebP only) in `trade-in-photos` bucket.
+   - Comprehensive validation: year (2000 to current year + 1), km (0 to 500,000 km), condition, phone normalization, mandatory DPDP consent.
+   - Creates sales lead (`source = 'trade_in'`) via `create_lead` RPC and inserts record in `public.trade_in_requests`.
+   - Dynamic AI market indicative valuation band calculation.
+
+6. **Production Newsletter Route (`POST /api/newsletter`):**
+   - Double-check honeypot fields (`website`, `botCheck`) silently dropping spam bots.
+   - Rate limiting per IP and per email address (429 Too Many Requests).
+   - Mandatory explicit consent checkbox.
+   - Idempotent upsert preventing email enumeration.
+   - Automated double opt-in / confirmation notice queued in `messages_outbox` with HMAC unsubscribe link.
+
+7. **Automated Background Data Retention & Erasure Finalization:**
+   - `/api/cron/finalize-deletions`: Purges eligible accounts (> 7 days cooling-off period) via `private.anonymise_user(p_uid)` RPC and removes auth user.
+   - `/api/cron/data-retention`: Anonymizes closed leads older than 24 months, purges expired outbox entries older than 90 days, and purges expired idempotency keys (> 7 days).
+
+### 8.2 Verification Status
+- **TypeScript Typecheck:** `npx tsc --noEmit` passed with 0 errors.
+- **ESLint:** `npm run lint` passed with 0 errors, 0 warnings.
+- **Vitest Suite:** 28/28 test files passed, 272/272 tests passing (100%).
+- **Production Build:** `npm run build` compiled all 119 routes (100% static & dynamic generation) with exit code 0.

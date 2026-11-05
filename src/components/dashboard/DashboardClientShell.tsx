@@ -16,6 +16,8 @@ import { DashboardMobileSheet } from "./DashboardMobileSheet";
 import { useTranslations } from "next-intl";
 import { Car, Wrench } from "lucide-react";
 import { Container } from "@/components/ui/container";
+import { removeSavedVehicleAction } from "@/server/actions/buyer-dashboard";
+import { toast } from "sonner";
 
 const validViews = ["bookings", "saved", "enquiries"] as const;
 export type DashboardView = (typeof validViews)[number];
@@ -89,8 +91,21 @@ export function DashboardClientShell({
     setView(nextTab);
   };
 
-  const handleRemoveSaved = (id: string) => {
+  const handleRemoveSaved = async (id: string) => {
+    const previous = [...savedVehicles];
     setSavedVehicles((prev) => prev.filter((s) => s.id !== id));
+    try {
+      const res = await removeSavedVehicleAction(id);
+      if (!res.ok) {
+        setSavedVehicles(previous);
+        toast.error(res.error?.message || "Failed to remove saved vehicle.");
+      } else {
+        toast.success("Vehicle removed from saved list");
+      }
+    } catch {
+      setSavedVehicles(previous);
+      toast.error("Failed to remove saved vehicle.");
+    }
   };
 
   // Find next upcoming appointment
