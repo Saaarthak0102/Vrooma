@@ -597,7 +597,6 @@ export async function saveOfferAction(payload: {
       valid_from: payload.valid_from || new Date().toISOString().slice(0, 10),
       valid_until: payload.valid_until,
       is_active: payload.is_active ?? true,
-      updated_at: new Date().toISOString(),
     };
 
     if (payload.id) {
@@ -669,7 +668,8 @@ export async function saveBannerAction(payload: {
     const bannerData: Database["public"]["Tables"]["banners"]["Insert"] = {
       title: payload.title,
       image_url: payload.image_url,
-      href: payload.href || null,
+      // banners.href is NOT NULL: an empty link means "the home page".
+      href: payload.href?.trim() || "/",
       sort: payload.sort ?? 1,
       is_active: payload.is_active ?? true,
     };

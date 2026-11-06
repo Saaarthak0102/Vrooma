@@ -15,6 +15,7 @@ export function TradeInDrawer({ request, onClose }: { request: TradeInRow | null
   const [band, setBand] = useState<PriceBand | null | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
 
+  const requestId = request?.id ?? null;
   useEffect(() => {
     setPhotos(null);
     setBand(undefined);
@@ -29,7 +30,9 @@ export function TradeInDrawer({ request, onClose }: { request: TradeInRow | null
       if (b.ok) setBand(b.data);
       else setError(b.error?.message ?? "Price band unavailable.");
     })();
-  }, [request]);
+    // Reload only when a different request is opened, not on every router.refresh().
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [requestId]);
 
   return (
     <Sheet open={Boolean(request)} onOpenChange={(open) => !open && onClose()}>

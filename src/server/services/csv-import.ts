@@ -240,16 +240,20 @@ export async function processLeadCsv(
         // Record summary in csv_imports table
         let importId: string | undefined;
         try {
-          const { data: importRecord } = await supabase
+          const { data: importRecord, error: importErr } = await supabase
             .from("csv_imports")
             .insert({
               filename: options.filename || "portal_leads.csv",
-              row_count: rows.length,
+              rows_count: rows.length,
+              leads_created: createdCount,
+              errors: errorList.slice(0, 50) as any,
               imported_by: options.importedBy || null,
             })
             .select("id")
             .single();
 
+          // supabase-js returns errors instead of throwing, so check it: a bad column used to fail silently here.
+          if (importErr) console.warn(`[csv-import] Could not record csv_imports summary: ${importErr.message}`);
           if (importRecord) importId = importRecord.id;
         } catch (dbErr: any) {
           console.warn(`[csv-import] Could not record csv_imports summary: ${dbErr?.message}`);

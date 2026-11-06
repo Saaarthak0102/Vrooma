@@ -50,7 +50,7 @@ export async function AiLogsPanel() {
           title="No replies sent yet"
           description="Once consultants start answering leads, each AI draft and the final message will appear here."
           action={
-            <Link href="/staff" className="text-xs font-semibold text-accent underline">
+            <Link href="/staff" className="inline-flex min-h-11 items-center text-xs font-semibold text-accent underline">
               Open the lead inbox
             </Link>
           }

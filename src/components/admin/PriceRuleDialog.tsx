@@ -68,10 +68,11 @@ function endOfYear(): string {
   return `${new Date().getFullYear()}-12-31`;
 }
 
-function initialState(rule?: PriceRule | null): FormState {
+function initialState(rule: PriceRule | null | undefined, firstModelId: string): FormState {
   return {
     city_id: rule?.city_id ?? LUCKNOW_CITY_ID,
-    model_id: rule?.model_id ?? ANY,
+    // A rule always belongs to a model (chk_price_rules_scope), so a new rule starts on the first model.
+    model_id: rule?.model_id ?? firstModelId,
     variant_id: rule?.variant_id ?? ANY,
     fuel: rule?.fuel ?? ANY,
     road_tax_pct: String(rule?.road_tax_pct ?? 10),
@@ -92,16 +93,17 @@ function initialState(rule?: PriceRule | null): FormState {
  */
 export function PriceRuleDialog({ open, onOpenChange, rule, models }: PriceRuleDialogProps) {
   const router = useRouter();
-  const [form, setForm] = useState<FormState>(() => initialState(rule));
+  const [form, setForm] = useState<FormState>(() => initialState(rule, models[0]?.id ?? ""));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Re-seed the form each time the dialog opens (or switches between rules).
   useEffect(() => {
     if (open) {
-      setForm(initialState(rule));
+      setForm(initialState(rule, models[0]?.id ?? ""));
       setError(null);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, rule]);
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
@@ -118,7 +120,7 @@ export function PriceRuleDialog({ open, onOpenChange, rule, models }: PriceRuleD
 
     const payload = {
       city_id: form.city_id,
-      model_id: form.model_id === ANY ? null : form.model_id,
+      model_id: form.model_id || null,
       variant_id: form.variant_id === ANY ? null : form.variant_id,
       fuel: form.fuel === ANY ? null : form.fuel,
       road_tax_pct: form.road_tax_pct,
@@ -217,7 +219,7 @@ export function PriceRuleDialog({ open, onOpenChange, rule, models }: PriceRuleD
               </Select>
             </FormField>
 
-            <FormField label="Model (optional)">
+            <FormField label="Model" required>
               <Select
                 value={form.model_id}
                 onValueChange={(v) => {
@@ -229,7 +231,6 @@ export function PriceRuleDialog({ open, onOpenChange, rule, models }: PriceRuleD
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={ANY}>All models (city-wide)</SelectItem>
                   {models.map((m) => (
                     <SelectItem key={m.id} value={m.id}>
                       {m.name}
@@ -243,7 +244,7 @@ export function PriceRuleDialog({ open, onOpenChange, rule, models }: PriceRuleD
               <Select
                 value={form.variant_id}
                 onValueChange={(v) => set("variant_id", v)}
-                disabled={form.model_id === ANY}
+                disabled={!form.model_id}
               >
                 <SelectTrigger className="h-11">
                   <SelectValue />

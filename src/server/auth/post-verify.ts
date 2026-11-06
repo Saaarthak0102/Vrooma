@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { safeNext } from "./safe-next";
+import { postSignInPath } from "@/lib/console-nav";
 
 export interface PostVerifyDestination {
   /** App path to navigate to after a link has been verified. */
@@ -13,7 +14,7 @@ export interface PostVerifyDestination {
  * confirm-page server action:
  *   inactive account            -> /sign-in?error=account_disabled (session dropped)
  *   onboarding not completed    -> /onboarding?next=<safe next>      <- every brand-new sign-up
- *   admin / staff on default    -> their console
+ *   admin / staff               -> their console (postSignInPath)
  *   everyone else               -> safeNext(next)
  */
 export async function resolvePostVerifyDestination(
@@ -42,11 +43,6 @@ export async function resolvePostVerifyDestination(
     return { destination: `/onboarding?next=${encodeURIComponent(target)}`, disabled: false };
   }
 
-  const isDefault = target === "/dashboard";
-  if (profile.role === "admin" && isDefault) return { destination: "/admin", disabled: false };
-  if ((profile.role === "consultant" || profile.role === "manager") && isDefault) {
-    return { destination: "/staff", disabled: false };
-  }
-
-  return { destination: target, disabled: false };
+  // Staff always land in their console; buyers keep their own destination.
+  return { destination: postSignInPath(profile.role, target), disabled: false };
 }

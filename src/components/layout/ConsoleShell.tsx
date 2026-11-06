@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ArrowLeft, LogOut } from "lucide-react";
@@ -25,11 +25,21 @@ export function ConsoleShell({
   const { signOut } = useAuth();
   const links = linksForRole(role);
 
+  // Touch-size rules (src/styles/console.css) apply only while a console is open, and reach portaled panels.
+  useEffect(() => {
+    document.body.classList.add("console-touch");
+    return () => document.body.classList.remove("console-touch");
+  }, []);
+
   return (
     <div className="min-h-screen bg-bg">
       <header className="sticky top-0 z-30 border-b border-border bg-surface-glass backdrop-blur">
         <div className="mx-auto flex max-w-[1500px] flex-wrap items-center gap-x-6 gap-y-2 px-4 py-2 sm:px-6">
-          <Link href="/" className="flex items-center gap-1.5 text-xs font-semibold text-ink-mute hover:text-ink">
+          <Link
+            href="/"
+            aria-label="Back to the showroom website"
+            className="flex min-h-11 min-w-11 items-center justify-center gap-1.5 text-xs font-semibold text-ink-mute hover:text-ink"
+          >
             <ArrowLeft className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Showroom</span>
           </Link>

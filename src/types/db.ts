@@ -160,7 +160,6 @@ export interface Database {
           id: string;
           variant_id: string;
           name: string;
-          name_hi: string | null;
           hex: string;
           image_url: string;
           created_at: string;
@@ -605,7 +604,9 @@ export interface Database {
         Row: {
           id: string;
           filename: string;
-          row_count: number;
+          rows_count: number;
+          leads_created: number;
+          errors: Json;
           imported_by: string | null;
           created_at: string;
         };
@@ -719,7 +720,6 @@ export interface Database {
           valid_until: string;
           is_active: boolean;
           created_at: string;
-          updated_at: string;
         };
         Insert: OptionalNullable<Omit<Database["public"]["Tables"]["offers"]["Row"], "id" | "created_at" | "updated_at">> & {
           id?: string;

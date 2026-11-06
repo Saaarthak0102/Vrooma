@@ -1,0 +1,37 @@
+/*
+ * Staff and admin consoles on touch screens.
+ *
+ * ConsoleShell sets `console-touch` on <body> while a console is open, so these rules never reach the public
+ * site or the buyer pages. On phones and tablets (or any touch-first device) every control gets a 44px tap
+ * target, including the ones inside side panels and dialogs, which render in a portal outside the console shell.
+ */
+@media (pointer: coarse), (max-width: 1024px) {
+  body.console-touch :is(button, select, a[href], [role="tab"]),
+  body.console-touch input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]) {
+    min-height: 44px;
+  }
+
+  /* Checkboxes and radios: the clickable label row is what must be big, and ours are already 44px rows. */
+  body.console-touch input[type="checkbox"],
+  body.console-touch input[type="radio"] {
+    min-width: 20px;
+    min-height: 20px;
+  }
+
+  /* The close "x" of side panels and dialogs: keep the icon small, enlarge only the hit area. */
+  body.console-touch [role="dialog"] .absolute.right-4.top-4 {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    right: 0.25rem;
+    top: 0.25rem;
+  }
+
+  /* Dense table rows: keep controls vertically centred once they grow to 44px. */
+  body.console-touch table td,
+  body.console-touch table th {
+    vertical-align: middle;
+  }
+}

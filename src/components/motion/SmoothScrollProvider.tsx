@@ -85,7 +85,11 @@ export function SmoothScrollProvider({ children }: { children: React.ReactNode }
     };
   }, []);
 
-  if (reducedMotion) {
+  // The staff and admin consoles are working tools full of inner scroll areas (tables, side panels, dialogs).
+  // Smooth-scroll hijacking the wheel there made those areas scroll the page behind them, so they scroll natively.
+  const isConsole = /^\/(staff|admin)(\/|$)/.test(pathname ?? "");
+
+  if (reducedMotion || isConsole) {
     return <>{children}</>;
   }
 

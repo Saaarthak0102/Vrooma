@@ -64,9 +64,9 @@ export function LeadDrawer({ leadId, viewerRole, onClose, onLeadChanged }: LeadD
 
         {!lead && !error && (
           <div className="space-y-3" aria-busy="true">
-            <Skeleton className="h-20 w-full" />
-            <Skeleton className="h-32 w-full" />
-            <Skeleton className="h-40 w-full" />
+            <Skeleton className="h-20 w-full bg-border" />
+            <Skeleton className="h-32 w-full bg-border" />
+            <Skeleton className="h-40 w-full bg-border" />
           </div>
         )}
 
@@ -92,7 +92,7 @@ export function LeadDrawer({ leadId, viewerRole, onClose, onLeadChanged }: LeadD
             </div>
 
             <div className="grid grid-cols-1 gap-3 text-xs sm:grid-cols-2">
-              <a href={`tel:${lead.phone}`} className="flex items-center gap-1.5 font-bold text-accent-ink hover:underline">
+              <a href={`tel:${lead.phone}`} className="flex min-h-11 items-center gap-1.5 font-bold text-accent-ink hover:underline">
                 <Phone className="h-3.5 w-3.5" />
                 {lead.phone}
               </a>

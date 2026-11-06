@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { requestOtp, verifyOtp } from "@/server/auth/actions";
 import { safeNext } from "@/server/auth/safe-next";
+import { postSignInPath } from "@/lib/console-nav";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -113,16 +114,8 @@ export default function SignInPage() {
         return;
       }
 
-      // Same rule as the email-link path (post-verify.ts): staff who arrive at the default destination land in
-      // their console. An explicit ?next= is always honoured. Buyers are unaffected.
-      const destination = safeNext(nextParam);
-      if (destination === "/dashboard" && res.data.role === "admin") {
-        router.push("/admin");
-      } else if (destination === "/dashboard" && (res.data.role === "consultant" || res.data.role === "manager")) {
-        router.push("/staff");
-      } else {
-        router.push(destination);
-      }
+      // One rule for every sign-in route (postSignInPath): staff always land in their console, buyers keep ?next=.
+      router.push(postSignInPath(res.data.role, safeNext(nextParam)));
     } catch {
       toast.error("Verification failed. Please try again.");
     } finally {

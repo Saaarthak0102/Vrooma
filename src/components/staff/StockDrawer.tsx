@@ -35,6 +35,10 @@ export function StockDrawer({ car, onClose }: { car: StockRow | null; onClose: (
   const [reg, setReg] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
+  // Re-seed only when a DIFFERENT car is opened. Every save calls router.refresh(), which hands this component a
+  // new `car` object for the same car; resetting on that would wipe a revealed plate, a half-filled scorecard or
+  // a price the manager is typing.
+  const carId = car?.id ?? null;
   useEffect(() => {
     setReg(null);
     setBand(undefined);
@@ -52,7 +56,8 @@ export function StockDrawer({ car, onClose }: { car: StockRow | null; onClose: (
       if (res.ok) setBand(res.data);
       else setBandError(res.error?.message ?? "Price band unavailable.");
     })();
-  }, [car]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [carId]);
 
   const run = async (key: string, task: () => Promise<{ ok: boolean; message?: string }>, success: string) => {
     setBusy(key);

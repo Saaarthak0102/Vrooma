@@ -20,7 +20,9 @@
     "check:env": "node scripts/check-env.mjs",
     "smoke": "node scripts/smoke-test.mjs",
     "probe": "node --experimental-strip-types scripts/api-probe.ts",
-    "dev:cron": "node scripts/dev-cron.mjs"
+    "dev:cron": "node scripts/dev-cron.mjs",
+    "e2e:console": "node scripts/console-e2e.mjs",
+    "layout:console": "node scripts/console-layout.mjs"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",

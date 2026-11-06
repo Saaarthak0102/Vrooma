@@ -97,12 +97,13 @@ export function DataGrid<T>({
         </div>
 
         {filterColumns.map((column) => (
-          <label key={column.id} className="flex items-center gap-1.5 text-[11px] font-semibold text-ink-soft">
+          <label key={column.id} className="flex min-w-0 max-w-full items-center gap-1.5 text-[11px] font-semibold text-ink-soft">
             <span className="sr-only sm:not-sr-only">{column.header}</span>
             <select
               value={filters[column.id] ?? "all"}
               onChange={(e) => setFilters((prev) => ({ ...prev, [column.id]: e.target.value }))}
-              className="h-9 rounded-md border border-border bg-bg px-2 text-xs font-medium text-ink outline-none focus:border-accent"
+              // max-w keeps a long option (a showroom name) from pushing the dropdown past the card on a phone.
+              className="h-9 min-w-0 max-w-[11rem] truncate rounded-md border border-border bg-bg px-2 text-xs font-medium text-ink outline-none focus:border-accent sm:max-w-[16rem]"
               aria-label={`Filter by ${column.header}`}
             >
               <option value="all">All</option>
@@ -131,7 +132,7 @@ export function DataGrid<T>({
         )}
       </div>
 
-      <div className="max-h-[68vh] overflow-auto">
+      <div data-lenis-prevent className="max-h-[68vh] overflow-auto overscroll-contain">
         <table className="w-full border-collapse text-xs">
           <thead className="sticky top-0 z-10 bg-bg-sheen">
             <tr>

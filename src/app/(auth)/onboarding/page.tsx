@@ -9,6 +9,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { completeProfile } from "@/server/auth/actions";
 import { getSignupHint } from "@/server/auth/signup-link";
 import { safeNext } from "@/server/auth/safe-next";
+import { postSignInPath } from "@/lib/console-nav";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -142,8 +143,8 @@ export default function OnboardingPage() {
 
       sessionStorage.removeItem("vrooma_signup_draft");
       toast.success("Profile completed! Welcome to Vrooma.");
-      const destination = safeNext(nextParam);
-      router.push(destination);
+      // Staff (invited accounts finish onboarding too) go to their console; buyers keep ?next=.
+      router.push(postSignInPath(user?.role, safeNext(nextParam)));
     } catch {
       toast.error("Failed to complete profile. Please try again.");
     } finally {

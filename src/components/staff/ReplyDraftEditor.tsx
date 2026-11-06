@@ -90,6 +90,8 @@ export function ReplyDraftEditor({
           onChange={(e) => {
             setDraft(e.target.value);
             setSentSuccess(false);
+            // Typing a new message must bring the normal "Approve & Send" label back (it stayed on "Dispatched!").
+            setStatus("idle");
           }}
           className="text-xs min-h-[110px] leading-relaxed bg-ink/[0.015]"
           placeholder="Draft message to customer..."

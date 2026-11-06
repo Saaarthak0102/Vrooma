@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Role } from "@/types/domain";
+import { postSignInPath } from "@/lib/console-nav";
 import { requestOtp, verifyOtp } from "@/server/auth/actions";
 import { ShieldCheck, Mail, ArrowRight, CheckCircle2, RefreshCw, User, Briefcase, KeyRound } from "lucide-react";
 import { toast } from "sonner";
@@ -105,6 +106,11 @@ export function SignInSheet() {
         // Profile not finished: go to onboarding and drop the action that needed sign-in.
         await completeSignIn({ runPending: false });
         router.push("/onboarding");
+      } else if (res.data.role && res.data.role !== "buyer") {
+        // Staff never keep working on the public site: close the sheet and go to their console. A full page load
+        // so the console layouts see the new session cookies.
+        await completeSignIn({ runPending: false });
+        window.location.assign(postSignInPath(res.data.role, null));
       } else {
         // Reload the session, close the sheet and resume what the user was doing (e.g. Save, Confirm booking).
         await completeSignIn();
@@ -130,6 +136,11 @@ export function SignInSheet() {
     const result = await switchRole(role);
     if (!result.ok) {
       toast.error(result.message);
+      return;
+    }
+    if (role !== "buyer") {
+      await completeSignIn({ runPending: false });
+      window.location.assign(postSignInPath(role, null));
       return;
     }
     // Real session now exists: resume the action that needed sign-in and refresh server data.

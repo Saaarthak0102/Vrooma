@@ -50,8 +50,10 @@ const SheetContent = React.forwardRef<
       <SheetOverlay />
       <DialogPrimitive.Content
         ref={ref}
+        // Wheel/touch scrolling inside the sheet must not move the page (or Lenis) behind it.
+        data-lenis-prevent
         className={cn(
-          "fixed z-50 gap-4 bg-white p-6 shadow-2xl transition ease-in-out data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:duration-300 overflow-y-auto",
+          "fixed z-50 gap-4 bg-white p-6 shadow-2xl transition ease-in-out data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:duration-300 overflow-y-auto overscroll-contain",
           sideClasses[side],
           className
         )}
