@@ -10,6 +10,8 @@ import { ModelDetailClient } from "@/components/admin/catalog/ModelDetailClient"
 import { PricesClient } from "@/components/admin/catalog/PricesClient";
 import { OffersPanel } from "@/components/admin/catalog/OffersPanel";
 import { BannersPanel } from "@/components/admin/catalog/BannersPanel";
+import { CatalogOverview } from "@/components/admin/AdminOverviews";
+import { loadModelDemand } from "@/server/repositories/admin-overview";
 
 export const dynamic = "force-dynamic";
 
@@ -41,7 +43,13 @@ export default async function CatalogPage({
       if (!model) notFound();
       body = <ModelDetailClient model={model} />;
     } else {
-      body = <ModelsClient initialModels={models} />;
+      const demand = await loadModelDemand().catch(() => []);
+      body = (
+        <div className="space-y-4">
+          <CatalogOverview demand={demand} models={models} />
+          <ModelsClient initialModels={models} />
+        </div>
+      );
     }
   } else if (tab === "prices") {
     const [rules, models] = await Promise.all([listPriceRules(), listAdminModels()]);

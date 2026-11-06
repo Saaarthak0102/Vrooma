@@ -8,6 +8,8 @@ import { StatCard } from "@/components/dashboard/StatCard";
 import { TabLinks, pickTab, type TabLinkItem } from "@/components/layout/TabLinks";
 import { AiLogsPanel } from "@/components/admin/overview/AiLogsPanel";
 import { SystemPanel } from "@/components/admin/overview/SystemPanel";
+import { PerformanceOverview } from "@/components/admin/overview/PerformanceOverview";
+import { loadOverviewData } from "@/server/repositories/admin-overview";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +40,7 @@ export default async function AdminOverviewPage({
     const since = new Date(Date.now() - WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString();
     const admin = createAdminClient();
 
-    const [metrics, testDrives, services, activeStaff] = await Promise.all([
+    const [metrics, testDrives, services, activeStaff, overview] = await Promise.all([
       getLeakMetricsAction(since),
       admin
         .from("bookings")
@@ -53,6 +55,11 @@ export default async function AdminOverviewPage({
         .neq("status", "cancelled")
         .gte("created_at", since),
       admin.from("profiles").select("id", { count: "exact", head: true }).eq("role", "consultant").eq("is_active", true),
+      // Charts are a convenience: if they fail to load the KPIs and the leak card still render.
+      loadOverviewData().catch((err) => {
+        console.warn("[admin] overview charts unavailable:", (err as Error)?.message);
+        return null;
+      }),
     ]);
 
     const m = metrics.ok ? metrics.data : null;
@@ -92,6 +99,8 @@ export default async function AdminOverviewPage({
             icon={<Users className="h-4 w-4 text-accent-ink" />}
           />
         </div>
+
+        {overview && <PerformanceOverview leads={overview.leads} bookings={overview.bookings} />}
 
         <LeakCard
           windowDays={WINDOW_DAYS}

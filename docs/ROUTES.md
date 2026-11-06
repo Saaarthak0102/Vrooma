@@ -43,4 +43,6 @@ The app is English only. Old `/en/...` and `/hi/...` URLs permanently redirect t
 | `/admin/ai-logs`, `/admin/system` | `/admin?tab=ai`, `/admin?tab=system` |
 | `/admin/used-cars`, `/admin/used-cars/[id]` | `/staff/stock` |
 
+Each console screen starts with an interactive Overview (charts that filter the table below; see `docs/WIRING.md`).
+
 Console routes render no public header, footer, chat widget or smooth-scroll; the console bar (`ConsoleShell`) is the only navigation.

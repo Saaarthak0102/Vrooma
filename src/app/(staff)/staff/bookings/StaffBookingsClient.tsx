@@ -7,6 +7,7 @@ import { DataGrid, type GridColumn } from "@/components/grid/DataGrid";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { setBookingOutcomeAction } from "@/server/actions/booking";
+import { BookingsOverview, bookingMatches, type BookingFilter } from "@/components/staff/BookingsOverview";
 import type { Booking } from "@/types/domain";
 
 export interface BayLoadRow {
@@ -24,6 +25,7 @@ const timeFmt = new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", hou
 export function StaffBookingsClient({ bookings, bayLoad }: { bookings: Booking[]; bayLoad: BayLoadRow[] }) {
   const router = useRouter();
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [filter, setFilter] = useState<BookingFilter>(null);
 
   const markOutcome = async (id: string, outcome: "completed" | "no_show") => {
     if (busyId) return;
@@ -166,7 +168,9 @@ export function StaffBookingsClient({ bookings, bayLoad }: { bookings: Booking[]
         <h1 id="bookings-heading" className="text-lg font-black text-ink">
           Test drives &amp; service bookings
         </h1>
+        <BookingsOverview bookings={bookings} bayLoad={bayLoad} filter={filter} onFilter={setFilter} />
         <DataGrid
+          externalFilter={filter ? (b: Booking) => bookingMatches(b, filter) : null}
           columns={bookingColumns}
           rows={rows}
           rowKey={(b) => b.id}

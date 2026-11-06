@@ -10,6 +10,8 @@ import { UsersPanel } from "@/components/admin/team/UsersPanel";
 import { NetworkPanel } from "@/components/admin/team/NetworkPanel";
 import { RoutingPanel } from "@/components/admin/team/RoutingPanel";
 import { SlotsPanel, type SlotGridRow } from "@/components/admin/team/SlotsPanel";
+import { PeopleOverview, RoutingOverview, SlotsOverview } from "@/components/admin/AdminOverviews";
+import { loadOpenLeadLoad } from "@/server/repositories/admin-overview";
 
 export const dynamic = "force-dynamic";
 
@@ -33,24 +35,33 @@ export default async function TeamPage({
 
   if (tab === "users") {
     const [users, showrooms] = await Promise.all([listUsers(), listShowrooms()]);
-    body = <UsersPanel users={users} showrooms={showrooms} currentUserId={profile.id} />;
+    body = (
+      <div className="space-y-4">
+        <PeopleOverview users={users} />
+        <UsersPanel users={users} showrooms={showrooms} currentUserId={profile.id} />
+      </div>
+    );
   } else if (tab === "network") {
     const [showrooms, workshops, demoCars] = await Promise.all([listShowrooms(), listWorkshops(), listDemoCars()]);
     body = <NetworkPanel showrooms={showrooms} workshops={workshops} demoCars={demoCars} />;
   } else if (tab === "routing") {
-    const [rules, pool, showrooms, models] = await Promise.all([
+    const [rules, pool, showrooms, models, load] = await Promise.all([
       listRoutingRules(),
       listStaffPool(),
       listShowrooms(),
       listModels({ limit: 100 }),
+      loadOpenLeadLoad().catch(() => []),
     ]);
     body = (
-      <RoutingPanel
+      <div className="space-y-4">
+        <RoutingOverview load={load} />
+        <RoutingPanel
         rules={rules}
         pool={pool}
         showrooms={showrooms.map((s) => ({ id: s.id, name: s.name }))}
         models={models.map((m) => ({ id: m.id, name: m.name }))}
-      />
+        />
+      </div>
     );
   } else {
     const [slots, showrooms, workshops, demoCars] = await Promise.all([
@@ -75,7 +86,12 @@ export default async function TeamPage({
       capacity: s.capacity,
       booked: s.booked_count,
     }));
-    body = <SlotsPanel slots={rows} />;
+    body = (
+      <div className="space-y-4">
+        <SlotsOverview slots={rows} />
+        <SlotsPanel slots={rows} />
+      </div>
+    );
   }
 
   return (

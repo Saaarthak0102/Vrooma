@@ -57,6 +57,7 @@ pnpm vitest run --coverage
 
 ### Unit and structure tests (`pnpm test`)
 - `tests/grid.test.ts`: DataGrid sorting, filtering and CSV export (formula-injection safe).
+- `tests/analytics.test.ts`: the pure aggregation behind the console charts (IST day buckets, cumulative funnel, bands, top-N).
 - `tests/price-band.test.ts`: price band from past sales (null with no comparable sale, confidence by sample size).
 - `tests/inspection-score.test.ts`: scorecard to 0-100, never a made-up score.
 - `tests/console-structure.test.ts`: at most 3 screens per role, nav matches middleware, price band role-guarded, real dev persona switch.
@@ -67,6 +68,8 @@ pnpm vitest run --coverage
 ```bash
 pnpm dev                 # terminal 1
 pnpm e2e:console         # 42 checks: each action in a browser, asserted in the database, then cleaned up
+pnpm charts:console      # clicks KPI/funnel/donut chart elements; grid row counts must equal direct Supabase counts
+node scripts/console-snap.mjs --out=DIR [--viewport=390x844]   # full-page screenshots of the charts, for eyeballing
 pnpm layout:console      # every console screen at 8 viewports: overflow, drawers/dialogs, scroll isolation, 40px touch targets
 ```
 Both refuse to run unless the target is localhost and `.env.local` points at the DEV project. They sign in with the seeded dev users (`scripts/seed-dev-users.ts`). Not covered: attended / no-show, reassign, rule-based routing of a new lead, inviting a brand-new email (sends real email), WhatsApp/SMS delivery (simulated).

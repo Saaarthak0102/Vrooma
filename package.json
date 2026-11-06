@@ -22,7 +22,8 @@
     "probe": "node --experimental-strip-types scripts/api-probe.ts",
     "dev:cron": "node scripts/dev-cron.mjs",
     "e2e:console": "node scripts/console-e2e.mjs",
-    "layout:console": "node scripts/console-layout.mjs"
+    "layout:console": "node scripts/console-layout.mjs",
+    "charts:console": "node scripts/console-charts.mjs"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",
@@ -56,6 +57,7 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.54.2",
+    "recharts": "2.15.4",
     "resend": "^4.1.2",
     "server-only": "^0.0.1",
     "sonner": "^2.0.1",

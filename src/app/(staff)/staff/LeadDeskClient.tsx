@@ -9,6 +9,7 @@ import { StatCard } from "@/components/dashboard/StatCard";
 import { SlaTimer } from "@/components/staff/SlaTimer";
 import { LeadDrawer } from "@/components/staff/LeadDrawer";
 import { LeadImportDialog } from "@/components/staff/LeadImportDialog";
+import { LeadOverview, leadMatches, type LeadFilter } from "@/components/staff/LeadOverview";
 import { Button } from "@/components/ui/button";
 import { updateLeadStatusAction } from "@/server/actions/leads";
 import { createClient } from "@/lib/supabase/client";
@@ -34,6 +35,8 @@ export function LeadDeskClient({ initialLeads, viewerRole }: { initialLeads: Lea
   const [importOpen, setImportOpen] = useState(params.get("import") === "1");
   // "Now" is only known after mount, so server and client markup match.
   const [now, setNow] = useState<number | null>(null);
+  // One filter at a time: a clicked KPI or chart slice narrows the table below.
+  const [filter, setFilter] = useState<LeadFilter>(null);
 
   useEffect(() => setLeads(initialLeads), [initialLeads]);
 
@@ -114,6 +117,15 @@ export function LeadDeskClient({ initialLeads, viewerRole }: { initialLeads: Lea
     };
   }, [leads, now]);
 
+  const externalFilter = useMemo(
+    () => (filter ? (l: Lead) => leadMatches(l, filter, now) : null),
+    [filter, now]
+  );
+
+  const toggleKpi = (key: "new" | "overdue" | "active" | "won", label: string) =>
+    setFilter((f) => (f?.kind === "kpi" && f.key === key ? null : { kind: "kpi", key, label }));
+  const kpiActive = (key: string) => filter?.kind === "kpi" && filter.key === key;
+
   const columns: GridColumn<Lead>[] = [
     {
       id: "sla",
@@ -187,31 +199,51 @@ export function LeadDeskClient({ initialLeads, viewerRole }: { initialLeads: Lea
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard
           label="Awaiting first reply"
+          onClick={() => toggleKpi("new", "Awaiting reply")}
+          active={kpiActive("new")}
           value={stats.fresh}
           subtitle="5-minute target"
           icon={<Clock className="h-4 w-4 text-warning" />}
         />
         <StatCard
           label="Overdue"
+          onClick={() => toggleKpi("overdue", "Overdue")}
+          active={kpiActive("overdue")}
           value={stats.overdue ?? "–"}
           subtitle="Past the SLA"
           icon={<AlertTriangle className="h-4 w-4 text-danger" />}
         />
         <StatCard
           label="In progress"
+          onClick={() => toggleKpi("active", "In progress")}
+          active={kpiActive("active")}
           value={stats.active}
           subtitle="Contacted to negotiating"
           icon={<Handshake className="h-4 w-4 text-accent-ink" />}
         />
         <StatCard
           label="Won"
+          onClick={() => toggleKpi("won", "Won")}
+          active={kpiActive("won")}
           value={stats.won}
           subtitle="Delivered"
           icon={<CheckCircle2 className="h-4 w-4 text-success" />}
         />
       </div>
 
+      <LeadOverview leads={leads} filter={filter?.kind === "kpi" ? null : filter} onFilter={setFilter} />
+
+      {filter && (
+        <p className="flex items-center gap-2 text-xs text-ink-soft">
+          Showing: <strong className="text-ink">{filter.label}</strong>
+          <button type="button" onClick={() => setFilter(null)} className="font-bold text-accent-ink underline">
+            Show all leads
+          </button>
+        </p>
+      )}
+
       <DataGrid
+        externalFilter={externalFilter}
         columns={columns}
         rows={rows}
         rowKey={(l) => l.id}

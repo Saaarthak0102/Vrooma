@@ -34,6 +34,8 @@ export interface DataGridProps<T> {
   /** Extra controls placed on the right of the toolbar (buttons, dialogs). */
   toolbar?: React.ReactNode;
   className?: string;
+  /** Extra row filter driven from outside the table (e.g. a clicked chart slice). Applied before search. */
+  externalFilter?: ((row: T) => boolean) | null;
 }
 
 /**
@@ -51,6 +53,7 @@ export function DataGrid<T>({
   emptyMessage = "No records match.",
   toolbar,
   className,
+  externalFilter,
 }: DataGridProps<T>) {
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<GridSort | null>(null);
@@ -59,8 +62,8 @@ export function DataGrid<T>({
   const filterColumns = columns.filter((c) => c.filter === "select");
 
   const visible = useMemo(
-    () => sortRows(filterRows(rows, columns, search, filters), columns, sort),
-    [rows, columns, search, filters, sort]
+    () => sortRows(filterRows(externalFilter ? rows.filter(externalFilter) : rows, columns, search, filters), columns, sort),
+    [rows, columns, search, filters, sort, externalFilter]
   );
 
   const toggleSort = (id: string) =>

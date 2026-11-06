@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { StockDrawer } from "@/components/staff/StockDrawer";
 import { TradeInDrawer } from "@/components/staff/TradeInDrawer";
 import { StockIntakeDialog } from "@/components/staff/StockIntakeDialog";
+import { StockOverview, stockMatches, tradeInMatches, type StockFilter, type TradeInFilter } from "@/components/staff/StockOverview";
 import { formatINR } from "@/lib/money";
 import type { StockRow, TradeInRow } from "@/server/repositories/stock";
 
@@ -23,6 +24,8 @@ export function StockClient({ stock, tradeIns }: { stock: StockRow[]; tradeIns: 
   const [openCarId, setOpenCarId] = useState<string | null>(null);
   const [openTradeInId, setOpenTradeInId] = useState<string | null>(null);
   const [intakeOpen, setIntakeOpen] = useState(false);
+  const [stockFilter, setStockFilter] = useState<StockFilter>(null);
+  const [tradeInFilter, setTradeInFilter] = useState<TradeInFilter>(null);
 
   const openCar = stock.find((c) => c.id === openCarId) ?? null;
   const openTradeIn = tradeIns.find((t) => t.id === openTradeInId) ?? null;
@@ -105,7 +108,16 @@ export function StockClient({ stock, tradeIns }: { stock: StockRow[]; tradeIns: 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard label="In stock" value={stock.filter((c) => c.status !== "sold").length} subtitle="Available or booked" />
         <StatCard label="Available" value={available.length} subtitle={`${formatINR(value)} listed`} />
-        <StatCard label="Not yet scored" value={unscored} subtitle="Need an inspection" />
+        <StatCard
+          label="Not yet scored"
+          value={unscored}
+          subtitle="Need an inspection"
+          onClick={() => {
+            setTab("stock");
+            setStockFilter((f) => (f?.kind === "unscored" ? null : { kind: "unscored", key: "unscored", label: "Not scored" }));
+          }}
+          active={stockFilter?.kind === "unscored"}
+        />
         <StatCard label="Trade-in requests" value={tradeIns.length} subtitle="From the website" />
       </div>
 
@@ -118,8 +130,19 @@ export function StockClient({ stock, tradeIns }: { stock: StockRow[]; tradeIns: 
         </button>
       </div>
 
+      <StockOverview
+        tab={tab}
+        stock={stock}
+        tradeIns={tradeIns}
+        stockFilter={stockFilter?.kind === "unscored" ? null : stockFilter}
+        onStockFilter={setStockFilter}
+        tradeInFilter={tradeInFilter}
+        onTradeInFilter={setTradeInFilter}
+      />
+
       {tab === "stock" ? (
         <DataGrid
+          externalFilter={stockFilter ? (c: StockRow) => stockMatches(c, stockFilter, Date.now()) : null}
           columns={stockColumns}
           rows={stock}
           rowKey={(c) => c.id}
@@ -137,6 +160,7 @@ export function StockClient({ stock, tradeIns }: { stock: StockRow[]; tradeIns: 
         />
       ) : (
         <DataGrid
+          externalFilter={tradeInFilter ? (t: TradeInRow) => tradeInMatches(t, tradeInFilter) : null}
           columns={tradeInColumns}
           rows={tradeIns}
           rowKey={(t) => t.id}

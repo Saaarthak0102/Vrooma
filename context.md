@@ -280,6 +280,7 @@ Interactive 3D flip cards are deployed exclusively on the three main catalog rou
 - **Console consolidation (Complete):**
   - Staff and admin use 2-3 spreadsheet-style screens per role with side panels (consultant 2, manager 3, admin 3); one top bar, no public header, footer or chat on console routes; native scrolling there.
   - Staff always land in their console after any sign-in (`postSignInPath`); the dev persona switch is a real sign-in.
+  - Each console screen opens with an interactive Overview (funnel, donuts, bars, trends; click to filter the table). Aggregation is in `src/lib/analytics.ts`; verified by `pnpm charts:console`. See `docs/WIRING.md`.
   - Every console feature is verified against Supabase by `pnpm e2e:console` (42 checks) and every screen's layout by `pnpm layout:console`. See `docs/backend/STATUS.md` section 10 for fixed bugs and known limits.
 - **Still upcoming:**
   - Add the Vault secrets (`app_url`, `cron_secret`) so the HTTP cron jobs are scheduled (`select private.ensure_cron_jobs();`).
