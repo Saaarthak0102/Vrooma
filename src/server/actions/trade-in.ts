@@ -171,8 +171,6 @@ export async function submitTradeInAction(
         model: data.model,
         year: data.year,
         km: data.km,
-        fuel: data.fuel as any,
-        transmission: data.transmission as any,
         condition: data.condition,
         notes: data.notes || null,
         photos: verifiedPhotos as any,
@@ -181,7 +179,11 @@ export async function submitTradeInAction(
       .single();
 
     if (tradeInErr || !tradeInRow) {
-      console.warn(`[trade-in] trade_in_requests insert error: ${tradeInErr?.message}`);
+      // The lead already exists and is routed, so a consultant will still call the customer. Log the lead id so
+      // the missing detail row can be traced. A retry within 24h is de-duplicated into a repeat-enquiry event.
+      console.warn(
+        `[trade-in] trade_in_requests insert error for lead ${newLead.id} (${newLead.ref ?? "no ref"}): ${tradeInErr?.message}`
+      );
       return errorResponse("INTERNAL_ERROR", `Failed to register trade-in: ${tradeInErr?.message}`);
     }
 

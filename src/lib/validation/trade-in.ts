@@ -38,8 +38,7 @@ export const tradeInSubmissionSchema = z.object({
     .number()
     .min(0, "Kilometers must be positive")
     .max(500000, "Kilometers cannot exceed 500,000"),
-  fuel: z.enum(["petrol", "diesel", "cng", "ev", "hybrid"]).default("petrol"),
-  transmission: z.enum(["manual", "automatic"]).default("manual"),
+  // No fuel/transmission: the form never asks for them and trade_in_requests has no such columns.
   condition: z.enum(["excellent", "good", "fair"]),
   notes: z.string().max(500).optional().nullable(),
   name: z.string().trim().min(2, "Name is required"),

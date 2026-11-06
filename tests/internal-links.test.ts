@@ -1,7 +1,7 @@
 /**
  * Dead-link guard. Every static internal href in the app must resolve to a real page.
  * Born from the console check: two "Import CSV" buttons linked to /staff/import, which 404s
- * (the page is /staff/leads/import).
+ * (import has since become a dialog on the Lead Desk).
  */
 import { describe, it, expect } from "vitest";
 import fs from "node:fs";
@@ -39,7 +39,10 @@ describe("internal links", () => {
 
   it("finds the page routes", () => {
     expect(routes.length).toBeGreaterThan(25);
-    expect(routes.some((r) => r.test("/staff/leads/import"))).toBe(true);
+    // The consolidated consoles: 2-3 screens per role.
+    for (const p of ["/staff", "/staff/bookings", "/staff/stock", "/admin", "/admin/catalog", "/admin/team"]) {
+      expect(routes.some((r) => r.test(p)), `missing page ${p}`).toBe(true);
+    }
   });
 
   it("every static <Link href=\"/...\"> points at an existing page", () => {
@@ -55,11 +58,12 @@ describe("internal links", () => {
     expect(broken, `Dead internal links:\n${broken.join("\n")}`).toEqual([]);
   });
 
-  it("the CSV import buttons use the real path", () => {
-    for (const f of ["src/app/(staff)/staff/leads/StaffLeadsClient.tsx", "src/app/(staff)/staff/StaffOverviewClient.tsx"]) {
+  it("the CSV import is a dialog on the Lead Desk that posts to the real API", () => {
+    for (const f of ["src/app/(staff)/staff/LeadDeskClient.tsx", "src/components/staff/LeadImportDialog.tsx"]) {
       const src = fs.readFileSync(path.join(ROOT, f), "utf8");
       expect(src).not.toContain('href="/staff/import"');
-      expect(src).toContain('href="/staff/leads/import"');
     }
+    const dialog = fs.readFileSync(path.join(ROOT, "src/components/staff/LeadImportDialog.tsx"), "utf8");
+    expect(dialog).toContain("/api/leads/import");
   });
 });

@@ -27,24 +27,17 @@ export const routes = {
 
   // Staff
   staff: () => "/staff",
-  staffLeads: () => "/staff/leads",
-  staffLeadDetail: (id: string) => `/staff/leads/${id}`,
-  staffLeadImport: () => "/staff/leads/import",
+  staffLeadDetail: (id: string) => `/staff?lead=${id}`,
+  staffLeadImport: () => "/staff?import=1",
   staffBookings: () => "/staff/bookings",
+  staffStock: () => "/staff/stock",
 
-  // Admin
+  // Admin (three screens, sections chosen with ?tab=)
   admin: () => "/admin",
-  adminModels: () => "/admin/models",
-  adminModelDetail: (id: string) => `/admin/models/${id}`,
-  adminPrices: () => "/admin/prices",
-  adminUsedCars: () => "/admin/used-cars",
-  adminUsedCarDetail: (id: string) => `/admin/used-cars/${id}`,
-  adminShowrooms: () => "/admin/showrooms",
-  adminSlots: () => "/admin/slots",
-  adminOffers: () => "/admin/offers",
-  adminBanners: () => "/admin/banners",
-  adminAssignment: () => "/admin/assignment",
-  adminUsers: () => "/admin/users",
-  adminAiLogs: () => "/admin/ai-logs",
+  adminAiLogs: () => "/admin?tab=ai",
+  adminSystem: () => "/admin?tab=system",
+  adminCatalog: (tab: "models" | "prices" | "offers" | "banners" = "models") => `/admin/catalog?tab=${tab}`,
+  adminModelDetail: (id: string) => `/admin/catalog?tab=models&model=${id}`,
+  adminTeam: (tab: "users" | "network" | "routing" | "slots" = "users") => `/admin/team?tab=${tab}`,
 } as const;
 

@@ -26,8 +26,6 @@ export async function createTradeInRequest(
     model: data.model,
     year: data.year,
     km: data.km,
-    fuel: (data.fuel || "Petrol") as any,
-    transmission: (data.transmission || "Manual") as any,
     condition: data.condition,
     notes: data.notes || null,
     photos: (data.images || data.photos || []) as any,

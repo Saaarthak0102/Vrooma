@@ -35,8 +35,8 @@ const rawButtonAllowList = new Set([
 const linkButtonAllowList = new Set([
   "src/components/ui/button.tsx",
   "src/components/layout/SiteHeader.tsx", // Header nav items (links with active/hover pill)
-  "src/components/layout/AdminSidebar.tsx", // Nav menu links
-  "src/components/layout/StaffSidebar.tsx", // Nav menu links
+  "src/components/layout/ConsoleShell.tsx", // Console tab links and sign-out
+  "src/components/grid/DataGrid.tsx", // Sortable headers and the CSV export button
   "src/components/landing/ShowroomsOrbit.tsx", // Pinned location orbit chips
 ]);
 

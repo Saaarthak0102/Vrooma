@@ -1,19 +1,27 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { setBookingOutcomeAction } from "@/server/actions/booking";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { toast } from "sonner";
+import { DataGrid, type GridColumn } from "@/components/grid/DataGrid";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
-import { Booking } from "@/types/domain";
+import { setBookingOutcomeAction } from "@/server/actions/booking";
+import type { Booking } from "@/types/domain";
 
-interface StaffBookingsClientProps {
-  bookings: Booking[];
+export interface BayLoadRow {
+  key: string;
+  workshop: string;
+  /** IST date, YYYY-MM-DD */
+  day: string;
+  capacity: number;
+  booked: number;
 }
 
-export function StaffBookingsClient({ bookings }: StaffBookingsClientProps) {
+const dayFmt = new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", weekday: "short", day: "numeric", month: "short" });
+const timeFmt = new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hour12: true });
+
+export function StaffBookingsClient({ bookings, bayLoad }: { bookings: Booking[]; bayLoad: BayLoadRow[] }) {
   const router = useRouter();
   const [busyId, setBusyId] = useState<string | null>(null);
 
@@ -35,109 +43,151 @@ export function StaffBookingsClient({ bookings }: StaffBookingsClientProps) {
     }
   };
 
+  const rows = useMemo(
+    () => [...bookings].sort((a, b) => a.starts_at.localeCompare(b.starts_at)),
+    [bookings]
+  );
+
+  const bookingColumns: GridColumn<Booking>[] = [
+    {
+      id: "kind",
+      header: "Type",
+      accessor: (b) => (b.kind === "test_drive" ? "Test drive" : "Service"),
+      filter: "select",
+      cell: (b) => (
+        <Badge variant={b.kind === "test_drive" ? "accent" : "secondary"} className="text-[10px]">
+          {b.kind === "test_drive" ? "Test drive" : "Service"}
+        </Badge>
+      ),
+    },
+    {
+      id: "when",
+      header: "When (IST)",
+      accessor: (b) => b.starts_at,
+      cell: (b) => (
+        <span>
+          <span className="font-semibold">{dayFmt.format(new Date(b.starts_at))}</span>{" "}
+          <span className="text-ink-mute">{timeFmt.format(new Date(b.starts_at))}</span>
+        </span>
+      ),
+    },
+    {
+      id: "vehicle",
+      header: "Vehicle",
+      accessor: (b) => b.vehicle_info.model_name + (b.vehicle_info.reg_no ? ` ${b.vehicle_info.reg_no}` : ""),
+      cell: (b) => (
+        <span className="font-bold text-ink">
+          {b.vehicle_info.model_name}
+          {b.address && <span className="ml-2 text-[10px] font-medium text-ink-soft">Home visit · {b.pincode}</span>}
+        </span>
+      ),
+    },
+    { id: "place", header: "Location", accessor: (b) => b.showroom_or_workshop_name, filter: "select" },
+    { id: "owner", header: "Specialist", accessor: (b) => b.consultant_name || "-" },
+    {
+      id: "status",
+      header: "Status",
+      accessor: (b) => b.status,
+      filter: "select",
+      cell: (b) => (
+        <Badge variant={b.status === "confirmed" ? "ok" : "secondary"} className="text-[10px]">
+          {b.status.replace("_", " ")}
+        </Badge>
+      ),
+    },
+    {
+      id: "outcome",
+      header: "Outcome",
+      sortable: false,
+      accessor: () => "",
+      cell: (b) =>
+        b.status === "confirmed" && new Date(b.starts_at).getTime() <= Date.now() ? (
+          <span className="flex gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 px-2.5 text-xs"
+              disabled={busyId === b.id}
+              onClick={() => markOutcome(b.id, "completed")}
+            >
+              Attended
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 px-2.5 text-xs text-danger"
+              disabled={busyId === b.id}
+              onClick={() => markOutcome(b.id, "no_show")}
+            >
+              No-show
+            </Button>
+          </span>
+        ) : (
+          <span className="text-ink-mute">{b.status === "confirmed" ? "Upcoming" : "-"}</span>
+        ),
+    },
+  ];
+
+  const bayColumns: GridColumn<BayLoadRow>[] = [
+    { id: "workshop", header: "Workshop", accessor: (r) => r.workshop, filter: "select" },
+    {
+      id: "day",
+      header: "Day",
+      accessor: (r) => r.day,
+      cell: (r) => <span className="font-semibold">{dayFmt.format(new Date(`${r.day}T12:00:00+05:30`))}</span>,
+    },
+    { id: "booked", header: "Booked", accessor: (r) => r.booked, align: "right" },
+    { id: "capacity", header: "Bay capacity", accessor: (r) => r.capacity, align: "right" },
+    { id: "free", header: "Free", accessor: (r) => Math.max(0, r.capacity - r.booked), align: "right" },
+    {
+      id: "load",
+      header: "Load",
+      accessor: (r) => (r.capacity ? Math.round((r.booked / r.capacity) * 100) : 0),
+      cell: (r) => {
+        const pct = r.capacity ? Math.round((r.booked / r.capacity) * 100) : 0;
+        return (
+          <span className="flex items-center gap-2">
+            <span className="h-1.5 w-20 overflow-hidden rounded-full bg-ink/10" aria-hidden>
+              <span
+                className={`block h-full ${pct >= 90 ? "bg-danger" : pct >= 70 ? "bg-warning" : "bg-success"}`}
+                style={{ width: `${Math.min(100, pct)}%` }}
+              />
+            </span>
+            <span className="tabular-nums">{pct}%</span>
+          </span>
+        );
+      },
+    },
+  ];
+
   return (
-    <div className="space-y-6 max-w-6xl">
-      <div className="pb-4 border-b border-border">
-        <h1 className="text-2xl font-black text-ink">Scheduled Demos & Services</h1>
-        <p className="text-xs text-ink-soft">
-          Live calendar of customer test drives and workshop bay reservations across Hazratganj, Gomti Nagar & Transport Nagar.
-        </p>
-      </div>
+    <div className="space-y-6">
+      <section aria-labelledby="bookings-heading" className="space-y-2">
+        <h1 id="bookings-heading" className="text-lg font-black text-ink">
+          Test drives &amp; service bookings
+        </h1>
+        <DataGrid
+          columns={bookingColumns}
+          rows={rows}
+          rowKey={(b) => b.id}
+          searchPlaceholder="Search vehicle, location, specialist…"
+          exportName="bookings"
+          emptyMessage="No bookings yet."
+        />
+      </section>
 
-      <div className="rounded-xl border border-border bg-white overflow-hidden shadow-card">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="text-xs">Type</TableHead>
-              <TableHead className="text-xs">Vehicle / Model</TableHead>
-              <TableHead className="text-xs">Schedule Time</TableHead>
-              <TableHead className="text-xs">Facility Location</TableHead>
-              <TableHead className="text-xs">Relationship Specialist</TableHead>
-              <TableHead className="text-xs">Status</TableHead>
-              <TableHead className="text-xs text-right">Action</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {bookings.map((b) => {
-              const dateFormatted = new Date(b.starts_at).toLocaleDateString("en-IN", {
-                timeZone: "Asia/Kolkata",
-                weekday: "short",
-                day: "numeric",
-                month: "short",
-              });
-              const timeFormatted = new Date(b.starts_at).toLocaleTimeString("en-IN", {
-                timeZone: "Asia/Kolkata",
-                hour: "2-digit",
-                minute: "2-digit",
-                hour12: true,
-              });
-
-              return (
-                <TableRow key={b.id}>
-                  <TableCell>
-                    <Badge
-                      variant={b.kind === "test_drive" ? "accent" : "secondary"}
-                      className="text-[10px] capitalize"
-                    >
-                      {b.kind === "test_drive" ? "Test Drive" : "Workshop"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-xs font-bold text-ink">
-                    {b.vehicle_info.model_name}
-                    {b.address && (
-                      <span className="block text-[10px] font-medium text-ink-soft mt-0.5">
-                        At customer address: {b.address}, {b.pincode}
-                      </span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-xs">
-                    <span className="font-semibold block">{dateFormatted}</span>
-                    <span className="text-[10px] text-ink-mute">{timeFormatted}</span>
-                  </TableCell>
-                  <TableCell className="text-xs text-ink-soft">
-                    {b.showroom_or_workshop_name}
-                  </TableCell>
-                  <TableCell className="text-xs font-medium text-ink">
-                    {b.consultant_name || "Assigned Specialist"}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={b.status === "confirmed" ? "ok" : "secondary"} className="text-[10px]">
-                      {b.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {b.status === "confirmed" && new Date(b.starts_at).getTime() <= Date.now() ? (
-                      <div className="flex justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-xs h-8"
-                          disabled={busyId === b.id}
-                          onClick={() => markOutcome(b.id, "completed")}
-                        >
-                          Attended
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-xs h-8 text-danger"
-                          disabled={busyId === b.id}
-                          onClick={() => markOutcome(b.id, "no_show")}
-                        >
-                          No-show
-                        </Button>
-                      </div>
-                    ) : (
-                      <span className="text-[11px] text-ink-mute">{b.status === "confirmed" ? "Upcoming" : "-"}</span>
-                    )}
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      </div>
+      <section aria-labelledby="bay-heading" className="space-y-2">
+        <h2 id="bay-heading" className="text-sm font-black text-ink">
+          Workshop bay load · next 7 days
+        </h2>
+        <DataGrid
+          columns={bayColumns}
+          rows={bayLoad}
+          rowKey={(r) => r.key}
+          exportName="bay-load"
+          emptyMessage="No service slots in the next 7 days. An admin can generate the calendar in Team & Network."
+        />
+      </section>
     </div>
   );
 }
-

@@ -56,6 +56,22 @@ const nextConfig: NextConfig = {
     return [
       { source: "/:locale(en|hi)", destination: "/", permanent: true },
       { source: "/:locale(en|hi)/:path*", destination: "/:path*", permanent: true },
+
+      // The staff and admin consoles were consolidated into 2-3 screens per role. Old deep links keep working.
+      // Temporary (302) redirects: they sit behind sign-in and the layout may still evolve.
+      { source: "/admin/models", destination: "/admin/catalog?tab=models", permanent: false },
+      { source: "/admin/models/:id", destination: "/admin/catalog?tab=models&model=:id", permanent: false },
+      { source: "/admin/prices", destination: "/admin/catalog?tab=prices", permanent: false },
+      { source: "/admin/offers", destination: "/admin/catalog?tab=offers", permanent: false },
+      { source: "/admin/banners", destination: "/admin/catalog?tab=banners", permanent: false },
+      { source: "/admin/users", destination: "/admin/team?tab=users", permanent: false },
+      { source: "/admin/showrooms", destination: "/admin/team?tab=network", permanent: false },
+      { source: "/admin/assignment", destination: "/admin/team?tab=routing", permanent: false },
+      { source: "/admin/slots", destination: "/admin/team?tab=slots", permanent: false },
+      { source: "/admin/ai-logs", destination: "/admin?tab=ai", permanent: false },
+      { source: "/admin/system", destination: "/admin?tab=system", permanent: false },
+      { source: "/admin/used-cars", destination: "/staff/stock", permanent: false },
+      { source: "/admin/used-cars/:id", destination: "/staff/stock", permanent: false },
     ];
   },
   async headers() {

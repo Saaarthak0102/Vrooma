@@ -705,6 +705,22 @@ export async function saveBannerAction(payload: {
   }
 }
 
+export async function deleteBannerAction(id: string): Promise<ActionResponse<boolean>> {
+  try {
+    const { profile } = await requireRole("admin");
+    const supabase = createAdminClient();
+
+    const { error } = await supabase.from("banners").delete().eq("id", id);
+    if (error) return errorResponse("INTERNAL_ERROR", error.message);
+
+    await logAudit(profile.id, "banners", id, "DELETE");
+    safeRevalidateTag("banners");
+    return successResponse(true);
+  } catch (err: any) {
+    return errorResponse("INTERNAL_ERROR", err?.message || "Failed to delete banner");
+  }
+}
+
 // ==========================================
 // 5. USER ROLES & ACCESS
 // ==========================================

@@ -126,9 +126,14 @@ export function SignInSheet() {
 
   // Dev persona quick-login
   const isDev = process.env.NODE_ENV === "development";
-  const handleDevRole = (role: Role) => {
-    switchRole(role);
-    closeSignInSheet();
+  const handleDevRole = async (role: Role) => {
+    const result = await switchRole(role);
+    if (!result.ok) {
+      toast.error(result.message);
+      return;
+    }
+    // Real session now exists: resume the action that needed sign-in and refresh server data.
+    await completeSignIn();
   };
 
   return (

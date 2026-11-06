@@ -140,11 +140,15 @@ export default function SignInPage() {
 
   // Dev mode role switcher (Development only)
   const isDev = process.env.NODE_ENV === "development";
-  const handleDevRole = (role: Role) => {
-    switchRole(role);
-    if (role === "admin") router.push("/admin");
-    else if (role === "consultant" || role === "manager") router.push("/staff");
-    else router.push("/dashboard");
+  const handleDevRole = async (role: Role) => {
+    const result = await switchRole(role);
+    if (!result.ok) {
+      toast.error(result.message);
+      return;
+    }
+    // Full page load so middleware and server components see the new session cookies.
+    const target = role === "admin" ? "/admin" : role === "consultant" || role === "manager" ? "/staff" : "/dashboard";
+    window.location.assign(target);
   };
 
   return (

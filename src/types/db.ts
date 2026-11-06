@@ -694,8 +694,6 @@ export interface Database {
           model: string;
           year: number;
           km: number;
-          fuel: FuelType;
-          transmission: TransmissionType;
           condition: string;
           photos: Json;
           notes: string | null;

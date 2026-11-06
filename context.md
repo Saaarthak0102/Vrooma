@@ -158,8 +158,9 @@ Interactive 3D flip cards are deployed exclusively on the three main catalog rou
 | Used Car 140-pt Inspection | Lead Gate (Name/Phone) | Full access | Full access | Full access |
 | Book Test Drive / Service | Auto-creates Lead | Full access | Assisted Booking | Full access |
 | Buyer Dashboard (`/dashboard`) | Redirect to Sign-in | Full access | Full access | Full access |
-| Staff Inbox (`/staff/leads`) | 403 Forbidden | 403 Forbidden | Assigned leads | All leads |
-| Admin CMS (`/admin/*`) | 403 Forbidden | 403 Forbidden | 403 Forbidden | Full access |
+| Lead Desk (`/staff`) and Bookings (`/staff/bookings`) | 403 Forbidden | 403 Forbidden | Assigned leads (consultant) / all (manager, admin) | All leads |
+| Used Stock (`/staff/stock`) | 403 Forbidden | 403 Forbidden | 403 for consultants; managers and admins only | Full access |
+| Admin console (`/admin`, `/admin/catalog`, `/admin/team`) | 403 Forbidden | 403 Forbidden | 403 Forbidden | Admin only |
 | AI Used Price Suggestion | Hidden | Hidden | Hidden | Used-Car Manager only |
 
 ### Master Route Table
@@ -178,8 +179,13 @@ Interactive 3D flip cards are deployed exclusively on the three main catalog rou
 - `/about` & `/contact` — Dealership credentials, history, and contact matrix.
 - `/legal/privacy`, `/legal/terms`, `/legal/data-rights` — DPDP compliance, cookie policy, and data erasure request portal.
 - `/dashboard/*` — Buyer account portal: booked drives, service status, saved vehicles, enquiries, DPDP profile download.
-- `/staff/*` — Sales consultant console: 5-minute SLA countdown desk, AI buyer briefing, discount-guarded reply composer, CSV lead importer.
-- `/admin/*` — Dealer Principal dashboard: ₹2.11 cr leakage monitor, model catalog CMS, city price rule manager, used inventory editor, staff auto-assignment matrix, AI draft audit logs.
+- `/staff` — Lead Desk (all staff): KPI strip, spreadsheet of leads with live SLA timers and inline stage, side panel with AI summary, discount-guarded reply, reassign and activity; CSV import dialog.
+- `/staff/bookings` — test drives and service in one grid, plus workshop bay load for the next 7 days (all staff).
+- `/staff/stock` — Used Stock (manager and admin): stock grid, final price, manager-only price band from past sales, inspection scorecard, audited registration reveal, vehicle intake, and the Trade-ins tab.
+- `/admin` — Overview (admin): live success metrics and the ₹2.11 cr leakage monitor; tabs for the AI reply log and system health.
+- `/admin/catalog` — Models and variants, on-road price rules, offers, banners (tabs).
+- `/admin/team` — People and roles, showrooms and bay capacity, lead routing rules, slot calendar (tabs).
+- Old `/staff/leads*` and `/admin/*` deep links redirect to these screens. Each non-buyer role has at most 3 screens: consultant 2, manager 3, admin 3 of its own.
 
 ### Core Data Model Entities
 

@@ -122,21 +122,22 @@ const PERSONA_PLAN = {
       "/dashboard/bookings", "/dashboard/enquiries", "/dashboard/saved", "/dashboard/profile",
       "/profile", "/book/test-drive", "/book/service", "/trade-in",
     ],
-    walls: [{ path: "/staff/leads", status: 403 }, { path: "/admin", status: 403 }],
+    walls: [{ path: "/staff", status: 403 }, { path: "/admin", status: 403 }],
   },
   consultant: {
-    urls: ["/staff", "/staff/leads", "{LEAD_DETAIL}", "/staff/bookings", "/staff/leads/import"],
-    walls: [{ path: "/admin", status: 403 }, { path: "/admin/prices", status: 403 }],
+    urls: ["/staff", "{LEAD_DETAIL}", "/staff?import=1", "/staff/bookings"],
+    walls: [{ path: "/admin", status: 403 }, { path: "/admin/catalog", status: 403 }, { path: "/staff/stock", status: 403 }],
   },
   manager: {
-    urls: ["/staff", "/staff/leads", "{LEAD_DETAIL}", "/staff/bookings"],
-    walls: [{ path: "/admin", status: 403 }],
+    urls: ["/staff", "{LEAD_DETAIL}", "/staff/bookings", "/staff/stock"],
+    walls: [{ path: "/admin", status: 403 }, { path: "/admin/catalog", status: 403 }],
   },
   admin: {
     urls: [
-      "/admin", "/admin/models", "/admin/prices", "/admin/used-cars", "/admin/slots",
-      "/admin/users", "/admin/system", "/admin/showrooms", "/admin/assignment", "/admin/offers",
-      "/admin/banners", "/admin/ai-logs", "/staff/leads", "{LEAD_DETAIL}",
+      "/admin", "/admin?tab=ai", "/admin?tab=system",
+      "/admin/catalog?tab=models", "/admin/catalog?tab=prices", "/admin/catalog?tab=offers", "/admin/catalog?tab=banners",
+      "/admin/team?tab=users", "/admin/team?tab=network", "/admin/team?tab=routing", "/admin/team?tab=slots",
+      "/staff", "/staff/stock", "/staff/bookings", "{LEAD_DETAIL}",
     ],
     walls: [],
   },
@@ -324,7 +325,7 @@ async function run() {
     }, collector).then(async (r) => { r.path = "/  [open + close chat widget]"; await flushCsp(page, r); return r; }));
 
     // Signed-out role walls
-    for (const p of ["/dashboard", "/staff/leads", "/admin"]) {
+    for (const p of ["/dashboard", "/staff", "/admin"]) {
       const r = await visit(page, baseUrl, { path: p, expectStatus: 200 }, collector);
       const landed = new URL(page.url()).pathname;
       if (!/sign-in/.test(landed)) { r.problems.push(`signed-out visit to ${p} did not redirect to sign-in (landed on ${landed})`); r.verdict = "FAIL"; }
@@ -361,9 +362,9 @@ async function run() {
       const rows = [];
       for (const raw of plan.urls) {
         if (raw === "{LEAD_DETAIL}") {
-          if (!leadId) { rows.push({ path: "/staff/leads/[id]", status: 0, errors: [], pageErrors: [], cspViolations: [], failedRequests: [], badResponses: [], problems: ["no lead visible to this persona to open"], verdict: "FAIL" }); continue; }
-          const r = await visit(page, baseUrl, { path: `/staff/leads/${leadId}` }, collector);
-          r.path = "/staff/leads/[id]";
+          if (!leadId) { rows.push({ path: "/staff?lead=[id]", status: 0, errors: [], pageErrors: [], cspViolations: [], failedRequests: [], badResponses: [], problems: ["no lead visible to this persona to open"], verdict: "FAIL" }); continue; }
+          const r = await visit(page, baseUrl, { path: `/staff?lead=${leadId}` }, collector);
+          r.path = "/staff?lead=[id]";
           await flushCsp(page, r);
           rows.push(r);
           continue;

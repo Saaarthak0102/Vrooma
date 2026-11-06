@@ -1,58 +1,114 @@
 import React from "react";
+import { Car, Clock, PhoneCall, Users } from "lucide-react";
+import { requireRole } from "@/server/auth/viewer";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { getLeakMetricsAction } from "@/server/actions/admin-leak";
 import { LeakCard } from "@/components/admin/LeakCard";
 import { StatCard } from "@/components/dashboard/StatCard";
-import { listLeads } from "@/server/repositories/leads";
-import { Clock, ShieldCheck, Car, PhoneCall } from "lucide-react";
+import { TabLinks, pickTab, type TabLinkItem } from "@/components/layout/TabLinks";
+import { AiLogsPanel } from "@/components/admin/overview/AiLogsPanel";
+import { SystemPanel } from "@/components/admin/overview/SystemPanel";
 
-export default async function AdminDashboardPage() {
-  const leads = await listLeads({ limit: 100 });
-  const contactedInSla = leads.filter((l) => l.first_contacted_at || l.status !== "new").length;
-  const slaPercentage = Math.round((contactedInSla / Math.max(1, leads.length)) * 100);
+export const dynamic = "force-dynamic";
+
+const TABS: TabLinkItem[] = [
+  { id: "overview", label: "Overview" },
+  { id: "ai", label: "AI reply log" },
+  { id: "system", label: "System health" },
+];
+
+const WINDOW_DAYS = 30;
+
+/** Screen 1 for the Dealer Principal: live performance against the brief's three success metrics. */
+export default async function AdminOverviewPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string | string[] }>;
+}) {
+  await requireRole("admin");
+  const tab = pickTab((await searchParams).tab, TABS);
+
+  let body: React.ReactNode;
+
+  if (tab === "ai") {
+    body = <AiLogsPanel />;
+  } else if (tab === "system") {
+    body = <SystemPanel />;
+  } else {
+    const since = new Date(Date.now() - WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString();
+    const admin = createAdminClient();
+
+    const [metrics, testDrives, services, activeStaff] = await Promise.all([
+      getLeakMetricsAction(since),
+      admin
+        .from("bookings")
+        .select("id", { count: "exact", head: true })
+        .eq("kind", "test_drive")
+        .neq("status", "cancelled")
+        .gte("created_at", since),
+      admin
+        .from("bookings")
+        .select("id", { count: "exact", head: true })
+        .eq("kind", "service")
+        .neq("status", "cancelled")
+        .gte("created_at", since),
+      admin.from("profiles").select("id", { count: "exact", head: true }).eq("role", "consultant").eq("is_active", true),
+    ]);
+
+    const m = metrics.ok ? metrics.data : null;
+    const slaPct = m && m.totalLeads > 0 ? Math.round(m.slaCompliancePct) : null;
+
+    body = (
+      <div className="space-y-5">
+        {!metrics.ok && (
+          <p role="alert" className="rounded-lg border border-danger/30 bg-danger/10 p-3 text-xs text-danger">
+            Live lead metrics could not be loaded: {metrics.error?.message}
+          </p>
+        )}
+
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <StatCard
+            label="Answered in 5 min"
+            value={slaPct === null ? "–" : `${slaPct}%`}
+            subtitle={`Target 90% · last ${WINDOW_DAYS} days`}
+            icon={<Clock className="h-4 w-4 text-accent-ink" />}
+          />
+          <StatCard
+            label="Online test drives"
+            value={testDrives.count ?? 0}
+            subtitle={`Target 400 a month · last ${WINDOW_DAYS} days`}
+            icon={<Car className="h-4 w-4 text-accent-ink" />}
+          />
+          <StatCard
+            label="Online service bookings"
+            value={services.count ?? 0}
+            subtitle={`Last ${WINDOW_DAYS} days`}
+            icon={<PhoneCall className="h-4 w-4 text-accent-ink" />}
+          />
+          <StatCard
+            label="Active consultants"
+            value={activeStaff.count ?? 0}
+            subtitle="Receiving routed leads"
+            icon={<Users className="h-4 w-4 text-accent-ink" />}
+          />
+        </div>
+
+        <LeakCard
+          windowDays={WINDOW_DAYS}
+          slaPct={slaPct}
+          totalLeads={m?.totalLeads ?? 0}
+          contactedInSla={m?.contactedInSla ?? 0}
+          lostLeads={m?.lostLeads ?? 0}
+          serviceBookings={services.count ?? 0}
+        />
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-8 max-w-6xl">
-      <div className="pb-4 border-b border-border">
-        <span className="text-xs font-bold uppercase tracking-wider text-accent-ink">
-          Executive Operations Monitor
-        </span>
-        <h1 className="text-2xl sm:text-3xl font-black text-ink mt-0.5">
-          Dealer Principal Executive Cockpit
-        </h1>
-        <p className="text-xs text-ink-soft">
-          Real-time oversight of online lead assignment, conversion metrics, and workshop bay utilisation across Lucknow.
-        </p>
-      </div>
-
-      {/* KPI Row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <StatCard
-          label="5-Min SLA Compliance"
-          value={`${slaPercentage}%`}
-          subtitle="Target: 90% (Brief Goal)"
-          icon={<Clock className="h-4 w-4 text-accent-ink" />}
-        />
-        <StatCard
-          label="Web Test Drives"
-          value="412"
-          subtitle="Target: 400/mo within 6m"
-          icon={<Car className="h-4 w-4 text-accent-ink" />}
-        />
-        <StatCard
-          label="Unanswered Service"
-          value="4.1%"
-          subtitle="Reduced from 20% baseline"
-          icon={<PhoneCall className="h-4 w-4 text-accent-ink" />}
-        />
-        <StatCard
-          label="Active Showrooms"
-          value="3"
-          subtitle="Hazratganj, Gomti, Kanpur"
-          icon={<ShieldCheck className="h-4 w-4" />}
-        />
-      </div>
-
-      {/* The ₹2.11 Crore Leakage Monitor */}
-      <LeakCard />
+    <div className="space-y-4">
+      <TabLinks base="/admin" tabs={TABS} active={tab} />
+      {body}
     </div>
   );
 }

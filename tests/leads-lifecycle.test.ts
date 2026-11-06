@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { containsForbiddenDiscountWords } from "@/lib/validation/discount";
-import { BRIEF_LEAK_CONSTANTS } from "@/server/actions/admin-leak";
+import { BRIEF_LEAK_CONSTANTS } from "@/lib/leak-constants";
 
 describe("Phase 4: Leads Pipeline & Guardrails", () => {
   describe("AI Safety & Discount Guardrail Enforcement", () => {

@@ -85,7 +85,7 @@ export function ModelCreateDialog({
       }
       toast.success(`${name} created. Add its variants next.`);
       onOpenChange(false);
-      router.push(`/admin/models/${res.data.id}`);
+      router.push(`/admin/catalog?tab=models&model=${res.data.id}`);
       router.refresh();
     } finally {
       setSaving(false);

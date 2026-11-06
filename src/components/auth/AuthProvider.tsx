@@ -27,7 +27,7 @@ interface AuthContextType {
   role: Role | null;
   status: "loading" | "authenticated" | "unauthenticated";
   signOut: () => Promise<void>;
-  switchRole: (role: Role) => void;
+  switchRole: (role: Role) => Promise<{ ok: true } | { ok: false; message: string }>;
   updateProfile: (updates: Partial<Profile>) => Promise<Profile>;
   isSignInSheetOpen: boolean;
   openSignInSheet: (onSuccess?: () => void, intent?: Omit<PendingIntent, "createdAt">) => void;
@@ -203,18 +203,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch {}
   }, []);
 
-  const switchRole = useCallback((newRole: Role) => {
-    const target: Profile = {
-      id: `usr-${newRole}-1`,
-      email: `${newRole}@vrooma.in`,
-      full_name: `${newRole.toUpperCase()} Specialist`,
-      role: newRole,
-      locale: "en" as const,
-    };
-    setUser(target);
-    setStatus("authenticated");
-        wasAuthenticatedRef.current = true;
-  }, []);
+  // Dev-only persona switch. It performs a REAL Supabase sign-in through /api/auth/dev-login so the session
+  // cookie exists; a client-only fake profile made the navbar look signed in while /dashboard and /profile
+  // (middleware + requireUser) still redirected to sign-in.
+  const switchRole = useCallback(
+    async (newRole: Role): Promise<{ ok: true } | { ok: false; message: string }> => {
+      try {
+        const res = await fetch("/api/auth/dev-login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ role: newRole }),
+        });
+        if (res.status === 404) {
+          return {
+            ok: false,
+            message: "Dev login is off. Run the dev server with ALLOW_DEV_LOGIN=true and APP_ENV=development.",
+          };
+        }
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          return { ok: false, message: body?.hint || body?.error || "Dev sign-in failed." };
+        }
+        await refreshAuth();
+        return { ok: true };
+      } catch {
+        return { ok: false, message: "Could not reach the dev sign-in endpoint." };
+      }
+    },
+    [refreshAuth]
+  );
 
   const updateProfile = useCallback(
     async (updates: Partial<Profile>): Promise<Profile> => {

@@ -100,7 +100,7 @@ describe("hydration safety of time-dependent staff UI", () => {
     expect(init).toContain("firstContactedAt ?");
   });
 
-  it("LeadRow formats times in a fixed time zone", () => {
-    expect(read("src/components/staff/LeadRow.tsx")).toContain('timeZone: "Asia/Kolkata"');
+  it("the Lead Desk formats times in a fixed time zone", () => {
+    expect(read("src/app/(staff)/staff/LeadDeskClient.tsx")).toContain('timeZone: "Asia/Kolkata"');
   });
 });
