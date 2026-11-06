@@ -12,6 +12,11 @@ import { Menu, X } from "lucide-react";
 import Image from "next/image";
 import { stopLenis, startLenis } from "@/components/motion/SmoothScrollProvider";
 
+// Same glass look for all three header groups (brand, links, actions) once the page is scrolled.
+const GLASS_BASE = "rounded-pill transition-[background,border-color,box-shadow] duration-250";
+const GLASS_SCROLLED = "bg-white/70 border border-border shadow-card backdrop-blur-[10px]";
+const GLASS_TOP = "bg-transparent border border-transparent shadow-none";
+
 export function SiteHeader() {
   const tNav = useTranslations("nav");
   const tCommon = useTranslations("common");
@@ -65,21 +70,25 @@ export function SiteHeader() {
         <Container className="p-0">
           <div className="flex h-14 items-center justify-between px-4 sm:px-6">
             {/* Left: Brand mark + Vrooma wordmark */}
-            <Link href="/" className="flex items-center gap-2.5 group">
-              <div className="h-8 w-8 relative overflow-hidden rounded-md bg-dark flex items-center justify-center p-1">
-                <Image
-                  src="/images/placeholders/logo-mark.svg"
-                  alt="Vrooma"
-                  width={32}
-                  height={32}
-                  className="object-contain"
-                  priority
-                />
-              </div>
-              <span className="font-bold tracking-tight text-lg text-ink">
-                VROOMA
-              </span>
-            </Link>
+            <div
+              className={`flex items-center h-[42px] px-3 ${GLASS_BASE} ${isScrolled ? GLASS_SCROLLED : GLASS_TOP}`}
+            >
+              <Link href="/" className="flex items-center gap-2.5 group">
+                <div className="h-8 w-8 relative overflow-hidden rounded-md bg-dark flex items-center justify-center p-1">
+                  <Image
+                    src="/images/placeholders/logo-mark.svg"
+                    alt="Vrooma"
+                    width={32}
+                    height={32}
+                    className="object-contain"
+                    priority
+                  />
+                </div>
+                <span className="font-bold tracking-tight text-lg text-ink">
+                  VROOMA
+                </span>
+              </Link>
+            </div>
 
             {/* Centre: Nav items (Becomes glass pill after 40px) */}
             <nav
@@ -108,7 +117,9 @@ export function SiteHeader() {
             </nav>
 
             {/* Right: Locale toggle, UserMenu, Dark Pill CTA */}
-            <div className="flex items-center gap-2.5">
+            <div
+              className={`flex items-center h-[42px] gap-2 px-2 ${GLASS_BASE} ${isScrolled ? GLASS_SCROLLED : GLASS_TOP}`}
+            >
               <div className="hidden sm:flex items-center">
                 <LocaleSwitcher />
               </div>
