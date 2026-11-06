@@ -216,6 +216,14 @@ export async function completeProfile(
       return errorResponse("INTERNAL_ERROR", `Failed to complete profile: ${rpcError.message}`);
     }
 
+    // The sign-up form's phone and city only travelled in auth metadata as an onboarding prefill hint.
+    // The profile row is now the source of truth, so remove the duplicate personal data (best effort).
+    try {
+      await supabase.auth.updateUser({ data: { phone: null, city_id: null } });
+    } catch {
+      // Non-fatal: the profile is already saved.
+    }
+
     return successResponse(savedProfile as Profile);
   } catch (err) {
     const appErr = toAppError(err);
