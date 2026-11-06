@@ -1,5 +1,6 @@
 "use client";
 
+import { OTP_LENGTH, sanitizeOtp } from "@/lib/auth-config";
 import React, { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -94,9 +95,9 @@ export default function SignInPage() {
   };
 
   const handleVerify = async (codeToVerify?: string) => {
-    const code = (codeToVerify || otpCode).trim().replace(/\D/g, "");
-    if (code.length !== 6) {
-      toast.error("Please enter the complete 6-digit code.");
+    const code = sanitizeOtp(codeToVerify || otpCode);
+    if (code.length !== OTP_LENGTH) {
+      toast.error(`Please enter the complete ${OTP_LENGTH}-digit code.`);
       return;
     }
 
@@ -125,9 +126,9 @@ export default function SignInPage() {
   };
 
   const handleOtpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value.replace(/\D/g, "").slice(0, 6);
+    const val = sanitizeOtp(e.target.value);
     setOtpCode(val);
-    if (val.length === 6) {
+    if (val.length === OTP_LENGTH) {
       handleVerify(val);
     }
   };
@@ -170,7 +171,7 @@ export default function SignInPage() {
           <p className="text-xs text-ink-soft">
             {step === 1
               ? "Access your dashboard, manage booked demo drives, and view saved cars."
-              : `Enter the 6-digit security code sent to ${email}`}
+              : `Enter the ${OTP_LENGTH}-digit security code sent to ${email}`}
           </p>
         </div>
 
@@ -255,33 +256,32 @@ export default function SignInPage() {
             </p>
           </form>
         ) : (
-          /* Step 2: Enter 6-digit code */
+          /* Step 2: Enter the emailed one-time code */
           <div className="space-y-4 animate-in fade-in">
             <div className="space-y-2 text-center max-w-sm mx-auto">
               <label className="text-xs font-bold uppercase tracking-wider text-ink-mute block">
-                6-Digit Security Code
+                {OTP_LENGTH}-Digit Security Code
               </label>
               <Input
                 ref={otpInputRef}
                 type="text"
                 inputMode="numeric"
                 autoComplete="one-time-code"
-                placeholder="&bull;&bull;&bull;&bull;&bull;&bull;"
+                placeholder={"\u2022".repeat(OTP_LENGTH)}
                 value={otpCode}
                 onChange={handleOtpChange}
                 className="text-center font-mono text-3xl tracking-[0.3em] font-black h-14"
-                maxLength={6}
                 autoFocus
               />
               <p className="text-[11px] text-ink-mute">
-                Valid for 10 minutes. Submits automatically on 6th digit.
+                Valid for 10 minutes. Submits automatically on the last digit.
               </p>
             </div>
 
             <Button
               onClick={() => handleVerify()}
               className="w-full gap-2 font-bold h-11"
-              disabled={loading || otpCode.length !== 6}
+              disabled={loading || otpCode.length !== OTP_LENGTH}
             >
               {loading ? (
                 <>

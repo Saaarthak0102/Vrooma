@@ -1,5 +1,6 @@
 "use client";
 
+import { OTP_LENGTH, sanitizeOtp } from "@/lib/auth-config";
 import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "./AuthProvider";
 import Link from "next/link";
@@ -85,9 +86,9 @@ export function SignInSheet() {
   };
 
   const handleVerify = async (codeToVerify?: string) => {
-    const code = (codeToVerify || otpCode).trim().replace(/\D/g, "");
-    if (code.length !== 6) {
-      toast.error("Please enter the complete 6-digit code.");
+    const code = sanitizeOtp(codeToVerify || otpCode);
+    if (code.length !== OTP_LENGTH) {
+      toast.error(`Please enter the complete ${OTP_LENGTH}-digit code.`);
       return;
     }
 
@@ -117,9 +118,9 @@ export function SignInSheet() {
   };
 
   const handleOtpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value.replace(/\D/g, "").slice(0, 6);
+    const val = sanitizeOtp(e.target.value);
     setOtpCode(val);
-    if (val.length === 6) {
+    if (val.length === OTP_LENGTH) {
       handleVerify(val);
     }
   };
@@ -162,7 +163,7 @@ export function SignInSheet() {
           <SheetDescription className="text-xs text-ink-soft">
             {step === 1
               ? "Sign in with passwordless email OTP to unlock full on-road breakups and booked test drives."
-              : `A 6-digit code was sent to ${email}.`}
+              : `A ${OTP_LENGTH}-digit code was sent to ${email}.`}
           </SheetDescription>
         </SheetHeader>
 
@@ -248,7 +249,7 @@ export function SignInSheet() {
             <div className="space-y-4 animate-in fade-in">
               <div className="space-y-2 text-center">
                 <label className="text-xs font-bold uppercase tracking-wider text-ink-mute block">
-                  6-Digit Verification Code
+                  {OTP_LENGTH}-Digit Verification Code
                 </label>
                 <Input
                   ref={otpInputRef}
@@ -259,7 +260,6 @@ export function SignInSheet() {
                   value={otpCode}
                   onChange={handleOtpChange}
                   className="text-center font-mono text-2xl tracking-[0.25em] font-black h-12"
-                  maxLength={6}
                   autoFocus
                 />
               </div>
@@ -267,7 +267,7 @@ export function SignInSheet() {
               <Button
                 onClick={() => handleVerify()}
                 className="w-full gap-2 font-bold h-10"
-                disabled={loading || otpCode.length !== 6}
+                disabled={loading || otpCode.length !== OTP_LENGTH}
               >
                 {loading ? (
                   <>

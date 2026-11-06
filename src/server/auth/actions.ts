@@ -9,6 +9,7 @@ import { normalizeIndianPhone } from "@/lib/phone";
 import { safeNext } from "./safe-next";
 import { ActionResponse, successResponse, errorResponse, toAppError, AppError } from "@/lib/errors";
 import { env } from "@/lib/env";
+import { OTP_LENGTH } from "@/lib/auth-config";
 import { Profile } from "@/types/domain";
 
 const DPDP_POLICY_VERSION = "2026.1";
@@ -57,7 +58,7 @@ export async function requestOtp(
 
     return successResponse({
       email,
-      message: "A 6-digit verification code has been sent to your email.",
+      message: `A ${OTP_LENGTH}-digit verification code has been sent to your email.`,
     });
   } catch (err) {
     const appErr = toAppError(err);
@@ -66,7 +67,7 @@ export async function requestOtp(
 }
 
 /**
- * Verifies the 6-digit OTP code submitted by the user.
+ * Verifies the emailed one-time code submitted by the user (length: OTP_LENGTH).
  */
 export async function verifyOtp(
   rawEmail: string,
@@ -76,8 +77,8 @@ export async function verifyOtp(
     const email = normalizeEmail(rawEmail);
     const token = rawToken.trim().replace(/\D/g, "");
 
-    if (token.length !== 6) {
-      return errorResponse("INVALID_CODE", "Please enter the complete 6-digit verification code.");
+    if (token.length !== OTP_LENGTH) {
+      return errorResponse("INVALID_CODE", `Please enter the complete ${OTP_LENGTH}-digit verification code.`);
     }
 
     const supabase = await createClient();

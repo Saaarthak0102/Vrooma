@@ -7,3 +7,7 @@ schemas = ["public"]
 [db]
 port = 54322
 
+
+[auth.email]
+# Must equal NEXT_PUBLIC_AUTH_OTP_LENGTH (src/lib/auth-config.ts) and the hosted project setting.
+otp_length = 8
