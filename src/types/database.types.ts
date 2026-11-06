@@ -2159,34 +2159,6 @@ export type Database = {
         }
       }
       request_account_deletion: { Args: never; Returns: string }
-      reschedule_booking: {
-        Args: { p_booking_id: string; p_new_slot_id: string }
-        Returns: {
-          cancel_reason: string | null
-          cancelled_at: string | null
-          consent_id: string | null
-          created_at: string
-          id: string
-          idempotency_key: string | null
-          kind: Database["public"]["Enums"]["booking_kind_type"]
-          lead_id: string | null
-          notes: string | null
-          ref: string
-          rescheduled_from: string | null
-          service_type_id: string | null
-          slot_id: string
-          status: Database["public"]["Enums"]["booking_status_type"]
-          updated_at: string
-          user_id: string | null
-          vehicle_info: Json
-        }
-        SetofOptions: {
-          from: "*"
-          to: "bookings"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
       resolve_price_rule: {
         Args: {
           p_city_id: string

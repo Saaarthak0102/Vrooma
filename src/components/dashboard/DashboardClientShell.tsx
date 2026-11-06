@@ -3,13 +3,13 @@
 import React, { useRef, useState, useEffect } from "react";
 import { useQueryState, parseAsStringEnum } from "nuqs";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
-import { Booking, Lead, SavedVehicleRecord } from "@/types/domain";
+import { Booking, ChatConversationSummary, SavedVehicleRecord } from "@/types/domain";
 import { DashboardGreeting } from "./DashboardGreeting";
 import { DashboardCountStrip } from "./DashboardCountStrip";
 import { NextAppointmentCard } from "./NextAppointmentCard";
 import { SavedVehiclesCard } from "./SavedVehiclesCard";
 import { DashboardActionTile } from "./DashboardActionTile";
-import { RecentEnquiriesPanel } from "./RecentEnquiriesPanel";
+import { RecentChatsPanel } from "./RecentChatsPanel";
 import { DashboardViewAllPanel } from "./DashboardViewAllPanel";
 import { DashboardMobileSheet } from "./DashboardMobileSheet";
 import { useTranslations } from "next-intl";
@@ -24,20 +24,21 @@ export type DashboardView = (typeof validViews)[number];
 export interface DashboardClientShellProps {
   initialBookings: Booking[];
   initialSavedVehicles: SavedVehicleRecord[];
-  initialEnquiries: Lead[];
+  initialChats: ChatConversationSummary[];
 }
 
 export function DashboardClientShell({
   initialBookings,
   initialSavedVehicles,
-  initialEnquiries,
+  initialChats,
 }: DashboardClientShellProps) {
   const t = useTranslations("dashboard");
 
   // Local state for live mutations
-  const [bookings] = useState<Booking[]>(initialBookings);
+  // Bookings come straight from the server props so router.refresh() after a cancel updates every view.
+  const bookings = initialBookings;
   const [savedVehicles, setSavedVehicles] = useState<SavedVehicleRecord[]>(initialSavedVehicles);
-  const [enquiries] = useState<Lead[]>(initialEnquiries);
+  const chats = initialChats;
 
   // URL state with nuqs
   const [view, setView] = useQueryState(
@@ -110,7 +111,7 @@ export function DashboardClientShell({
   // Find next upcoming appointment
   const now = new Date().getTime();
   const sortedUpcoming = [...bookings]
-    .filter((b) => new Date(b.starts_at).getTime() >= now)
+    .filter((b) => b.status !== "cancelled" && new Date(b.starts_at).getTime() >= now)
     .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());
   const nextBooking = sortedUpcoming[0] || null;
 
@@ -137,7 +138,7 @@ export function DashboardClientShell({
             <DashboardCountStrip
               bookingsCount={sortedUpcoming.length}
               savedCount={savedVehicles.length}
-              enquiriesCount={enquiries.length}
+              chatsCount={chats.length}
               activeView={isOpen ? view : null}
               onSelectView={handleOpenView}
             />
@@ -148,7 +149,7 @@ export function DashboardClientShell({
               <NextAppointmentCard
                 bookings={bookings}
                 upcomingBookings={sortedUpcoming.slice(0, 2)}
-                totalBookingsCount={bookings.length}
+                totalBookingsCount={sortedUpcoming.length}
                 onViewAll={(el) => handleOpenView("bookings", el)}
                 style={{ "--i": 1 } as React.CSSProperties}
               />
@@ -189,8 +190,8 @@ export function DashboardClientShell({
                 />
 
                 {/* 4.6 Recent Enquiries (Cols 6-12, Rows 3-4 on Desktop) */}
-                <RecentEnquiriesPanel
-                  enquiries={enquiries}
+                <RecentChatsPanel
+                  chats={chats}
                   onViewAll={(el) => handleOpenView("enquiries", el)}
                   className="bento-enquiries"
                   style={{ "--i": 5 } as React.CSSProperties}
@@ -211,7 +212,7 @@ export function DashboardClientShell({
               overviewElement={overviewRef.current}
               bookings={bookings}
               savedVehicles={savedVehicles}
-              enquiries={enquiries}
+              chats={chats}
               onRemoveSaved={handleRemoveSaved}
               isInitialParam={isInitialParamRef.current}
             />
@@ -227,7 +228,7 @@ export function DashboardClientShell({
             onClose={handleClose}
             bookings={bookings}
             savedVehicles={savedVehicles}
-            enquiries={enquiries}
+            chats={chats}
             onRemoveSaved={handleRemoveSaved}
           />
         )}

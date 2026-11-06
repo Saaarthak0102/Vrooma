@@ -18,6 +18,7 @@ import { MapPin, User, Calendar, Plus, Car, Wrench } from "lucide-react";
 import { cancelBookingAction } from "@/server/actions/booking";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { cn } from "@/lib/utils";
 
 export interface NextAppointmentCardProps {
@@ -41,6 +42,8 @@ function AppointmentSubCard({
   t,
   onViewBooking,
 }: AppointmentSubCardProps) {
+  const router = useRouter();
+  const confirm = useConfirm();
   const dateDetails = formatAppointmentDate(booking.starts_at);
   const isTestDrive = booking.kind === "test_drive";
   const title = isTestDrive
@@ -121,12 +124,18 @@ function AppointmentSubCard({
           size="sm"
           className="flex-1 text-xs h-8 text-danger hover:bg-danger/10"
           onClick={async () => {
-            if (!confirm("Are you sure you want to cancel this booking?")) return;
+            const ok = await confirm({
+              title: "Cancel this booking?",
+              description: "The slot will be released and this can't be undone.",
+              confirmLabel: "Cancel booking",
+              destructive: true,
+            });
+            if (!ok) return;
             try {
               const res = await cancelBookingAction(booking.id);
               if (res.ok) {
                 toast.success("Booking cancelled.");
-                window.location.reload();
+                router.refresh();
               } else {
                 toast.error(res.error.message || "Failed to cancel.");
               }
@@ -160,7 +169,7 @@ export function NextAppointmentCard({
   const now = new Date().getTime();
   const candidateList = bookings || (booking ? [booking] : []);
   const confirmedUpcoming = candidateList
-    .filter((b) => b.status === "confirmed" && new Date(b.starts_at).getTime() >= now)
+    .filter((b) => b.status !== "cancelled" && new Date(b.starts_at).getTime() >= now)
     .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());
 
   const displayList = upcomingBookings || confirmedUpcoming.slice(0, 2);

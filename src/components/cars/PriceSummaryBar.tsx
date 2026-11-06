@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
+import { useSavedModel } from "@/components/cars/useSavedModel";
 import { formatINR } from "@/lib/money";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -26,14 +27,7 @@ export function PriceSummaryBar({
 }: PriceSummaryBarProps) {
   const router = useRouter();
   const { requireAuth } = useRequireAuth();
-  const [saved, setSaved] = useState(false);
-
-  const handleSave = () => {
-    requireAuth(() => {
-      setSaved(!saved);
-      toast.success(saved ? "Removed from saved vehicles" : "Vehicle saved to your account");
-    });
-  };
+  const { saved, pending, toggle: handleSave } = useSavedModel(modelSlug);
 
   const handleOffer = () => {
     requireAuth(() => {
@@ -68,6 +62,7 @@ export function PriceSummaryBar({
             variant="ghost"
             size="sm"
             onClick={handleSave}
+            disabled={pending}
             className={`gap-1.5 text-xs hidden md:flex ${saved ? "text-accent-ink" : "text-ink-soft"}`}
           >
             {saved ? <Check className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}

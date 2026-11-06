@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { Booking, Lead, SavedVehicleRecord } from "@/types/domain";
+import { Booking, ChatConversationSummary, SavedVehicleRecord } from "@/types/domain";
 import { DashboardPanelContent } from "./DashboardPanelContent";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
@@ -15,7 +15,7 @@ export interface DashboardMobileSheetProps {
   onClose: () => void;
   bookings: Booking[];
   savedVehicles: SavedVehicleRecord[];
-  enquiries: Lead[];
+  chats: ChatConversationSummary[];
   onRemoveSaved?: (id: string) => void;
 }
 
@@ -26,7 +26,7 @@ export function DashboardMobileSheet({
   onClose,
   bookings,
   savedVehicles,
-  enquiries,
+  chats,
   onRemoveSaved,
 }: DashboardMobileSheetProps) {
   return (
@@ -76,7 +76,7 @@ export function DashboardMobileSheet({
               onTabChange={onTabChange}
               bookings={bookings}
               savedVehicles={savedVehicles}
-              enquiries={enquiries}
+              chats={chats}
               onRemoveSaved={onRemoveSaved}
               isSheet
             />

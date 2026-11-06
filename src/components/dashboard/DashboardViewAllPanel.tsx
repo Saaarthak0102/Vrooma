@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { Booking, Lead, SavedVehicleRecord } from "@/types/domain";
+import { Booking, ChatConversationSummary, SavedVehicleRecord } from "@/types/domain";
 import { DashboardPanelContent } from "./DashboardPanelContent";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
@@ -17,7 +17,7 @@ export interface DashboardViewAllPanelProps {
   overviewElement: HTMLElement | null;
   bookings: Booking[];
   savedVehicles: SavedVehicleRecord[];
-  enquiries: Lead[];
+  chats: ChatConversationSummary[];
   onRemoveSaved?: (id: string) => void;
   isInitialParam?: boolean;
 }
@@ -32,7 +32,7 @@ export function DashboardViewAllPanel({
   overviewElement,
   bookings,
   savedVehicles,
-  enquiries,
+  chats,
   onRemoveSaved,
   isInitialParam = false,
 }: DashboardViewAllPanelProps) {
@@ -261,7 +261,7 @@ export function DashboardViewAllPanel({
             ? "All Appointments & Test Drives"
             : activeTab === "saved"
             ? "Saved Vehicles Wishlist"
-            : "Vehicle Inquiries & Leads"}
+            : "Support Chats"}
         </h2>
 
         <Button
@@ -283,7 +283,7 @@ export function DashboardViewAllPanel({
           onTabChange={onTabChange}
           bookings={bookings}
           savedVehicles={savedVehicles}
-          enquiries={enquiries}
+          chats={chats}
           onRemoveSaved={onRemoveSaved}
         />
       </div>

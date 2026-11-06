@@ -350,56 +350,6 @@ export async function cancelBookingAction(
 }
 
 /**
- * Reschedule an existing appointment to a new slot in an atomic transaction.
- */
-export async function rescheduleBookingAction(
-  bookingId: string,
-  newSlotId: string
-): Promise<ActionResponse<{ newBookingId: string; ref: string }>> {
-  try {
-    const { user, profile } = await requireCompleteProfile();
-    const admin = createAdminClient();
-    const userClient = await createClient();
-
-    const { data: newBooking, error: reschedErr } = await (userClient || admin).rpc("reschedule_booking", {
-      p_booking_id: bookingId,
-      p_new_slot_id: newSlotId,
-    });
-
-    if (reschedErr) {
-      const msg = reschedErr.message || "";
-      if (reschedErr.code === "VR001" || msg.includes("unavailable or fully booked")) {
-        return errorResponse("CONFLICT", "Target appointment slot is unavailable or fully booked.");
-      }
-      return errorResponse("INTERNAL_ERROR", `Reschedule failed: ${msg}`);
-    }
-
-    // Queue outbox reschedule notice
-    try {
-      const dest = profile.email || profile.phone || "customer@vrooma.in";
-      const channel = profile.email ? "email" : "whatsapp";
-      await admin.from("messages_outbox").insert({
-        channel,
-        to_address: dest,
-        template: "booking_reschedule",
-        body: `Your appointment has been rescheduled. New booking reference: ${newBooking.ref}.`,
-        idempotency_key: `outbox_resched_${newBooking.id}`,
-        status: "pending",
-      });
-    } catch (err: any) {
-      console.warn(`[booking] Outbox reschedule write error: ${err?.message}`);
-    }
-
-    return successResponse({
-      newBookingId: newBooking.id,
-      ref: newBooking.ref,
-    });
-  } catch (err: any) {
-    return errorResponse("INTERNAL_ERROR", err?.message || "Rescheduling failed.");
-  }
-}
-
-/**
  * Admin action: Generate future slots for test drives and service workshop bays.
  */
 export async function generateSlotsAction(

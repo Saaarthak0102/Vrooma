@@ -325,3 +325,13 @@ export interface SavedVehicleRecord {
 
 export type { PriceLine, OnRoadBreakup };
 
+
+/** A buyer's support-chat conversation, as listed on the dashboard. */
+export interface ChatConversationSummary {
+  id: string;
+  title: string;
+  /** Latest message text, for the one-line preview. */
+  snippet: string;
+  messageCount: number;
+  lastMessageAt: string;
+}

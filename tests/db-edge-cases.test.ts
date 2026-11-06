@@ -11,7 +11,7 @@
  *   6. Profile role escalation prevention (column privileges + RLS WITH CHECK).
  *   7. Last administrator demotion protection (VR005).
  *   8. Booking cancellation idempotency & capacity replenishment.
- *   9. Rescheduling atomicity (failed new booking rolls back and preserves old).
+ *   9. (Rescheduling was removed from the product; bookings can only be cancelled.)
  *   10. DPDP account erasure & anonymisation (PII scrubbed, business ledger retained).
  *   11. Idempotent slot generation (ON CONFLICT DO NOTHING).
  */
@@ -108,13 +108,6 @@ describe("Phase 2: Database Edge Cases & Concurrency Guarantees", () => {
     expect(rpcSql).toMatch(/FUNCTION public\.cancel_booking/);
     expect(rpcSql).toMatch(/IF v_booking\.status = 'cancelled' THEN[\s\S]*?RETURN v_booking;/);
     expect(rpcSql).toMatch(/UPDATE public\.slots\s+SET booked_count = (pg_catalog\.)?GREATEST\(0, booked_count - 1\)/i);
-  });
-
-  it("Edge Case 13: Reschedule to a full slot executes atomically and preserves old booking", () => {
-    expect(rpcSql).toMatch(/FUNCTION public\.reschedule_booking/);
-    // Books new slot first; if new slot fails (VR001), transaction rolls back, leaving old booking intact
-    expect(rpcSql).toMatch(/public\.book_slot\(/);
-    expect(rpcSql).toMatch(/public\.cancel_booking\(/);
   });
 
   it("Edge Case 14: Deleting a user anonymises PII while retaining business and audit integrity", () => {

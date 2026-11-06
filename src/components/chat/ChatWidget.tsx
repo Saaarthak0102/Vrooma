@@ -17,6 +17,8 @@ export function ChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const [input, setInput] = useState("");
+  const [sending, setSending] = useState(false);
+  const [conversationId, setConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
@@ -54,9 +56,9 @@ export function ChatWidget() {
     "Show certified used cars under ₹8 lakh",
   ];
 
-  const handleSend = (textToSend?: string) => {
-    const text = textToSend || input;
-    if (!text.trim()) return;
+  const handleSend = async (textToSend?: string) => {
+    const text = (textToSend || input).trim();
+    if (!text || sending) return;
 
     const userMsg: Message = {
       id: `u-${Date.now()}`,
@@ -67,23 +69,34 @@ export function ChatWidget() {
 
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
+    setSending(true);
 
-    setTimeout(() => {
-      let reply = "Thank you for reaching out! Our Lucknow showroom consultant is available right now. Would you like to lock a test drive slot or view our full price breakup?";
-      if (text.toLowerCase().includes("model h") || text.toLowerCase().includes("price")) {
-        reply = "Official on-road prices come from our live price table and include the full road tax, insurance and charges breakup. Open the model page and sign in to see the exact figure for your city.";
-      } else if (text.toLowerCase().includes("used") || text.toLowerCase().includes("8 lakh")) {
-        reply = "We currently have certified used cars like UC-1182 (Model C VX Diesel 2022) and UC-1190 (Model S LX 2021) available in Hazratganj, both 140-point inspected!";
+    let reply = "Sorry, I couldn't reach the desk just now. Please try again in a moment.";
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text, conversationId }),
+      });
+      const json = await res.json();
+      if (json?.ok) {
+        reply = json.data.reply;
+        // Signed-in buyers get a conversation id back; later messages join the same chat.
+        if (json.data.conversationId) setConversationId(json.data.conversationId);
       }
+    } catch {
+      // keep the fallback reply
+    } finally {
+      setSending(false);
+    }
 
-      const botMsg: Message = {
-        id: `b-${Date.now()}`,
-        sender: "bot",
-        text: reply,
-        time: "Just now",
-      };
-      setMessages((prev) => [...prev, botMsg]);
-    }, 600);
+    const botMsg: Message = {
+      id: `b-${Date.now()}`,
+      sender: "bot",
+      text: reply,
+      time: "Just now",
+    };
+    setMessages((prev) => [...prev, botMsg]);
   };
 
   if (!isVisible && !isOpen) {
@@ -207,7 +220,7 @@ export function ChatWidget() {
               variant="primary"
               size="icon"
               shape="pill"
-              disabled={!input.trim()}
+              disabled={!input.trim() || sending}
               className="h-9 w-9 shrink-0"
               aria-label="Send Message"
             >

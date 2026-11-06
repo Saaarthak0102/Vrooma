@@ -282,7 +282,7 @@ vrooma/
 | `/legal/privacy` `/legal/terms` `/legal/data-rights` | Public | DPDP-aligned text; data-rights page has opt-out and "delete my data" request form |
 | `/sign-in` | Public | Magic-link + Google UI (mock session now), consent notice; also rendered as `SignInSheet` |
 | `/dashboard` | Buyer | Welcome, next booking, saved cars, recent enquiries, quick actions |
-| `/dashboard/bookings` | Buyer | Upcoming/past test drives and services, cancel/reschedule UI |
+| `/dashboard/bookings` | Buyer | Upcoming/past test drives and services, cancel UI |
 | `/dashboard/saved` | Buyer | Saved new and used cars |
 | `/dashboard/enquiries` | Buyer | My leads with status and assigned consultant name |
 | `/dashboard/profile` | Buyer | Name, phone, city, language, consent toggles, delete account |

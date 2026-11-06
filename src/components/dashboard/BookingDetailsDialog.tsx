@@ -15,6 +15,7 @@ import { bookingRef } from "@/lib/booking-ref";
 import { formatAppointmentDate } from "@/lib/date";
 import { cancelBookingAction } from "@/server/actions/booking";
 import { toast } from "sonner";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import {
@@ -40,12 +41,19 @@ export function BookingDetailsDialog({
   onOpenChange,
 }: BookingDetailsDialogProps) {
   const router = useRouter();
+  const confirm = useConfirm();
   const t = useTranslations("dashboard");
 
   if (!booking) return null;
 
   const handleCancel = async () => {
-    if (!confirm("Are you sure you want to cancel this booking?")) return;
+    const ok = await confirm({
+      title: "Cancel this booking?",
+      description: "The slot will be released and this can't be undone.",
+      confirmLabel: "Cancel booking",
+      destructive: true,
+    });
+    if (!ok) return;
     try {
       const res = await cancelBookingAction(booking.id);
       if (res.ok) {
@@ -57,16 +65,6 @@ export function BookingDetailsDialog({
       }
     } catch {
       toast.error("Failed to cancel.");
-    }
-  };
-
-  const handleReschedule = () => {
-    onOpenChange(false);
-    toast.info("Please select a new appointment slot.");
-    if (booking.kind === "test_drive") {
-      router.push("/book/test-drive");
-    } else {
-      router.push("/book/service");
     }
   };
 
@@ -211,14 +209,6 @@ export function BookingDetailsDialog({
         {/* Modal Actions */}
         <div className="pt-3 border-t border-border flex flex-wrap sm:flex-nowrap gap-2 items-center justify-between">
           <div className="flex gap-2 w-full sm:w-auto">
-            <Button
-              variant="secondary"
-              size="sm"
-              className="text-xs flex-1 sm:flex-initial"
-              onClick={handleReschedule}
-            >
-              {t("reschedule")}
-            </Button>
             <Button
               variant="outline"
               size="sm"

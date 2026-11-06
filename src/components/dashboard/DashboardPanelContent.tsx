@@ -5,15 +5,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Booking, Lead, Model, UsedCar, SavedVehicleRecord } from "@/types/domain";
+import { Booking, ChatConversationSummary, Model, UsedCar, SavedVehicleRecord } from "@/types/domain";
 import { bookingRef } from "@/lib/booking-ref";
 import { formatAppointmentDate, formatEnquiryDate } from "@/lib/date";
 import { formatINR } from "@/lib/money";
-import { BuyerStatusPill } from "./BuyerStatusPill";
 import { Button } from "@/components/ui/button";
-import { notWired } from "@/components/dev/NotWired";
 import { cancelBookingAction } from "@/server/actions/booking";
 import { toast } from "sonner";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import {
   Calendar,
   Bookmark,
@@ -34,7 +33,7 @@ export interface DashboardPanelContentProps {
   onTabChange: (tab: "bookings" | "saved" | "enquiries") => void;
   bookings: Booking[];
   savedVehicles: SavedVehicleRecord[];
-  enquiries: Lead[];
+  chats: ChatConversationSummary[];
   onRemoveSaved?: (id: string) => void;
   isSheet?: boolean;
 }
@@ -44,22 +43,24 @@ export function DashboardPanelContent({
   onTabChange,
   bookings,
   savedVehicles,
-  enquiries,
+  chats,
   onRemoveSaved,
   isSheet = false,
 }: DashboardPanelContentProps) {
   const router = useRouter();
+  const confirm = useConfirm();
   const t = useTranslations("dashboard");
   const tablistId = useId();
 
   // Internal tab sub-filters
   const [bookingSubTab, setBookingSubTab] = useState<"upcoming" | "past">("upcoming");
   const [savedFilter, setSavedFilter] = useState<"all" | "model" | "used">("all");
-  const [enquiryStatusFilter, setEnquiryStatusFilter] = useState<string>("all");
 
   const now = new Date();
-  const upcomingBookings = bookings.filter((b) => new Date(b.starts_at).getTime() >= now.getTime());
-  const pastBookings = bookings.filter((b) => new Date(b.starts_at).getTime() < now.getTime());
+  const isLive = (b: Booking) =>
+    b.status !== "cancelled" && new Date(b.starts_at).getTime() >= now.getTime();
+  const upcomingBookings = bookings.filter(isLive);
+  const pastBookings = bookings.filter((b) => !isLive(b));
 
   // Has both new and used vehicles?
   const hasModels = savedVehicles.some((s) => s.type === "model");
@@ -72,24 +73,15 @@ export function DashboardPanelContent({
     return true;
   });
 
-  // Unique statuses for enquiries filter
-  const uniqueEnquiryStatuses = Array.from(new Set(enquiries.map((e) => e.status)));
-  const showEnquiryStatusFilter = uniqueEnquiryStatuses.length > 1;
-
-  const filteredEnquiries = enquiries.filter((e) => {
-    if (enquiryStatusFilter === "all") return true;
-    return e.status === enquiryStatusFilter;
-  });
-
   // Cap at 50 items
   const cappedBookings = (bookingSubTab === "upcoming" ? upcomingBookings : pastBookings).slice(0, 50);
   const cappedSaved = filteredSaved.slice(0, 50);
-  const cappedEnquiries = filteredEnquiries.slice(0, 50);
+  const cappedChats = chats.slice(0, 50);
 
   const tabs: Array<{ key: "bookings" | "saved" | "enquiries"; label: string; count: number }> = [
     { key: "bookings", label: t("tabBookings"), count: bookings.length },
     { key: "saved", label: t("tabSaved"), count: savedVehicles.length },
-    { key: "enquiries", label: t("tabEnquiries"), count: enquiries.length },
+    { key: "enquiries", label: t("tabEnquiries"), count: chats.length },
   ];
 
   const handleKeyDown = (e: React.KeyboardEvent, currentKey: "bookings" | "saved" | "enquiries") => {
@@ -271,26 +263,17 @@ export function DashboardPanelContent({
                       {isUpcoming && (
                         <div className="pt-2 border-t border-border flex gap-2">
                           <Button
-                            variant="secondary"
-                            size="sm"
-                            className="w-1/2 text-xs"
-                            onClick={() => {
-                              toast.info("Please select a new appointment slot.");
-                              if (b.kind === "test_drive") {
-                                router.push("/book/test-drive");
-                              } else {
-                                router.push("/book/service");
-                              }
-                            }}
-                          >
-                            {t("reschedule")}
-                          </Button>
-                          <Button
                             variant="outline"
                             size="sm"
-                            className="w-1/2 text-xs text-danger hover:bg-danger/10"
+                            className="w-full text-xs text-danger hover:bg-danger/10"
                             onClick={async () => {
-                              if (!confirm("Are you sure you want to cancel this booking?")) return;
+                              const ok = await confirm({
+                                title: "Cancel this booking?",
+                                description: "The slot will be released and this can't be undone.",
+                                confirmLabel: "Cancel booking",
+                                destructive: true,
+                              });
+                              if (!ok) return;
                               try {
                                 const res = await cancelBookingAction(b.id);
                                 if (res.ok) {
@@ -486,7 +469,7 @@ export function DashboardPanelContent({
           </div>
         )}
 
-        {/* ===================== TAB 3: ENQUIRIES ===================== */}
+        {/* ===================== TAB 3: SUPPORT CHATS ===================== */}
         {activeTab === "enquiries" && (
           <div
             role="tabpanel"
@@ -494,102 +477,26 @@ export function DashboardPanelContent({
             aria-labelledby="tab-enquiries"
             className="space-y-4"
           >
-            {/* Status filter if > 1 status exists */}
-            {showEnquiryStatusFilter && (
-              <div className="flex items-center gap-1.5 pb-2 border-b border-border overflow-x-auto">
-                <button
-                  type="button"
-                  onClick={() => setEnquiryStatusFilter("all")}
-                  className={cn(
-                    "px-3 py-1 rounded-full text-xs font-semibold shrink-0 transition-colors",
-                    enquiryStatusFilter === "all"
-                      ? "bg-dark text-white"
-                      : "bg-stone-100 text-ink-soft hover:text-ink"
-                  )}
-                >
-                  {t("filterAllStatus")} ({enquiries.length})
-                </button>
-                {uniqueEnquiryStatuses.map((st) => (
-                  <button
-                    key={st}
-                    type="button"
-                    onClick={() => setEnquiryStatusFilter(st)}
-                    className={cn(
-                      "px-3 py-1 rounded-full text-xs font-semibold shrink-0 transition-colors capitalize",
-                      enquiryStatusFilter === st
-                        ? "bg-dark text-white"
-                        : "bg-stone-100 text-ink-soft hover:text-ink"
-                    )}
-                  >
-                    {st.replace(/_/g, " ")} ({enquiries.filter((e) => e.status === st).length})
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {cappedEnquiries.length === 0 ? (
+            {cappedChats.length === 0 ? (
               <div className="py-12 text-center flex flex-col items-center justify-center space-y-3">
                 <MessageSquare className="h-8 w-8 text-ink-mute" />
-                <p className="text-sm text-ink-soft">{t("noEnquiriesTitle")}</p>
-                <Button asChild variant="primary" size="sm" className="text-xs">
-                  <Link href="/cars">{t("browseCars")}</Link>
-                </Button>
+                <p className="text-sm text-ink-soft">{t("noChats")}</p>
               </div>
             ) : (
-              <div
-                className={cn(
-                  "grid gap-3.5",
-                  isSheet ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-2"
-                )}
-              >
-                {cappedEnquiries.map((lead) => {
-                  const dateStr = formatEnquiryDate(lead.created_at);
-                  const specialistName = lead.assigned_consultant_name || "Assigned under 5 min";
-                  const vehicleHref = lead.used_car_id
-                    ? `/used-cars/${lead.used_car_id}`
-                    : lead.model_id
-                    ? `/cars/${lead.model_id}`
-                    : null;
-
-                  return (
-                    <article
-                      key={lead.id}
-                      className="rounded-[14px] border border-border bg-white p-4 shadow-sm hover:border-black/20 transition-colors flex flex-col justify-between space-y-2.5"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2 truncate">
-                          <h4 className="font-bold text-sm text-ink truncate leading-tight">
-                            {lead.model_name || "Vehicle Quotation Request"}
-                          </h4>
-                          {vehicleHref && (
-                            <Link
-                              href={vehicleHref as any}
-                              className="text-ink-mute hover:text-accent-ink"
-                              title="View car page"
-                            >
-                              <ExternalLink className="h-3.5 w-3.5" />
-                            </Link>
-                          )}
-                        </div>
-                        <BuyerStatusPill status={lead.status} />
-                      </div>
-
-                      {/* Full message, not clamped */}
-                      <p className="text-xs text-ink-soft whitespace-pre-wrap leading-relaxed">
-                        {lead.message || "Requested showroom quotation and specs"}
-                      </p>
-
-                      <div className="pt-2 border-t border-border flex items-center justify-between text-[11px] text-ink-mute">
-                        <span>{dateStr}</span>
-                        <span>
-                          {t("specialist")}:{" "}
-                          <strong className="font-medium text-ink-soft">{specialistName}</strong>
-                        </span>
-                      </div>
-                    </article>
-                  );
-                })}
-              </div>
+              <ul className="divide-y divide-border border-y border-border">
+                {cappedChats.map((chat) => (
+                  <li key={chat.id} className="flex items-center gap-3 py-3 min-w-0 text-xs">
+                    <MessageSquare className="h-4 w-4 text-ink-mute shrink-0" />
+                    <span className="font-bold text-sm text-ink truncate shrink-0 max-w-[35%]">
+                      {chat.title}
+                    </span>
+                    <span className="text-ink-soft truncate flex-1 min-w-0">{chat.snippet}</span>
+                    <span className="text-ink-mute shrink-0 tabular-nums">
+                      {formatEnquiryDate(chat.lastMessageAt)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
             )}
           </div>
         )}

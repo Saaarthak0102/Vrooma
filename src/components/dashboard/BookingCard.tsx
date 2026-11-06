@@ -9,9 +9,11 @@ import { Calendar, MapPin, User, Car, Clock, Loader2 } from "lucide-react";
 import { bookingRef } from "@/lib/booking-ref";
 import { cancelBookingAction } from "@/server/actions/booking";
 import { toast } from "sonner";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 export function BookingCard({ booking }: { booking: Booking }) {
   const router = useRouter();
+  const confirm = useConfirm();
   const [cancelling, setCancelling] = useState(false);
 
   const isTestDrive = booking.kind === "test_drive";
@@ -31,7 +33,13 @@ export function BookingCard({ booking }: { booking: Booking }) {
   });
 
   const handleCancel = async () => {
-    if (!confirm("Are you sure you want to cancel this booking? The slot will be released.")) return;
+    const ok = await confirm({
+      title: "Cancel this booking?",
+      description: "The slot will be released and this can't be undone.",
+      confirmLabel: "Cancel booking",
+      destructive: true,
+    });
+    if (!ok) return;
     setCancelling(true);
     try {
       const res = await cancelBookingAction(booking.id);
@@ -45,15 +53,6 @@ export function BookingCard({ booking }: { booking: Booking }) {
       toast.error("Failed to cancel booking.");
     } finally {
       setCancelling(false);
-    }
-  };
-
-  const handleReschedule = () => {
-    toast.info("Please select a new appointment slot.");
-    if (booking.kind === "test_drive") {
-      router.push("/book/test-drive");
-    } else {
-      router.push("/book/service");
     }
   };
 
@@ -98,17 +97,9 @@ export function BookingCard({ booking }: { booking: Booking }) {
       {!isCancelled && (
         <div className="pt-2 border-t border-border flex gap-2">
           <Button
-            variant="secondary"
-            size="sm"
-            className="w-1/2 text-xs"
-            onClick={handleReschedule}
-          >
-            Reschedule
-          </Button>
-          <Button
             variant="outline"
             size="sm"
-            className="w-1/2 text-xs text-danger hover:bg-danger/10"
+            className="w-full text-xs text-danger hover:bg-danger/10"
             onClick={handleCancel}
             disabled={cancelling}
           >

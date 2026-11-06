@@ -19,6 +19,7 @@ import { AuthGate } from "@/components/auth/AuthGate";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useRequireAuth } from "@/components/auth/useRequireAuth";
+import { useSavedModel } from "@/components/cars/useSavedModel";
 import { toast } from "sonner";
 import {
   Heart,
@@ -56,7 +57,7 @@ export function ModelDetailView({
   );
   const [includeAccessories, setIncludeAccessories] = useState(true);
   const [currentColorImage, setCurrentColorImage] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
+  const { saved, toggle: toggleSaved } = useSavedModel(model.slug);
   const { requireAuth } = useRequireAuth();
 
   // On-road price comes from the server, computed from the admin price table and gated by session:
@@ -107,15 +108,7 @@ export function ModelDetailView({
   const cityName = selectedCity === "kanpur" ? "Kanpur" : "Lucknow";
 
   // Action Handlers
-  const handleSave = () => {
-    requireAuth(() => {
-      setSaved((prev) => {
-        const next = !prev;
-        toast.success(next ? "Vehicle saved to your account" : "Removed from saved vehicles");
-        return next;
-      });
-    });
-  };
+  const handleSave = toggleSaved;
 
   const specEntries = Object.entries(selectedVariant.specs || {});
 

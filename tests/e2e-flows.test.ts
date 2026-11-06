@@ -99,7 +99,7 @@ describe("Phase 09: Post-0014 End-to-End Workflow Verification", () => {
   });
 
   // FLOW 2: Signed-in buyer
-  it("FLOW 2: signed-in buyer gets full breakup, books test drive with lead auto-assignment, then cancels & reschedules", async () => {
+  it("FLOW 2: signed-in buyer gets full breakup, books test drive with lead auto-assignment, then cancels", async () => {
     // 1. Full breakup succeeds for authenticated buyer
     const { data: breakup, error: breakupErr } = await buyerAClient.rpc("get_onroad_breakup", {
       p_variant_id: VARIANT_H_ZX_ID,
@@ -113,7 +113,6 @@ describe("Phase 09: Post-0014 End-to-End Workflow Verification", () => {
 
     // 2. Prepare future slot (at least 3 hours ahead to satisfy 2-hour lead time)
     const futureDate1 = new Date(Date.now() + 4 * 60 * 60 * 1000);
-    const futureDate2 = new Date(Date.now() + 5 * 60 * 60 * 1000);
     const { data: testSlot1 } = await admin
       .from("slots")
       .insert({
@@ -143,41 +142,9 @@ describe("Phase 09: Post-0014 End-to-End Workflow Verification", () => {
     expect(booking.user_id).toBe(buyerAId);
     expect(booking.status).toBe("confirmed");
 
-    // 4. Prepare second slot for rescheduling
-    const { data: testSlot2 } = await admin
-      .from("slots")
-      .insert({
-        kind: "test_drive",
-        showroom_id: HAZRATGANJ_SHOWROOM_ID,
-        starts_at: futureDate2.toISOString(),
-        ends_at: new Date(futureDate2.getTime() + 45 * 60 * 1000).toISOString(),
-        capacity: 2,
-        booked_count: 0,
-        is_active: true,
-      })
-      .select()
-      .single();
-
-    // 5. Reschedule booking to slot 2
-    const { data: reschedBooking, error: reschedErr } = await buyerAClient.rpc("reschedule_booking", {
-      p_booking_id: booking.id,
-      p_new_slot_id: testSlot2.id,
-    });
-    expect(reschedErr).toBeNull();
-    expect(reschedBooking.user_id).toBe(buyerAId);
-    expect(reschedBooking.slot_id).toBe(testSlot2.id);
-
-    // Verify original booking is marked cancelled
-    const { data: originalBooking } = await admin
-      .from("bookings")
-      .select("status")
-      .eq("id", booking.id)
-      .single();
-    expect(originalBooking?.status).toBe("cancelled");
-
-    // 6. Cancel rescheduled booking
+    // 4. Cancel the booking
     const { data: cancelledBooking, error: cancelErr } = await buyerAClient.rpc("cancel_booking", {
-      p_booking_id: reschedBooking.id,
+      p_booking_id: booking.id,
       p_reason: "Customer schedule changed",
     });
     expect(cancelErr).toBeNull();
@@ -258,7 +225,7 @@ describe("Phase 09: Post-0014 End-to-End Workflow Verification", () => {
   });
 
   // FLOW 5: Cross-buyer isolation
-  it("FLOW 5: two buyers cannot cancel or reschedule bookings for each other", async () => {
+  it("FLOW 5: two buyers cannot cancel each other's bookings", async () => {
     // 1. Create a booking belonging to Buyer A
     const futureDate = new Date(Date.now() + 6 * 60 * 60 * 1000);
     const { data: slotA } = await admin
@@ -293,28 +260,6 @@ describe("Phase 09: Post-0014 End-to-End Workflow Verification", () => {
     expect(cancelErr).toBeTruthy();
     expect(cancelErr?.message).toContain("Cannot cancel another customer appointment");
 
-    // 3. Buyer B attempts to reschedule Buyer A's booking -> must throw VR005
-    const futureDateNext = new Date(Date.now() + 7 * 60 * 60 * 1000);
-    const { data: slotB } = await admin
-      .from("slots")
-      .insert({
-        kind: "test_drive",
-        showroom_id: HAZRATGANJ_SHOWROOM_ID,
-        starts_at: futureDateNext.toISOString(),
-        ends_at: new Date(futureDateNext.getTime() + 45 * 60 * 1000).toISOString(),
-        capacity: 1,
-        booked_count: 0,
-        is_active: true,
-      })
-      .select()
-      .single();
-
-    const { error: reschedErr } = await buyerBClient.rpc("reschedule_booking", {
-      p_booking_id: bookingA.id,
-      p_new_slot_id: slotB.id,
-    });
-    expect(reschedErr).toBeTruthy();
-    expect(reschedErr?.message).toContain("Cannot reschedule another customer appointment");
   });
 });
 

@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 export interface DashboardCountStripProps {
   bookingsCount: number;
   savedCount: number;
-  enquiriesCount: number;
+  chatsCount: number;
   activeView: string | null;
   onSelectView: (view: "bookings" | "saved" | "enquiries", triggerElement: HTMLElement) => void;
 }
@@ -16,7 +16,7 @@ export interface DashboardCountStripProps {
 export function DashboardCountStrip({
   bookingsCount,
   savedCount,
-  enquiriesCount,
+  chatsCount,
   activeView,
   onSelectView,
 }: DashboardCountStripProps) {
@@ -39,9 +39,9 @@ export function DashboardCountStrip({
     },
     {
       key: "enquiries" as const,
-      label: t("activeEnquiries"),
-      value: enquiriesCount,
-      caption: t("activeEnquiriesCaption"),
+      label: t("chatsCount"),
+      value: chatsCount,
+      caption: t("chatsCountCaption"),
       isAction: true,
     },
     {

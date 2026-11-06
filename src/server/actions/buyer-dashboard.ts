@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireUser } from "@/server/auth/viewer";
 import { ActionResponse, successResponse, errorResponse } from "@/lib/errors";
-import { Booking, Lead, Model, UsedCar } from "@/types/domain";
+import { Booking, ChatConversationSummary, Model, UsedCar } from "@/types/domain";
 import { SavedVehicleRecord } from "@/server/repositories/saved";
 import { listModels } from "@/server/repositories/models";
 import { listUsedCars } from "@/server/repositories/used-cars";
@@ -13,39 +13,16 @@ export interface BuyerDashboardData {
   upcomingBookings: Booking[];
   pastBookings: Booking[];
   savedVehicles: SavedVehicleRecord[];
-  enquiries: Array<{
-    id: string;
-    ref: string;
-    vehicleName: string;
-    status: string;
-    statusLabel: string;
-    createdAt: string;
-  }>;
+  chats: ChatConversationSummary[];
   counts: {
     bookings: number;
     saved: number;
-    enquiries: number;
+    chats: number;
   };
 }
 
-function getBuyerStatusLabel(status: string): string {
-  switch (status) {
-    case "new":
-      return "Enquiry Received";
-    case "contacted":
-      return "Specialist Contacted";
-    case "test_drive_booked":
-      return "Test Drive Scheduled";
-    case "negotiating":
-      return "Offer in Progress";
-    case "won":
-      return "Delivered & Closed";
-    case "lost":
-      return "Closed";
-    default:
-      return "In Review";
-  }
-}
+// The id columns are UUIDs; comparing them to a slug in a PostgREST filter errors, so pick the column explicitly.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * Loads all real, per-user dashboard data in a single coordinated server action.
@@ -152,39 +129,27 @@ export async function getBuyerDashboardDataAction(): Promise<ActionResponse<Buye
       }
     }
 
-    // 3. Fetch Enquiries (Sanitized buyer-facing view only)
-    const { data: leadRows, error: leadErr } = await admin
-      .from("leads")
-      .select(`
-        id,
-        ref,
-        status,
-        created_at,
-        models:model_id ( name ),
-        used_cars:used_car_id ( model_name, stock_id )
-      `)
+    // 3. Fetch support-chat history (newest first), with a one-line preview of the latest message
+    const { data: convRows, error: convErr } = await admin
+      .from("chat_conversations")
+      .select("id, title, last_message_at, chat_messages(content, created_at)")
       .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
+      .order("last_message_at", { ascending: false })
+      .limit(50);
 
-    if (leadErr) {
-      console.warn(`[dashboard] Failed to load enquiries: ${leadErr.message}`);
+    if (convErr) {
+      console.warn(`[dashboard] Failed to load chats: ${convErr.message}`);
     }
 
-    const enquiries = (leadRows || []).map((l: any) => {
-      let vName = "General Vehicle Enquiry";
-      if (l.models?.name) {
-        vName = l.models.name;
-      } else if (l.used_cars?.model_name) {
-        vName = `Certified Pre-Owned ${l.used_cars.model_name}`;
-      }
-
+    const chats: ChatConversationSummary[] = (convRows || []).map((c: any) => {
+      const msgs: Array<{ content: string; created_at: string }> = c.chat_messages || [];
+      const latest = [...msgs].sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
       return {
-        id: l.id,
-        ref: l.ref || `LD-${l.id.slice(0, 6).toUpperCase()}`,
-        vehicleName: vName,
-        status: l.status,
-        statusLabel: getBuyerStatusLabel(l.status),
-        createdAt: l.created_at,
+        id: c.id,
+        title: c.title,
+        snippet: latest?.content ?? "",
+        messageCount: msgs.length,
+        lastMessageAt: c.last_message_at,
       };
     });
 
@@ -192,11 +157,11 @@ export async function getBuyerDashboardDataAction(): Promise<ActionResponse<Buye
       upcomingBookings,
       pastBookings,
       savedVehicles,
-      enquiries,
+      chats,
       counts: {
         bookings: upcomingBookings.length,
         saved: savedVehicles.length,
-        enquiries: enquiries.length,
+        chats: chats.length,
       },
     });
   } catch (err: any) {
@@ -204,6 +169,27 @@ export async function getBuyerDashboardDataAction(): Promise<ActionResponse<Buye
       return errorResponse("UNAUTHORIZED", "Please sign in to view your buyer dashboard.");
     }
     return errorResponse("INTERNAL_ERROR", err?.message || "Failed to load dashboard data.");
+  }
+}
+
+/**
+ * Whether the signed-in buyer has saved this model. Signed-out visitors simply get `false`.
+ */
+export async function isModelSavedAction(modelSlug: string): Promise<ActionResponse<{ isSaved: boolean }>> {
+  try {
+    const { user } = await requireUser();
+    const admin = createAdminClient();
+    const { data: model } = await admin.from("models").select("id").eq("slug", modelSlug).maybeSingle();
+    if (!model) return successResponse({ isSaved: false });
+    const { data: existing } = await admin
+      .from("saved_items")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("model_id", model.id)
+      .maybeSingle();
+    return successResponse({ isSaved: !!existing });
+  } catch {
+    return successResponse({ isSaved: false });
   }
 }
 
@@ -225,7 +211,7 @@ export async function toggleSaveVehicleAction(
       const { data: model } = await admin
         .from("models")
         .select("id")
-        .or(`id.eq.${targetIdOrSlug},slug.eq.${targetIdOrSlug}`)
+        .eq(UUID_RE.test(targetIdOrSlug) ? "id" : "slug", targetIdOrSlug)
         .maybeSingle();
 
       if (!model) return errorResponse("NOT_FOUND", "Vehicle model not found.");
@@ -244,17 +230,18 @@ export async function toggleSaveVehicleAction(
         return successResponse({ isSaved: false });
       }
 
-      await admin.from("saved_items").insert({
+      const { error: insertErr } = await admin.from("saved_items").insert({
         user_id: user.id,
         model_id: modelId,
         used_car_id: null,
       });
+      if (insertErr) return errorResponse("INTERNAL_ERROR", insertErr.message);
       return successResponse({ isSaved: true });
     } else {
       const { data: usedCar } = await admin
         .from("used_cars")
         .select("id")
-        .or(`id.eq.${targetIdOrSlug},stock_id.eq.${targetIdOrSlug}`)
+        .eq(UUID_RE.test(targetIdOrSlug) ? "id" : "stock_id", targetIdOrSlug)
         .maybeSingle();
 
       if (!usedCar) return errorResponse("NOT_FOUND", "Certified used car not found.");
@@ -273,11 +260,12 @@ export async function toggleSaveVehicleAction(
         return successResponse({ isSaved: false });
       }
 
-      await admin.from("saved_items").insert({
+      const { error: insertErr } = await admin.from("saved_items").insert({
         user_id: user.id,
         model_id: null,
         used_car_id: usedCarId,
       });
+      if (insertErr) return errorResponse("INTERNAL_ERROR", insertErr.message);
       return successResponse({ isSaved: true });
     }
   } catch (err: any) {

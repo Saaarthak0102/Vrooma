@@ -631,6 +631,42 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["ai_logs"]["Insert"]>;
         Relationships: [];
       };
+      chat_conversations: {
+        Row: {
+          id: string;
+          user_id: string;
+          title: string;
+          created_at: string;
+          last_message_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          title?: string;
+          created_at?: string;
+          last_message_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["chat_conversations"]["Insert"]>;
+        Relationships: [];
+      };
+      chat_messages: {
+        Row: {
+          id: string;
+          conversation_id: string;
+          role: "user" | "assistant";
+          content: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          conversation_id: string;
+          role: "user" | "assistant";
+          content: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["chat_messages"]["Insert"]>;
+        Relationships: [];
+      };
       saved_items: {
         Row: {
           id: string;
@@ -858,13 +894,6 @@ export interface Database {
         Args: {
           p_booking_id: string;
           p_reason?: string | null;
-        };
-        Returns: Database["public"]["Tables"]["bookings"]["Row"];
-      };
-      reschedule_booking: {
-        Args: {
-          p_booking_id: string;
-          p_new_slot_id: string;
         };
         Returns: Database["public"]["Tables"]["bookings"]["Row"];
       };

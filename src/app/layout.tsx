@@ -11,6 +11,7 @@ import { SheenBackground } from "@/components/layout/SheenBackground";
 import { SmoothScrollProvider } from "@/components/motion/SmoothScrollProvider";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Toaster } from "sonner";
+import { ConfirmProvider } from "@/components/ui/confirm-dialog";
 import { constructMetadata } from "@/lib/seo";
 import "@/app/globals.css";
 
@@ -47,12 +48,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <NuqsAdapter>
             <AuthProvider>
               <SmoothScrollProvider>
-                <SiteHeader />
-                <main className="flex-1">{children}</main>
-                <SiteFooter />
-                <ChatWidget />
-                <SignInSheet />
-                <Toaster position="top-right" richColors closeButton />
+                <ConfirmProvider>
+                  <SiteHeader />
+                  <main className="flex-1">{children}</main>
+                  <SiteFooter />
+                  <ChatWidget />
+                  <SignInSheet />
+                  <Toaster position="top-right" richColors closeButton />
+                </ConfirmProvider>
               </SmoothScrollProvider>
             </AuthProvider>
           </NuqsAdapter>
