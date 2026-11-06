@@ -111,7 +111,8 @@ const PUBLIC_URLS = [
   "/en", "/hi", "/en/cars", "/hi/cars", "/en/cars/model-h", "/hi/cars/model-h",
   "/en/used-cars", "/hi/used-cars", "/en/used-cars/UC-1182", "/en/offers", "/en/showrooms",
   "/en/emi-calculator", "/en/contact", "/en/about", "/en/legal/privacy", "/en/legal/terms",
-  "/en/legal/data-rights", "/en/sign-in", "/en/sign-up",
+  "/en/legal/data-rights", "/en/sign-in", "/en/sign-up", "/hi/sign-up",
+  "/en/verify-email?token_hash=abcdefghij1234567890&type=signup&next=%2Fdashboard",
 ];
 
 const PERSONA_PLAN = {

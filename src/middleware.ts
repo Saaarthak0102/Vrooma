@@ -15,5 +15,7 @@ export default async function middleware(request: NextRequest) {
 
 export const config = {
   // Match all pathnames except internal Next.js assets, public images and files
-  matcher: ["/", "/(hi|en)/:path*", "/((?!api|_next|_vercel|.*\\..*).*)"],
+  // /auth/* (email-link confirm + OAuth callback) are unprefixed route handlers: next-intl would rewrite them
+  // to /en/auth/* and they would 404, so they are excluded here.
+  matcher: ["/", "/(hi|en)/:path*", "/((?!api|auth|_next|_vercel|.*\\..*).*)"],
 };

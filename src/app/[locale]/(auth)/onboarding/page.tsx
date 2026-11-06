@@ -6,6 +6,7 @@ import { useRouter } from "@/i18n/navigation";
 import { useLocale } from "next-intl";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { completeProfile, signOut } from "@/server/auth/actions";
+import { getSignupHint } from "@/server/auth/signup-link";
 import { safeNext } from "@/server/auth/safe-next";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -77,12 +78,27 @@ export default function OnboardingPage() {
         if (parsed.cityId) setCityId(parsed.cityId);
         if (parsed.address) setAddress(parsed.address);
         if (parsed.pincode) setPincode(parsed.pincode);
-        if (parsed.termsConsent) setTermsConsent(parsed.termsConsent);
-        if (parsed.serviceConsent) setServiceConsent(parsed.serviceConsent);
-        if (parsed.marketingConsent) setMarketingConsent(parsed.marketingConsent);
+        // Consents are deliberately NOT restored: they start unticked and are given here, after the email
+        // address has been verified (DPDP Act 2023).
       }
     } catch {}
   }, [user]);
+
+  // Details typed on the sign-up form travel with the verification link (auth user metadata), so they
+  // survive the link being opened in a new tab or on another device. Prefill only fills EMPTY fields.
+  useEffect(() => {
+    let cancelled = false;
+    getSignupHint().then((hint) => {
+      if (cancelled || !hint) return;
+      if (hint.fullName) setFullName((v) => v || hint.fullName!);
+      if (hint.phoneDigits) setPhoneDigits((v) => v || hint.phoneDigits!);
+      if (hint.cityId) setCityId((v) => (v && v !== "city-lucknow" ? v : hint.cityId!));
+      if (hint.locale) setPreferredLocale((v) => v || hint.locale!);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const validate = () => {
     const errs: Record<string, string> = {};

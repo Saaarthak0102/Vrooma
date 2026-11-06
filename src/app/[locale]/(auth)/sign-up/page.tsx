@@ -1,11 +1,13 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { Link, useRouter } from "@/i18n/navigation";
 import { useTranslations, useLocale } from "next-intl";
-import { requestOtp, verifyOtp, startGoogle, completeProfile } from "@/server/auth/actions";
-import { safeNext } from "@/server/auth/safe-next";
+import { startGoogle } from "@/server/auth/actions";
+import { requestSignupLink } from "@/server/auth/signup-link";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { createClient } from "@/lib/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -13,7 +15,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import {
   ShieldCheck,
-  CheckCircle2,
   ArrowRight,
   Car,
   Calendar,
@@ -24,6 +25,11 @@ import {
   RefreshCw,
   Mail,
 } from "lucide-react";
+
+const LINK_ERRORS: Record<string, string> = {
+  expired_link: "That verification link has expired or was already used. Enter your details again to get a new one.",
+  invalid_link: "That verification link is invalid. Enter your details again to get a new one.",
+};
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -51,16 +57,15 @@ export default function SignUpPage() {
   const [serviceConsent, setServiceConsent] = useState(false);
   const [marketingConsent, setMarketingConsent] = useState(false);
 
-  // OTP step
-  const [otpCode, setOtpCode] = useState("");
+  // "Check your email" step
   const [resendCooldown, setResendCooldown] = useState(0);
+  const { status: authStatus } = useAuth();
+  const errorParam = searchParams.get("error");
 
   // Status
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-
-  const otpInputRef = useRef<HTMLInputElement>(null);
 
   // Cooldown countdown
   useEffect(() => {
@@ -71,12 +76,31 @@ export default function SignUpPage() {
     return () => clearInterval(timer);
   }, [resendCooldown]);
 
-  // Focus OTP input on Step 2 transition
+  // Verification happens in the emailed link. When it is opened in this browser (another tab) the session
+  // appears here via Supabase's cross-tab sync: move on to onboarding automatically.
   useEffect(() => {
-    if (step === 2) {
-      otpInputRef.current?.focus();
+    if (step === 2 && authStatus === "authenticated") {
+      router.replace(`/onboarding?next=${encodeURIComponent(nextParam)}`);
     }
-  }, [step]);
+  }, [step, authStatus, router, nextParam]);
+
+  // Fallback for browsers that throttle background tabs: re-check the session when the tab is focused again.
+  useEffect(() => {
+    if (step !== 2) return;
+    const supabase = createClient();
+    if (!supabase) return;
+    const check = async () => {
+      if (document.visibilityState !== "visible") return;
+      const { data } = await supabase.auth.getUser();
+      if (data.user) router.replace(`/onboarding?next=${encodeURIComponent(nextParam)}`);
+    };
+    document.addEventListener("visibilitychange", check);
+    window.addEventListener("focus", check);
+    return () => {
+      document.removeEventListener("visibilitychange", check);
+      window.removeEventListener("focus", check);
+    };
+  }, [step, router, nextParam]);
 
   const validateStep1 = () => {
     const errs: Record<string, string> = {};
@@ -132,83 +156,32 @@ export default function SignUpPage() {
           locale: preferredLocale,
           address,
           pincode,
-          termsConsent,
-          serviceConsent,
-          marketingConsent,
         })
       );
 
-      const res = await requestOtp(email, preferredLocale, nextParam);
+      const res = await requestSignupLink(
+        {
+          email,
+          fullName: fullName.trim(),
+          phone: `+91${phoneDigits.replace(/\D/g, "")}`,
+          cityId,
+          locale: preferredLocale,
+        },
+        nextParam
+      );
 
       if (!res.ok) {
         toast.error(res.error.message);
         return;
       }
 
-      toast.success("Verification code sent! Check your email inbox.");
+      toast.success("Verification link sent! Check your email inbox.");
       setStep(2);
       setResendCooldown(60);
     } catch {
-      toast.error("Failed to request verification code. Please try again.");
+      toast.error("Failed to send the verification link. Please try again.");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleVerifyAndComplete = async (codeToVerify?: string) => {
-    const code = (codeToVerify || otpCode).trim().replace(/\D/g, "");
-    if (code.length !== 6) {
-      toast.error("Please enter the complete 6-digit code.");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const verifyRes = await verifyOtp(email, code);
-
-      if (!verifyRes.ok) {
-        toast.error(verifyRes.error.message);
-        return;
-      }
-
-      // Code verified! Now complete profile
-      const profileRes = await completeProfile({
-        full_name: fullName.trim(),
-        email: email.trim(),
-        phone: `+91${phoneDigits.replace(/\D/g, "")}`,
-        city_id: cityId,
-        locale: preferredLocale,
-        address: address.trim() || undefined,
-        pincode: pincode.trim() || undefined,
-        terms_consent: true,
-        service_consent: true,
-        marketing_consent: marketingConsent,
-      });
-
-      sessionStorage.removeItem("vrooma_signup_draft");
-
-      if (!profileRes.ok) {
-        // User verified but profile save had issue: proceed to onboarding
-        toast.info("Account verified. Please confirm your details.");
-        router.push(`/onboarding?next=${encodeURIComponent(nextParam)}`);
-        return;
-      }
-
-      toast.success("Account created successfully! Welcome to Vrooma.");
-      const destination = safeNext(nextParam, preferredLocale);
-      router.push(destination);
-    } catch {
-      toast.error("Verification failed. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleOtpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value.replace(/\D/g, "").slice(0, 6);
-    setOtpCode(val);
-    if (val.length === 6) {
-      handleVerifyAndComplete(val);
     }
   };
 
@@ -296,12 +269,17 @@ export default function SignUpPage() {
 
         {/* Right Column: Account Creation Form */}
         <div className="lg:col-span-7 rounded-2xl border border-border bg-white p-6 sm:p-8 shadow-card">
+          {step === 1 && errorParam && LINK_ERRORS[errorParam] && (
+            <div role="alert" className="mb-4 rounded-lg border border-danger/30 bg-danger/5 px-3 py-2 text-xs text-danger">
+              {LINK_ERRORS[errorParam]}
+            </div>
+          )}
           {step === 1 ? (
             <form onSubmit={handleSendCode} className="space-y-4">
               <div className="pb-3 border-b border-border flex items-center justify-between">
                 <div>
                   <h2 className="text-lg font-bold text-ink">Personal &amp; Contact Details</h2>
-                  <p className="text-xs text-ink-soft">Enter your details to receive your one-time verification code.</p>
+                  <p className="text-xs text-ink-soft">Enter your details and we&apos;ll email you a verification link.</p>
                 </div>
                 <span className="text-xs font-bold text-accent">1 / 2</span>
               </div>
@@ -501,7 +479,7 @@ export default function SignUpPage() {
                     </>
                   ) : (
                     <>
-                      <span>Send 6-Digit Verification Code</span>
+                      <span>Send Verification Link</span>
                       <ArrowRight className="h-4 w-4" />
                     </>
                   )}
@@ -551,63 +529,35 @@ export default function SignUpPage() {
               </p>
             </form>
           ) : (
-            /* Step 2: 6-Digit Code Verification */
-            <div className="space-y-6 animate-in fade-in">
+            /* Step 2: check your email (verification link only) */
+            <div className="space-y-6 animate-in fade-in" aria-live="polite">
               <div className="pb-3 border-b border-border flex items-center justify-between">
                 <div>
-                  <h2 className="text-lg font-bold text-ink">Enter Verification Code</h2>
+                  <h2 className="text-lg font-bold text-ink">Check your email</h2>
                   <p className="text-xs text-ink-soft">
-                    Sent to <span className="font-semibold text-ink">{email}</span>
+                    We sent a verification link to <span className="font-semibold text-ink">{email}</span>
                   </p>
                 </div>
                 <span className="text-xs font-bold text-accent">2 / 2</span>
               </div>
 
-              <div className="space-y-4">
-                <div className="space-y-2 text-center max-w-sm mx-auto">
-                  <label className="text-xs font-bold uppercase tracking-wider text-ink-mute block">
-                    6-Digit Security Code
-                  </label>
-                  <Input
-                    ref={otpInputRef}
-                    type="text"
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                    placeholder="&bull;&bull;&bull;&bull;&bull;&bull;"
-                    value={otpCode}
-                    onChange={handleOtpChange}
-                    className="text-center font-mono text-3xl tracking-[0.3em] font-black h-14"
-                    maxLength={6}
-                    autoFocus
-                  />
-                  <p className="text-[11px] text-ink-mute">
-                    Code expires in 10 minutes. Automatically submits upon typing the 6th digit.
-                  </p>
+              <div className="space-y-4 text-center max-w-sm mx-auto">
+                <div className="h-14 w-14 rounded-full bg-accent/10 text-accent flex items-center justify-center mx-auto">
+                  <Mail className="h-7 w-7" />
                 </div>
-
-                <Button
-                  onClick={() => handleVerifyAndComplete()}
-                  className="w-full gap-2 font-bold h-11"
-                  disabled={loading || otpCode.length !== 6}
-                >
-                  {loading ? (
-                    <>
-                      <RefreshCw className="h-4 w-4 animate-spin" />
-                      <span>Verifying &amp; Creating Account...</span>
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle2 className="h-4 w-4" />
-                      <span>Verify &amp; Create Account</span>
-                    </>
-                  )}
-                </Button>
+                <p className="text-sm text-ink-soft leading-relaxed">
+                  Open the email and tap <span className="font-semibold text-ink">Confirm Account</span>. You can open it on
+                  any device. This page continues automatically once your email is confirmed in this browser.
+                </p>
+                <p className="text-[11px] text-ink-mute">
+                  The link works once and expires in 1 hour. Can&apos;t see it? Check your spam folder.
+                </p>
 
                 <div className="flex items-center justify-between text-xs pt-2">
                   <button
                     type="button"
                     onClick={() => setStep(1)}
-                    className="text-ink-soft hover:text-ink font-medium"
+                    className="text-ink-soft hover:text-ink font-medium min-h-[44px]"
                   >
                     &larr; Change email or details
                   </button>
@@ -616,9 +566,9 @@ export default function SignUpPage() {
                     type="button"
                     onClick={(e) => handleSendCode(e)}
                     disabled={resendCooldown > 0 || loading}
-                    className="text-accent font-semibold hover:underline disabled:opacity-50 disabled:no-underline"
+                    className="text-accent font-semibold hover:underline disabled:opacity-50 disabled:no-underline min-h-[44px]"
                   >
-                    {resendCooldown > 0 ? `Resend code (${resendCooldown}s)` : "Resend code"}
+                    {resendCooldown > 0 ? `Resend link (${resendCooldown}s)` : "Resend link"}
                   </button>
                 </div>
               </div>
