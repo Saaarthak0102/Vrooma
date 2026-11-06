@@ -163,8 +163,7 @@ export function ProfileView() {
         "Account erasure requested. All future bookings have been cancelled. You will be signed out now."
       );
       setIsDeleteDialogOpen(false);
-      await signOut();
-      router.push("/");
+      await signOut(); // navigates to the landing page
     } catch (err: any) {
       toast.error(err?.message || "Failed to request account deletion.");
     } finally {

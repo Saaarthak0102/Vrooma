@@ -74,8 +74,7 @@ export function DataRightsPanel() {
         "Account erasure requested. Future bookings cancelled. You will be signed out now."
       );
       setDeleteInput("");
-      await signOut();
-      window.location.href = "/";
+      await signOut(); // navigates to the landing page
     } catch (err: any) {
       toast.error(err?.message || "Failed to process erasure request.");
     } finally {

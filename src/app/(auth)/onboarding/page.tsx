@@ -6,7 +6,7 @@ import React, { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth/AuthProvider";
-import { completeProfile, signOut } from "@/server/auth/actions";
+import { completeProfile } from "@/server/auth/actions";
 import { getSignupHint } from "@/server/auth/signup-link";
 import { safeNext } from "@/server/auth/safe-next";
 import { Input } from "@/components/ui/input";
@@ -29,7 +29,7 @@ export default function OnboardingPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const nextParam = searchParams.get("next") || "/dashboard";
-  const { user, status } = useAuth();
+  const { user, status, signOut } = useAuth();
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -167,8 +167,7 @@ export default function OnboardingPage() {
   };
 
   const handleSignOut = async () => {
-    await signOut();
-    router.push("/sign-in");
+    await signOut(); // ends the session everywhere and lands on the home page
   };
 
   return (

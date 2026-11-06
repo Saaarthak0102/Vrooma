@@ -14,6 +14,7 @@ import { Profile, Role } from "@/types/domain";
 import { createClient } from "@/lib/supabase/client";
 import { signOut as serverSignOut } from "@/server/auth/actions";
 import { SignInSheet } from "./SignInSheet";
+import { shouldRedirectOnAuthEvent } from "@/lib/auth-events";
 
 export interface PendingIntent {
   type: string;
@@ -49,6 +50,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isSignInSheetOpen, setIsSignInSheetOpen] = useState(false);
   // The action that triggered the sign-in prompt; run once after a successful sign-in, then dropped.
   const pendingCallbackRef = useRef<(() => void) | null>(null);
+  // Sign-out bookkeeping: lets the auth listener tell "the user pressed Sign out here" (we already navigate)
+  // from "signed out elsewhere / session ended" (also send them to the landing page).
+  const wasAuthenticatedRef = useRef(false);
+  const signingOutRef = useRef(false);
   const [pendingIntent, setPendingIntent] = useState<PendingIntent | null>(null);
 
   // Load pending intent from sessionStorage
@@ -89,6 +94,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (profile) {
         setUser(profile as Profile);
         setStatus("authenticated");
+        wasAuthenticatedRef.current = true;
       } else {
         // Minimal fallback until profile is created
         setUser({
@@ -99,6 +105,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           locale: "en",
         });
         setStatus("authenticated");
+        wasAuthenticatedRef.current = true;
       }
     } catch {
       setUser(null);
@@ -120,8 +127,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (event === "SIGNED_OUT" || !session?.user) {
+          const redirect = shouldRedirectOnAuthEvent(
+            wasAuthenticatedRef.current,
+            event,
+            signingOutRef.current
+          );
+          wasAuthenticatedRef.current = false;
           setUser(null);
           setStatus("unauthenticated");
+          // Signed out in another tab, or the session ended: never leave personal pages on screen.
+          if (redirect) window.location.assign("/");
           return;
         }
 
@@ -136,6 +151,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (profile) {
               setUser(profile as Profile);
               setStatus("authenticated");
+        wasAuthenticatedRef.current = true;
             } else {
               setUser({
                 id: session.user.id,
@@ -145,6 +161,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 locale: "en",
               });
               setStatus("authenticated");
+        wasAuthenticatedRef.current = true;
             }
           } catch {
             setUser(null);
@@ -196,6 +213,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
     setUser(target);
     setStatus("authenticated");
+        wasAuthenticatedRef.current = true;
   }, []);
 
   const updateProfile = useCallback(
@@ -226,12 +244,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const signOut = useCallback(async () => {
+    signingOutRef.current = true;
+    wasAuthenticatedRef.current = false;
     setUser(null);
     setStatus("unauthenticated");
+    pendingCallbackRef.current = null;
     clearPendingIntent();
-    await serverSignOut();
-    router.refresh();
-  }, [clearPendingIntent, router]);
+
+    // End the session in the browser client (clears its session and notifies other tabs) AND on the server
+    // (clears the auth cookies). Either failing must not stop the other, or the user stays half signed in.
+    try {
+      await createClient()?.auth.signOut({ scope: "local" });
+    } catch {
+      // ignore: the server sign-out below still clears the cookies
+    }
+    try {
+      await serverSignOut();
+    } catch {
+      // ignore: the hard navigation below still drops all client state
+    }
+
+    // Full page load to the landing page: drops every piece of client state, the router cache and any
+    // rendered personal data (dashboard, profile) in one step.
+    window.location.assign("/");
+  }, [clearPendingIntent]);
 
   const completeSignIn = useCallback(
     async (options?: { runPending?: boolean }) => {
