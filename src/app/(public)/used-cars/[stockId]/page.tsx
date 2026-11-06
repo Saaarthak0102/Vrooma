@@ -7,15 +7,15 @@ import { UsedCarDetailView } from "./UsedCarDetailView";
 import { env } from "@/lib/env";
 import { getVehicleAsset } from "@/constants/vehicle-assets";
 import { safeStaticParams } from "@/lib/static-params";
+import { mockUsedCars } from "@/data/mock/used-cars";
 
 export const dynamicParams = true;
 
 export async function generateStaticParams() {
   return safeStaticParams(async () => {
     const cars = await listUsedCars();
-    return cars.map((c) => ({
-      stockId: c.stock_id,
-    }));
+    const ids = new Set([...cars.map((c) => c.stock_id), ...mockUsedCars.map((c) => c.stock_id)]);
+    return Array.from(ids).map((stockId) => ({ stockId }));
   });
 }
 

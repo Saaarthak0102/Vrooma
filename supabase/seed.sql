@@ -247,7 +247,25 @@ INSERT INTO public.used_cars (
     'a0000001-0000-0000-0000-000000000002', true,
     '{"engine": "Like New", "brakes": "95%", "flood_damage": "None", "accidental": "None"}'::jsonb,
     98, '["/images/cars/y.svg"]'::jsonb, NOW() - INTERVAL '2 days'
-  )
+  ),
+('f0000001-0000-0000-0000-000000000011', 'UC-1195', 'd0000001-0000-0000-0000-000000000001', 'Model H', 'ZX Automatic',
+   'petrol', 2023, 22400, 2, 1045000, 'available', 'UP32EA2240', 'a0000001-0000-0000-0000-000000000001', true,
+   '{"engine": "Like New", "flood_damage": "None", "accidental": "None"}'::jsonb, 98, '["/images/cars/y.svg"]'::jsonb, '2026-06-01T10:00:00Z'),
+  ('f0000001-0000-0000-0000-000000000012', 'UC-1201', 'd0000001-0000-0000-0000-000000000005', 'Model T', '4x4 MT',
+   'diesel', 2022, 36000, 2, 1320000, 'available', 'UP32FF3600', 'a0000001-0000-0000-0000-000000000002', true,
+   '{"engine": "Excellent", "flood_damage": "None", "accidental": "None"}'::jsonb, 92, '["/images/cars/r.svg"]'::jsonb, '2026-10-28T10:00:00Z'),
+  ('f0000001-0000-0000-0000-000000000013', 'UC-1205', 'd0000001-0000-0000-0000-000000000002', 'Model C', 'LX Manual',
+   'petrol', 2021, 49500, 1, 760000, 'available', 'UP32GH4950', 'a0000001-0000-0000-0000-000000000003', true,
+   '{"engine": "Good", "flood_damage": "None", "accidental": "None"}'::jsonb, 89, '["/images/cars/c.svg"]'::jsonb, '2026-05-14T10:00:00Z'),
+  ('f0000001-0000-0000-0000-000000000014', 'UC-1210', 'd0000001-0000-0000-0000-000000000003', 'Model S', 'ZX AMT CNG',
+   'cng', 2023, 18200, 1, 685000, 'available', 'UP32JK1820', 'a0000001-0000-0000-0000-000000000001', true,
+   '{"engine": "Like New", "flood_damage": "None", "accidental": "None"}'::jsonb, 97, '["/images/cars/s.svg"]'::jsonb, '2026-10-30T10:00:00Z'),
+  ('f0000001-0000-0000-0000-000000000015', 'UC-1214', 'd0000001-0000-0000-0000-000000000001', 'Model H', 'VX Manual',
+   'petrol', 2020, 67500, 2, 790000, 'available', 'UP32LM6750', 'a0000001-0000-0000-0000-000000000002', true,
+   '{"engine": "Good", "flood_damage": "None", "accidental": "None"}'::jsonb, 88, '["/images/cars/y.svg"]'::jsonb, '2026-05-04T10:00:00Z'),
+  ('f0000001-0000-0000-0000-000000000016', 'UC-1220', 'd0000001-0000-0000-0000-000000000004', 'Model X', 'Long Range EV',
+   'ev', 2023, 15400, 1, 1590000, 'available', 'UP32EV1540', 'a0000001-0000-0000-0000-000000000001', true,
+   '{"engine": "Like New", "flood_damage": "None", "accidental": "None"}'::jsonb, 99, '["/images/cars/x.svg"]'::jsonb, '2026-05-22T10:00:00Z')
 ON CONFLICT (stock_id) DO UPDATE SET
   price = EXCLUDED.price,
   status = EXCLUDED.status,

@@ -2,6 +2,7 @@ import { createPublicClient } from "@/lib/supabase/public";
 import { UsedCar, FuelType, TransmissionType, CarStatus, Inspection } from "@/types/domain";
 import { cachedQuery } from "@/server/cache";
 import { AppError } from "@/lib/errors";
+import { mockUsedCars } from "@/data/mock/used-cars";
 
 export interface ListUsedCarsParams {
   modelId?: string;
@@ -181,6 +182,15 @@ export async function listUsedCars(params: ListUsedCarsParams = {}): Promise<Use
  * Includes sold cars so their individual permalink renders with a "Sold" notice.
  * Never leaks reg_no_private to public callers.
  */
+export function findSampleUsedCar(stockId: string): UsedCar | null {
+  const wanted = stockId.trim().toUpperCase();
+  const sample = mockUsedCars.find((c) => c.stock_id.toUpperCase() === wanted);
+  if (!sample) return null;
+  // Public shape only: never expose the private registration number.
+  const { reg_no_private: _private, ...publicCar } = sample;
+  return publicCar as UsedCar;
+}
+
 export async function getUsedCarByStockId(stockId: string): Promise<UsedCar | null> {
   const normalizedStockId = stockId.trim().toUpperCase();
 
@@ -193,11 +203,14 @@ export async function getUsedCarByStockId(stockId: string): Promise<UsedCar | nu
         .ilike("stock_id", normalizedStockId)
         .maybeSingle();
 
+      // The listing page shows the client's sample stock; cars not in the database yet still open.
       if (error) {
+        const sample = findSampleUsedCar(normalizedStockId);
+        if (sample) return sample;
         throw new AppError("INTERNAL_ERROR", 500, `Failed to fetch used car ${stockId}: ${error.message}`);
       }
 
-      if (!data) return null;
+      if (!data) return findSampleUsedCar(normalizedStockId);
       return mapRowToUsedCar(data);
     },
     ["used-car", "by-stock", normalizedStockId],
