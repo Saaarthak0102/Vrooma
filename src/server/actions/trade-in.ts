@@ -31,10 +31,6 @@ export interface UploadUrlResult {
 export interface TradeInSubmissionResult {
   id: string;
   leadRef: string;
-  estimatedRange: {
-    min: number;
-    max: number;
-  };
 }
 
 /**
@@ -187,17 +183,9 @@ export async function submitTradeInAction(
       return errorResponse("INTERNAL_ERROR", `Failed to register trade-in: ${tradeInErr?.message}`);
     }
 
-    // 6. Calculate realistic Lucknow market indicative valuation band
-    const currentYear = new Date().getFullYear();
-    const age = Math.max(0, currentYear - data.year);
-    const baseEstimate = Math.max(150000, 750000 - age * 65000 - (data.km / 1000) * 1500);
-    const min = Math.round(baseEstimate * 0.92);
-    const max = Math.round(baseEstimate * 1.08);
-
     return successResponse({
       id: tradeInRow.id,
       leadRef: newLead.ref || `TI-${tradeInRow.id.slice(0, 6).toUpperCase()}`,
-      estimatedRange: { min, max },
     });
   } catch (err: any) {
     return errorResponse("INTERNAL_ERROR", err?.message || "Trade-in request submission failed.");

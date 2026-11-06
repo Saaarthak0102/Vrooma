@@ -89,3 +89,5 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: err?.message || "Internal error" }, { status: 500 });
   }
 }
+
+export const GET = POST;

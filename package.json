@@ -18,7 +18,8 @@
     "rls:test": "vitest run tests/rls-matrix.test.ts",
     "check:buttons": "node scripts/check-buttons.mjs",
     "check:env": "node scripts/check-env.mjs",
-    "smoke": "node scripts/smoke-test.mjs"
+    "smoke": "node scripts/smoke-test.mjs",
+    "probe": "node --experimental-strip-types scripts/api-probe.ts"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",

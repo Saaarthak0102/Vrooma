@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { LeadTable } from "@/components/staff/LeadTable";
 import { SearchBox } from "@/components/cars/SearchBox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -8,18 +8,54 @@ import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
 import { FileSpreadsheet, RotateCcw } from "lucide-react";
 import { Lead } from "@/types/domain";
+import { createClient } from "@/lib/supabase/client";
 
 interface StaffLeadsClientProps {
   initialLeads: Lead[];
 }
 
 export function StaffLeadsClient({ initialLeads }: StaffLeadsClientProps) {
+  const [leads, setLeads] = useState<Lead[]>(initialLeads);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [sourceFilter, setSourceFilter] = useState("all");
 
+  useEffect(() => {
+    setLeads(initialLeads);
+  }, [initialLeads]);
+
+  useEffect(() => {
+    const supabase = createClient();
+    const channel = supabase
+      .channel("leads-inbox-realtime")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "leads",
+        },
+        (payload) => {
+          if (payload.eventType === "INSERT") {
+            setLeads((prev) => [payload.new as Lead, ...prev]);
+          } else if (payload.eventType === "UPDATE") {
+            setLeads((prev) =>
+              prev.map((l) => (l.id === (payload.new as any).id ? ({ ...l, ...(payload.new as any) }) : l))
+            );
+          } else if (payload.eventType === "DELETE") {
+            setLeads((prev) => prev.filter((l) => l.id !== (payload.old as any).id));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   const filteredLeads = useMemo(() => {
-    let list = [...initialLeads];
+    let list = [...leads];
 
     if (search.trim()) {
       const q = search.toLowerCase();

@@ -147,9 +147,9 @@ export async function processLeadCsv(
           const rawRow = rows[i];
           const rowNum = i + 2; // +1 for 0-index, +1 for CSV header row
 
-          // Sanitize cells against formula injection
+          // Sanitize text cells against formula injection (never strip phone formatting before normalization)
           const name = sanitizeCsvCell(rawRow.name);
-          const rawPhone = sanitizeCsvCell(rawRow.phone);
+          const rawPhone = String(rawRow.phone || "").trim();
           const email = sanitizeCsvCell(rawRow.email).toLowerCase();
           const modelRaw = sanitizeCsvCell(rawRow.model);
           const notes = sanitizeCsvCell(rawRow.notes);

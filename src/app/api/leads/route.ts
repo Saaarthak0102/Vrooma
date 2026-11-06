@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createLeadSchema } from "@/lib/validation/lead";
 import { createLead, listLeads } from "@/server/repositories/leads";
+import { getTrustedClientIp } from "@/lib/network";
 
 const leadRateLimitMap = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
@@ -56,7 +57,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. IP Rate Limiting
-    const ip = getClientIp(request);
+    const ip = getTrustedClientIp(request);
     if (!checkRateLimit(`ip_${ip}`, MAX_LEADS_PER_IP_MINUTE)) {
       return NextResponse.json(
         { ok: false, error: "Too many enquiry requests from this network. Please wait a moment." },

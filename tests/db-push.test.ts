@@ -114,6 +114,7 @@ describe("Guarded db-push.mjs Validation Runner", () => {
         "push",
         `--remote=${EXPECTED_DEV_PROJECT_REF}`,
         "--include-all",
+        "--yes",
       ]);
       expect(args).not.toContain("--linked");
     });
@@ -126,6 +127,7 @@ describe("Guarded db-push.mjs Validation Runner", () => {
         "push",
         `--remote=${EXPECTED_DEV_PROJECT_REF}`,
         "--include-all",
+        "--yes",
       ]);
     });
 
@@ -195,6 +197,7 @@ describe("Guarded db-push.mjs Validation Runner", () => {
         "push",
         `--remote=${EXPECTED_DEV_PROJECT_REF}`,
         "--include-all",
+        "--yes",
       ]);
     });
 
@@ -209,6 +212,7 @@ describe("Guarded db-push.mjs Validation Runner", () => {
         "push",
         `--remote=${EXPECTED_DEV_PROJECT_REF}`,
         "--include-all",
+        "--yes",
       ]);
     });
 
@@ -223,6 +227,7 @@ describe("Guarded db-push.mjs Validation Runner", () => {
         "push",
         `--remote=${EXPECTED_DEV_PROJECT_REF}`,
         "--include-all",
+        "--yes",
       ]);
     });
   });
@@ -246,7 +251,7 @@ describe("Guarded db-push.mjs Validation Runner", () => {
 
       expect(mockSpawner).toHaveBeenCalledWith(
         "npx.cmd",
-        ["supabase", "db", "push", `--remote=${EXPECTED_DEV_PROJECT_REF}`, "--include-all"],
+        ["supabase", "db", "push", `--remote=${EXPECTED_DEV_PROJECT_REF}`, "--include-all", "--yes"],
         expect.objectContaining({ shell: true, stdio: "inherit" })
       );
       expect(mockExit).toHaveBeenCalledWith(1);
@@ -290,7 +295,7 @@ describe("Guarded db-push.mjs Validation Runner", () => {
 
       expect(mockSpawner).toHaveBeenCalledWith(
         "npx",
-        ["supabase", "db", "push", `--remote=${EXPECTED_DEV_PROJECT_REF}`, "--include-all"],
+        ["supabase", "db", "push", `--remote=${EXPECTED_DEV_PROJECT_REF}`, "--include-all", "--yes"],
         expect.objectContaining({ shell: false, stdio: "inherit" })
       );
       expect(mockExit).toHaveBeenCalledWith(42);

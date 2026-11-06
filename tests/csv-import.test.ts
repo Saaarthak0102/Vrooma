@@ -47,6 +47,34 @@ describe("Phase 4: CSV Import & Export Protections", () => {
       expect(result.errors[0]).toContain("exceeds maximum limit of 2,000 rows");
     });
 
+    it("handles all required Indian phone formats without stripping leading plus", async () => {
+      const csv = `name,phone,email,notes
+Customer One,+919876543210,cust1@example.com,Interested in SUV
+Customer Two,+91 98765 43211,cust2@example.com,Wants automatic
+Customer Three,09876543212,cust3@example.com,Looking for petrol
+Customer Four,919876543213,cust4@example.com,Test drive required`;
+
+      const result = await processLeadCsv(csv);
+      expect(result.total).toBe(4);
+      // All 4 phone formats must be valid (no errors on phone normalization)
+      const phoneErrors = result.errors.filter((e) => e.includes("Invalid Indian phone number"));
+      expect(phoneErrors).toHaveLength(0);
+    });
+
+    it("parses CSV with BOM, semicolon delimiter, and formula cell in message field", async () => {
+      const complexCsv = `\uFEFFname;phone;email;notes
+Sanjay Gupta;+919876543214;sanjay@example.com;=1+1`;
+
+      const result = await processLeadCsv(complexCsv);
+      expect(result.total).toBe(1);
+      const phoneErrors = result.errors.filter((e) => e.includes("Invalid Indian phone number"));
+      expect(phoneErrors).toHaveLength(0);
+
+      // Verify that when exported, formula cells in notes/messages are safely escaped with single quote
+      const exportedNote = escapeCsvCellForExport("=1+1");
+      expect(exportedNote).toBe("\"'=1+1\"");
+    });
+
     it("deduplicates identical phone numbers inside the file batch", async () => {
       const duplicateCsv = `name,phone,email
 Aditya Mishra,9876543210,aditya1@example.com

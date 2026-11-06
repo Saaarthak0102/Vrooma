@@ -4,14 +4,14 @@
 **Target Release Date:** 2026-11-05  
 **Sign-off Architect:** Senior Backend & Reliability Lead  
 **Client / Stakeholder:** Company A (Authorised Brand X Dealer, Lucknow)  
-**Status:** **READY FOR PRODUCTION CUTOVER**
+**Status:** **READY FOR STAGING / AWAITING OWNER PRE-FLIGHT ACTIONS**
 
 ---
 
 ## 1. Domain, Network & TLS
 
-- [x] **Custom Domain & HTTPS:**  
-  *Evidence:* Production domain configured as `https://vrooma.in`. Automated SSL/TLS certificates issued via Let's Encrypt with TLS 1.3 enforcement and HSTS header (`Strict-Transport-Security: max-age=63072000; includeSubDomains; preload`) configured in `next.config.ts`.
+- [ ] **Custom Domain & HTTPS (OPEN — Awaiting Owner Action):**  
+  *Status:* OPEN. Production domain `https://vrooma.in` DNS A/CNAME records must be configured by the project owner in their registrar/DNS provider. Layout metadata and HSTS headers are prepared in codebase (`next.config.ts`).
 - [x] **Canonical URLs & Hreflang:**  
   *Evidence:* Layout metadata sets canonical URLs and alternates for English (`en`) and Hindi (`hi`): `https://vrooma.in/en` and `https://vrooma.in/hi` across all dynamic routes.
 
@@ -20,11 +20,11 @@
 ## 2. Supabase Cloud Production Environment
 
 - [x] **Isolated Production Project:**  
-  *Evidence:* Separate Supabase project provisioned in AWS Mumbai region (`ap-south-1`) with independent project keys, distinct from development sandbox (`eobtzcwinjmimzisypca`).
+  *Evidence:* Separate Supabase project (`ajumkjokagqfdikfguti`) designated as PRODUCTION in AWS Mumbai region (`ap-south-1`) with independent project keys, distinct from development sandbox (`eobtzcwinjmimzisypca`).
 - [x] **Service Role & Publishable Key Isolation:**  
   *Evidence:* `SUPABASE_SERVICE_ROLE_KEY` is marked `import "server-only";` in `src/lib/supabase/admin.ts`. Verified absent from production client bundles (`.next/static/**/*.js`).
-- [x] **Site URL & Redirect Whitelist:**  
-  *Evidence:* Supabase Auth configuration restricted strictly to:
+- [ ] **Site URL & Redirect Whitelist (OPEN — Awaiting Owner Configuration):**  
+  *Status:* OPEN. In Supabase Dashboard for PROD (`ajumkjokagqfdikfguti`), the owner must set:
   - Site URL: `https://vrooma.in`
   - Allowed Redirects: `https://vrooma.in/auth/callback`, `https://vrooma.in/api/auth/callback` (Zero wildcard URLs allowed in production).
 
@@ -32,12 +32,12 @@
 
 ## 3. Email Delivery & Identity
 
-- [x] **SMTP / Resend Production Domain:**  
-  *Evidence:* Resend verified sending domain configured (`notifications.vrooma.in`) with SPF, DKIM, and DMARC DNS TXT records. Test delivery verified for inbox arrival on Gmail and Microsoft Outlook.
-- [x] **Google OAuth Client:**  
-  *Evidence:* Google Cloud Console OAuth consent screen published (Public, non-testing), production authorized redirect URI `https://vrooma.in/api/auth/callback` registered.
+- [ ] **SMTP / Resend Production Domain (OPEN — Awaiting Owner Action):**  
+  *Status:* OPEN. Owner must create Resend account, add sending domain `notifications.vrooma.in`, and configure SPF, DKIM, and DMARC TXT records in domain DNS. Outbox worker is guarded and fails closed with retry backoff when `RESEND_API_KEY` is missing in production.
+- [ ] **Google OAuth Client (OPEN — Awaiting Owner Action):**  
+  *Status:* OPEN. Owner must publish Google Cloud Console OAuth consent screen to Public status and register production redirect URI `https://vrooma.in/api/auth/callback`.
 - [x] **Initial Administrator Bootstrap:**  
-  *Evidence:* Dealer Principal admin account bootstrapped via `scripts/seed-prod-admin.mjs` with two-factor authentication enabled.
+  *Evidence:* Dealer Principal admin account bootstrap procedure guarded via `scripts/seed-prod-admin.mjs` requiring `--i-am-targeting-production` and explicit reference confirmation.
 - [x] **Dev Login & Bypass Disabled:**  
   *Evidence:* `ALLOW_DEV_LOGIN` is absent / set to `"false"`. `src/instrumentation.ts` throws fatal startup error if `APP_ENV === 'production'` and `ALLOW_DEV_LOGIN === 'true'`. Endpoint `/api/auth/dev-login` returns 404 in production.
 
@@ -94,8 +94,8 @@
 
 - [x] **Automated Backup Scripts:**  
   *Evidence:* [`scripts/backup-schema.sh`](file:///d:/Vrooma/scripts/backup-schema.sh) and [`scripts/backup-schema.bat`](file:///d:/Vrooma/scripts/backup-schema.bat) operational.
-- [x] **Database Tier Decision:**  
-  *Evidence:* Client briefed on Supabase Pro Tier requirement (\$25/mo) to unlock automated 7-day backups and eliminate 7-day free tier sleep pause.
+- [ ] **Database Tier Decision (OPEN — Awaiting Owner Decision):**  
+  *Status:* OPEN. Owner decision required to upgrade production Supabase project (`ajumkjokagqfdikfguti`) to Pro Tier (\$25/mo) to unlock automated daily PITR backups and disable the 7-day inactivity pause. Currently prepared scripts provide manual schema/data backups.
 - [x] **Observability Dashboard:**  
   *Evidence:* `/admin/system` dashboard operational with real-time outbox queues, dead letters, recent cron runs, and DPDP pending requests.
 - [x] **Health Endpoint:**  

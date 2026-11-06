@@ -91,7 +91,7 @@ export async function getPriceRule({
 
   const cachedFn = cachedQuery(
     async () => {
-      const supabase = createPublicClient();
+      const supabase = createAdminClient();
       const { data, error } = await supabase.rpc("resolve_price_rule", {
         p_city_id: normCity,
         p_variant_id: normVariant,

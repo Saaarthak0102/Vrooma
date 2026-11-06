@@ -15,7 +15,7 @@ import { formatINR } from "@/lib/money";
 import { CheckCircle2, Sparkles, Upload, X, FileImage } from "lucide-react";
 
 export function TradeInForm({ className }: { className?: string }) {
-  const [estimatedVal, setEstimatedVal] = useState<{ min: number; max: number; leadRef?: string } | null>(null);
+  const [submittedRef, setSubmittedRef] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -125,12 +125,8 @@ export function TradeInForm({ className }: { className?: string }) {
       }
 
       setStatus("success");
-      setEstimatedVal({
-        min: res.data.estimatedRange.min,
-        max: res.data.estimatedRange.max,
-        leadRef: res.data.leadRef,
-      });
-      toast.success("Trade-in request registered! Indicative value calculated.");
+      setSubmittedRef(res.data.leadRef);
+      toast.success("Trade-in request registered! A specialist will contact you.");
     } catch (err: any) {
       setStatus("error");
       setTimeout(() => setStatus("idle"), 800);
@@ -142,24 +138,19 @@ export function TradeInForm({ className }: { className?: string }) {
 
   return (
     <div className={`space-y-6 ${className}`}>
-      {estimatedVal && (
+      {submittedRef && (
         <div className="rounded-xl border border-accent bg-accent-soft/30 p-6 space-y-3 animate-in fade-in">
           <div className="flex items-center justify-between text-accent-ink font-bold text-sm">
             <div className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5" />
-              <span>Indicative AI Trade-in Valuation</span>
+              <CheckCircle2 className="h-5 w-5" />
+              <span>Trade-In Appraisal Registered</span>
             </div>
-            {estimatedVal.leadRef && (
-              <span className="font-mono text-xs px-2.5 py-0.5 rounded-full bg-accent/20 border border-accent/40">
-                Ref: {estimatedVal.leadRef}
-              </span>
-            )}
+            <span className="font-mono text-xs px-2.5 py-0.5 rounded-full bg-accent/20 border border-accent/40">
+              Ref: {submittedRef}
+            </span>
           </div>
-          <div className="text-2xl sm:text-3xl font-black text-ink">
-            {formatINR(estimatedVal.min)} – {formatINR(estimatedVal.max)}
-          </div>
-          <p className="text-xs text-ink-soft leading-relaxed">
-            Based on recent Lucknow certified sales. A Vrooma evaluator will inspect your vehicle and provide a binding exchange bonus offer within 2 hours.
+          <p className="text-sm text-ink leading-relaxed font-medium">
+            Your trade-in appraisal has been assigned to our Used-Car Manager. Per our 5-Minute Lead SLA, a certified pre-owned evaluator will review your photos and contact you on WhatsApp/Call with our certified offer.
           </p>
         </div>
       )}

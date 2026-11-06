@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { recordConsent, generateUnsubscribeToken } from "@/server/privacy/consent";
+import { getTrustedClientIp } from "@/lib/network";
 import { env } from "@/lib/env";
 
 const GENERIC_SUCCESS_MESSAGE = "Successfully subscribed to verified showroom updates.";
@@ -38,18 +39,10 @@ function isRateLimited(identifier: string): boolean {
   return false;
 }
 
-function getClientIdentifier(request: NextRequest): string {
-  const forwarded = request.headers.get("x-forwarded-for");
-  if (forwarded) {
-    return forwarded.split(",")[0].trim();
-  }
-  return request.headers.get("x-real-ip") || "unknown-client";
-}
-
 export async function POST(request: NextRequest) {
   try {
-    const clientId = getClientIdentifier(request);
-    if (clientId !== "unknown-client" && isRateLimited(`ip:${clientId}`)) {
+    const clientId = getTrustedClientIp(request);
+    if (clientId && isRateLimited(`ip:${clientId}`)) {
       return NextResponse.json(
         { ok: false, error: "Too many subscription requests. Please try again later." },
         { status: 429 }

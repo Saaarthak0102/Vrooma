@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { sendLeadReplyAction } from "@/server/actions/leads";
+import { findForbiddenDiscountWord } from "@/lib/validation/discount";
 import { toast } from "sonner";
 import { Send, AlertTriangle, Sparkles, CheckCircle2 } from "lucide-react";
 
@@ -15,15 +16,6 @@ export interface ReplyDraftEditorProps {
   onSent?: () => void;
   className?: string;
 }
-
-const FORBIDDEN_DISCOUNT_WORDS = [
-  "discount",
-  "off",
-  "% off",
-  "cash discount",
-  "छूट",
-  "discounts",
-];
 
 export function ReplyDraftEditor({
   leadId,
@@ -38,20 +30,16 @@ export function ReplyDraftEditor({
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [sentSuccess, setSentSuccess] = useState(false);
 
-  // Check for forbidden discount words
-  const lowerDraft = draft.toLowerCase();
-  const detectedForbiddenWord = FORBIDDEN_DISCOUNT_WORDS.find((word) =>
-    lowerDraft.includes(word)
-  );
-
-  const hasDiscountWarning = !!detectedForbiddenWord;
+  // Check for forbidden discount words using dealership boundary engine
+  const detectedForbiddenWord = useMemo(() => findForbiddenDiscountWord(draft), [draft]);
+  const hasDiscountWarning = Boolean(detectedForbiddenWord);
 
   const handleSend = async () => {
     if (hasDiscountWarning) {
       setStatus("error");
       setTimeout(() => setStatus("idle"), 600);
       toast.error(
-        `Action Blocked: Dealership policy strictly prohibits quoting unapproved discounts ("${detectedForbiddenWord}"). Remove it before sending.`
+        "Action Blocked: Dealership policy strictly prohibits quoting unapproved discounts, price cuts, or waivers. Remove it before sending."
       );
       return;
     }

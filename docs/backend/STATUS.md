@@ -73,7 +73,7 @@ Clean, ordered 13-migration split:
 - Does not insert directly into `auth.users`.
 
 ### 3.3 Scripts and Verification Tools
-- `scripts/db-push.mjs` (`pnpm db:push`): Refuses to execute unless `SUPABASE_PROJECT_REF` matches `ajumkjokagqfdikfguti` and `--yes` is supplied.
+- `scripts/db-push.mjs` (`pnpm db:push`): Refuses to execute unless `SUPABASE_PROJECT_REF` matches `eobtzcwinjmimzisypca` (DEV) and `--yes` is supplied.
 - `scripts/db-lint.mjs` (`pnpm db:lint`): Validates migration numbering, transaction wrapping, universal RLS enablement, privacy column grants, and search_path isolation.
 - `scripts/rls-matrix.ts` & `tests/rls-matrix.test.ts` (`pnpm rls:test`): Automated matrix assertion covering all 5 personas (anon, buyer, consultant, manager, admin) and private column masks.
 - `tests/db-edge-cases.test.ts`: Automated test suite for all 16 concurrency and constraint edge cases.
@@ -113,13 +113,15 @@ The following functions alone are authorized to invoke the Admin Client:
 
 ---
 
-## 5. Human Step (Pending Before Remote Database Migration)
+## 5. Human Step (Environment Verification & Promotion Policy)
 
-Per Phase 2 specification ("0. HUMAN STEPS - stop and wait"):
-The agent must **NOT** run `db push` against any Supabase project until the user confirms the project ref is the DEV project:
-- Target DEV Project Ref: `ajumkjokagqfdikfguti`
-- Command to push when confirmed:
-  `SUPABASE_PROJECT_REF=ajumkjokagqfdikfguti pnpm db:push --yes`
+DEV project is `eobtzcwinjmimzisypca`; PRODUCTION is `ajumkjokagqfdikfguti`.
+- Target DEV Project Ref: `eobtzcwinjmimzisypca`
+- Target PROD Project Ref: `ajumkjokagqfdikfguti`
+- Command to push to DEV when confirmed:
+  `SUPABASE_PROJECT_REF=eobtzcwinjmimzisypca pnpm db:push --yes`
+- Command to push to PROD (only after DEV passes and approval):
+  `pnpm db:push --target prod --i-am-targeting-production`
 
 ---
 

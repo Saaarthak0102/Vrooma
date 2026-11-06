@@ -9,7 +9,7 @@ describe("Newsletter DPDP Consent & Security API", () => {
   it("blocks submission without consent checkbox (400 Bad Request)", async () => {
     const req = new NextRequest("http://localhost:3000/api/newsletter", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "x-forwarded-for": "10.10.1.1" },
       body: JSON.stringify({
         email: "buyer@example.com",
         consent: false,
@@ -27,7 +27,7 @@ describe("Newsletter DPDP Consent & Security API", () => {
   it("blocks submission with invalid email format (400 Bad Request)", async () => {
     const req = new NextRequest("http://localhost:3000/api/newsletter", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "x-forwarded-for": "10.10.1.2" },
       body: JSON.stringify({
         email: "not-an-email",
         consent: true,
@@ -46,7 +46,7 @@ describe("Newsletter DPDP Consent & Security API", () => {
     const longEmail = `${"a".repeat(250)}@example.com`;
     const req = new NextRequest("http://localhost:3000/api/newsletter", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "x-forwarded-for": "10.10.1.3" },
       body: JSON.stringify({
         email: longEmail,
         consent: true,
@@ -65,7 +65,7 @@ describe("Newsletter DPDP Consent & Security API", () => {
     const email = `subscriber-${Date.now()}@lucknow.org`;
     const req = new NextRequest("http://localhost:3000/api/newsletter", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "x-forwarded-for": "10.10.1.4" },
       body: JSON.stringify({
         email,
         consent: true,
@@ -87,7 +87,7 @@ describe("Newsletter DPDP Consent & Security API", () => {
     // First request
     const req1 = new NextRequest("http://localhost:3000/api/newsletter", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "x-forwarded-for": "10.10.1.5" },
       body: payload,
     });
     const res1 = await POST(req1);
@@ -100,7 +100,7 @@ describe("Newsletter DPDP Consent & Security API", () => {
     // Duplicate request with identical email
     const req2 = new NextRequest("http://localhost:3000/api/newsletter", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "x-forwarded-for": "10.10.1.5" },
       body: payload,
     });
     const res2 = await POST(req2);
@@ -115,7 +115,7 @@ describe("Newsletter DPDP Consent & Security API", () => {
   it("handles malformed JSON gracefully (400 Bad Request)", async () => {
     const req = new NextRequest("http://localhost:3000/api/newsletter", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "x-forwarded-for": "10.10.1.6" },
       body: "invalid-json{",
     });
 

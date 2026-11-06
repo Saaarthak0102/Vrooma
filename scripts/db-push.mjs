@@ -165,7 +165,7 @@ export function buildPushArgs(projectRef = EXPECTED_DEV_PROJECT_REF) {
   if (FORBIDDEN_PROJECT_REFS.has(projectRef) || projectRef !== EXPECTED_DEV_PROJECT_REF) {
     throw new Error(`BLOCKED: Cannot construct push arguments for non-DEV project '${projectRef}'.`);
   }
-  return ["supabase", "db", "push", `--remote=${projectRef}`, "--include-all"];
+  return ["supabase", "db", "push", `--remote=${projectRef}`, "--include-all", "--yes"];
 }
 
 /**

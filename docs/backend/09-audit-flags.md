@@ -1,0 +1,60 @@
+# AUDIT FLAGS: prove it or fix it (run before manual verification)
+
+Goal: independent evidence for the risks below. For each item: reproduce, show the evidence, fix only what is actually broken, and re-prove. Do not change visuals. Write everything to `docs/backend/VERIFY_REPORT.md` as a table: item | evidence (command output or HTTP status) | verdict (OK / FIXED / OPEN) | change made.
+
+Rules: no secrets in the report; run probes only against the DEV project; never loosen a security rule to make a probe pass; every fix gets a regression test.
+
+## 1. Project safety (DEV vs PRODUCTION)
+Facts from the project owner: `eobtzcwinjmimzisypca` is the DEV project; `ajumkjokagqfdikfguti` is PRODUCTION. The Phase 2 report wrongly called `ajumkjokagqfdikfguti` the dev ref.
+1. Print the ref derived from `NEXT_PUBLIC_SUPABASE_URL`, the ref the CLI is linked to (`supabase projects list` / `.supabase`) and the ref `db:push` guards on. All three must be `eobtzcwinjmimzisypca`. If any differs, fix it (local config only) and report.
+2. Add hard guards everywhere: a shared `src/lib/project-guard.ts` with `DEV_REF = eobtzcwinjmimzisypca` and `PROD_REF = ajumkjokagqfdikfguti` (from env: `SUPABASE_DEV_REF`, `SUPABASE_PROD_REF`). `db:push`, `db:lint`, `rls:test`, `pnpm probe`, vitest integration setup, the dev-user seeding script, the console-check script and any script that writes data must REFUSE to run when the URL ref equals `PROD_REF`, unless the script is explicitly the production bootstrap/migration path and the operator passes `--i-am-targeting-production` and types the ref. Add tests for the guard.
+3. Check what has happened in production without changing it: provide a read-only SQL snippet for the owner to run in the PROD SQL editor and put it in the report: `select count(*) from auth.users;`, `select table_name from information_schema.tables where table_schema='public';`, `select * from supabase_migrations.schema_migrations;`, `select count(*) from public.leads; select count(*) from public.bookings; select count(*) from public.profiles;`, and a list of users with email containing `@vrooma.test` or `dev`. Do NOT connect to production yourself.
+4. Confirm the DEV database has the 13 migrations applied (`supabase migration list` against the DEV ref) and about 35 tables.
+5. List every place the code or docs treat `ajumkjokagqfdikfguti` as DEV (STATUS.md, scripts, docs) and correct them.
+6. Write a short `docs/backend/ENVIRONMENTS.md`: DEV and PROD refs, which `.env` file points where, the promotion procedure (migrations to PROD only through the guarded script after DEV passes), and that dev password logins and the dev seed users exist only in DEV.
+7. Environment layout (implement exactly this):
+   - `.env.local` holds DEV credentials ONLY. It also holds the non-secret `SUPABASE_DEV_REF` and `SUPABASE_PROD_REF` used by the guard.
+   - Never create `.env.production.local` or any `.env.production*` file with real values: Next.js loads those on every local `build` and `start`. Add a check to `scripts/check-env.mjs` that fails if such a file exists or if `.env.local` contains the production ref in any URL or key value.
+   - `.env.example` documents every variable with empty values; `.gitignore` ignores all `.env*` except `.env.example`.
+   - Production credentials live only in the hosting platform's environment settings, and for one-off production tasks are supplied through the current terminal session's environment variables (shell values override `.env.local`; scripts must not load dotenv files with `override: true`).
+   - Add `--target dev|prod` to `db:push`, `db:lint`, the bootstrap-admin script and the seed scripts. Default is `dev`. `--target prod` is allowed ONLY for `db:push` and `bootstrap-admin`, requires credentials from `process.env` (not files), the flag `--i-am-targeting-production`, and the operator typing the production ref at a prompt. Seed, probe, rls-matrix, console-check and test setup never accept `prod`.
+   - Keep the Supabase CLI linked to the DEV ref. The production push path must pass the project ref explicitly and never relink silently.
+   - Document hosting setup: preview deployments use DEV values, the production deployment uses PROD values, and `APP_ENV=production` is set only on production.
+
+## 2. API exposure probe (the most important item)
+Create `scripts/api-probe.ts` and `pnpm probe`. It uses the PUBLISHABLE key over real HTTP (PostgREST and RPC), as: anon, buyer A, buyer B, consultant (showroom 1), consultant (showroom 2), manager, admin. Sign in the signed-in personas with the dev password users (dev project only). For each persona print a table of raw HTTP status and row counts. Probes:
+- Tables: select * (and select of sensitive columns) on every table in `public`; insert/update/delete attempts on tables a persona must not write.
+- Specifically: `used_cars?select=reg_no_private` (expected denied for everyone); `price_rules` (anon and buyers denied); `profiles` as a consultant (must NOT list all buyers; at most the staff in their own showrooms and `consultant_public`); another buyer's `bookings`, `saved_items`, `consents`, `data_requests` (denied); `leads` as a buyer (denied; only the `my_enquiries` view); `messages_outbox`, `rate_limits`, `idempotency_keys`, `audit_log` (denied for all but the stated roles); `used_car_price_suggestions` and `used_car_sales_history` (consultant denied).
+- RPCs: list every function in `public` with `routine_privileges`. Call each as anon and as a buyer with dummy arguments and report which are executable. Required: `get_onroad_breakup` NOT callable by anon; `resolve_price_rule` NOT callable by anon or buyers if it returns full rule data (buyers get the breakup only through `get_onroad_breakup`); `create_lead` and `book_slot` not callable by anon directly (the public form route must be the only anonymous path and it must apply the honeypot and rate limits); `get_used_car_reg`, `admin_set_role`, `admin_set_active`, `flag_sla_breaches`, `generate_slots`, `anonymise_user`, `assign_lead`, `reassign_lead` not callable by buyers or anon. Supabase grants EXECUTE on new functions to anon and authenticated by default, so assume nothing was revoked until the probe proves it. Fix with a migration: `revoke execute on function ... from public, anon, authenticated;` then grant only to the needed roles; set `alter default privileges ... revoke execute on functions from anon, authenticated` for future functions.
+- Storage: anon and buyer attempts to list/read `inspection-reports`, another user's `trade-in-photos`, write to `car-media`.
+Output the full matrix into the report. Any unexpected "allowed" is a finding that must be fixed and re-probed.
+
+## 3. Trade-in valuation must not reach the buyer
+Phase 5 says the trade-in action "returns indicative AI band". The brief says only the used-car manager sees the price suggestion and sets every final price. Find what the action returns and what the UI shows. The buyer must receive only a confirmation and reference; any valuation stays staff-side (manager only). Remove any band from the buyer response and UI text, and add a test that the action's response contains no valuation fields.
+
+## 4. Reply guard false positives
+`sendLeadReplyAction` blocks discount words including "off" and "कम". Open the shared function (`containsForbiddenDiscountWords`). It must match WORDS and phrases with word boundaries (and Devanagari boundaries), not substrings. Keep blocking: discount, "% off", "percent off", "price cut", waiver, free-of-charge style offers with amounts, छूट, डिस्काउंट, plus any number followed by `%` near "off/discount". Must NOT block: "office", "offer", "offering", "coffee", "कम समय में", "कम से कम". Add tests for both lists in English and Hindi. The same function must be used by the UI warning and the server action.
+
+## 5. CSV phone handling
+Find the CSV import sanitiser. Leading `= + - @` stripping must never touch the phone field before normalisation; phones like `+919876543210`, `+91 98765 43210`, `09876543210`, `919876543210` must all import correctly. Formula neutralisation applies to text fields only (name, message) and to EXPORT. Add tests with these exact values, a BOM, semicolon delimiter and a formula cell (`=1+1`) in the message field (stored as text, harmless on export).
+
+## 6. Scheduling of background jobs
+List `cron.job`. For every route under `/api/cron/*` (`outbox`, `sla`, `finalize-deletions`, `data-retention`, any other) state what calls it and how often. Anything with no caller must be scheduled: preferred is a `pg_cron` job that calls the route through `pg_net` with the `CRON_SECRET` header (secret and app URL in Supabase Vault, never in SQL text). Avoid double-running SLA: if both a pg_cron function and `/api/cron/sla` do the same work, keep one and make the other a no-op or remove it. Document the production scheduler in `docs/backend/OPERATIONS.md` and add a "last run" display to the admin System page if it is missing. Prove by calling each route without the secret (401) and with it (200).
+
+## 7. Email delivery must not fake success
+Read the outbox worker. In production (`APP_ENV=production`) a missing or invalid Resend key must mark messages `failed` with backoff and show up as an alert in the System page, never `sent`. The simulation path is allowed only when `APP_ENV` is development or test. Add a test. Confirm the From address and domain come from env, and flag `notifications.vrooma.in` as an assumption that needs a real, verified domain.
+
+## 8. IP handling for rate limits
+Show how the client IP is derived for `POST /api/leads`, `/api/newsletter`, data-rights and OTP-related routes. It must use the platform's trusted header (document which host is used) and must not blindly trust a client-sent `X-Forwarded-For`. If the host is not decided yet, centralise it in one function with a clear TODO for the host and use the safest default. Add a test where a spoofed header does not bypass the limit.
+
+## 9. Real-browser console check (CSP and runtime errors)
+Add `scripts/console-check.mjs` (Playwright, Chromium, dev dependency; document the install). Against a production build, visit about 25 URLs in `en` and `hi` (landing, cars, model, used cars, used car, offers, showrooms, emi, contact, about, legal pages, sign-in, sign-up, plus signed-in dashboard, booking pages, and staff/admin pages using dev users) and print every console error, page error, failed request and CSP violation per URL. Check which CSP mode is active (report-only vs enforcing) and which directives allow inline scripts (nonce, hash or `unsafe-inline`). Fix violations without weakening the policy with wildcards; confirm Lenis/GSAP landing animations, chat widget, Google sign-in redirect and the sign-in sheet all work under the policy.
+
+## 10. Realtime and inbox
+Confirm `leads` is in the realtime publication, RLS applies to realtime (a consultant of showroom 2 never receives showroom 1 events: prove with two subscriptions), and the inbox subscription is cleaned up on unmount.
+
+## 11. Spec items the Phase 6 report did not show
+Report honestly: real Lighthouse mobile numbers (or "not run"), `EXPLAIN` plans for the heaviest queries on a larger generated dataset (or "not run"), CSP enforcement status, whether auth edge cases from `02-auth.md` section 2.7 were each tested. Also correct `docs/backend/RELEASE.md` so items that only the owner can do (domain, SMTP records, Google consent screen publication, Pro plan decision) show as OPEN, not as evidenced, and change the report's "GO FOR PRODUCTION LAUNCH" wording to a status based on this verification.
+
+## 12. Deliverables
+`docs/backend/VERIFY_REPORT.md`, the new scripts (`pnpm probe`, `scripts/console-check.mjs`), migrations for any grant fixes, tests for each fix, and a short list of items that need the project owner.

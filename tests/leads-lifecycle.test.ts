@@ -21,6 +21,23 @@ describe("Phase 4: Leads Pipeline & Guardrails", () => {
       expect(containsForbiddenDiscountWords("Namaste Aditya, your test drive is confirmed for tomorrow 11 AM.")).toBe(false);
       expect(containsForbiddenDiscountWords("Please visit our Hazratganj showroom for variant demonstration.")).toBe(false);
       expect(containsForbiddenDiscountWords("गाड़ी का ऑन-रोड प्राइस ब्रेकअप संलग्न है।")).toBe(false);
+      
+      // Specifically required non-discount words in Section 4:
+      expect(containsForbiddenDiscountWords("Please visit our showroom office in Hazratganj.")).toBe(false);
+      expect(containsForbiddenDiscountWords("We have a special festive offer for test drive participants.")).toBe(false);
+      expect(containsForbiddenDiscountWords("We are offering exclusive color choices for Model H.")).toBe(false);
+      expect(containsForbiddenDiscountWords("Would you like tea or coffee during your showroom tour?")).toBe(false);
+      expect(containsForbiddenDiscountWords("गाड़ी कम समय में तैयार होकर मिल जाएगी।")).toBe(false);
+      expect(containsForbiddenDiscountWords("कम से कम 24 घंटे पहले अपनी टेस्ट ड्राइव बुक करें।")).toBe(false);
+    });
+
+    it("strictly blocks required discount variations in English and Hindi", () => {
+      expect(containsForbiddenDiscountWords("We can offer a 5 percent off on accessories.")).toBe(true);
+      expect(containsForbiddenDiscountWords("Special 15% discount for you.")).toBe(true);
+      expect(containsForbiddenDiscountWords("Free of charge handling package.")).toBe(true);
+      expect(containsForbiddenDiscountWords("इस दिवाली पर ₹20,000 की विशेष छूट उपलब्ध है।")).toBe(true);
+      expect(containsForbiddenDiscountWords("हम आपके लिए 5% छूट करवा देंगे।")).toBe(true);
+      expect(containsForbiddenDiscountWords("शोरूम आकर बात करें, हम दाम कम कर देंगे।")).toBe(true);
     });
   });
 

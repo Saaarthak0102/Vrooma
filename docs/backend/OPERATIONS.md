@@ -149,3 +149,41 @@ When restoring a database from backup or spinning up a warm standby, follow this
     ```
   - Generates immutable entry in `public.audit_log` with timestamp, masking all PII.
 
+---
+
+## 6. Background Pipeline Scheduler Architecture
+
+All background maintenance and communication pipelines are exposed via guarded Next.js route handlers requiring `Authorization: Bearer <CRON_SECRET>` headers. Both `GET` and `POST` methods are accepted to accommodate different cron providers.
+
+| Route | Execution Frequency | Primary Trigger | Redundancy / Fallback | Purpose |
+|---|---|---|---|---|
+| `/api/cron/sla` | Every 1 minute (`* * * * *`) | Supabase `pg_cron` (`cron.job`) | Vercel Cron | Evaluates uncontacted web enquiries, triggers 5-min SLA warnings/breaches, and notifies lead managers. |
+| `/api/cron/outbox` | Every 2 minutes (`*/2 * * * *`) | Supabase `pg_cron` (`cron.job`) | Vercel Cron | Dispatches queued customer transactional emails via Resend with exponential retry backoff. |
+| `/api/cron/data-retention` | Daily at 02:00 IST (`30 20 * * *` UTC) | Supabase `pg_cron` (`cron.job`) | Vercel Cron / External Cron | Evaluates DPDP statutory data retention periods and anonymizes cold leads. |
+| `/api/cron/finalize-deletions` | Daily at 03:00 IST (`30 21 * * *` UTC) | Supabase `pg_cron` (`cron.job`) | Vercel Cron / External Cron | Executes account erasure for user requests whose 7-day statutory cooling-off window has elapsed. |
+
+### 6.1 Configuring pg_cron with Supabase Vault
+To configure `pg_cron` jobs invoking Next.js cron endpoints securely over HTTPS:
+1. Store `CRON_SECRET` and `APP_URL` in Supabase Vault:
+   ```sql
+   SELECT vault.create_secret('https://vrooma.in', 'app_url');
+   SELECT vault.create_secret('<HIGH_ENTROPY_CRON_SECRET>', 'cron_secret');
+   ```
+2. Schedule jobs using `pg_net` with headers dynamically resolved from Vault:
+   ```sql
+   SELECT cron.schedule(
+     'dispatch-outbox-every-2-minutes',
+     '*/2 * * * *',
+     $$
+     SELECT net.http_post(
+       url := (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'app_url') || '/api/cron/outbox',
+       headers := jsonb_build_object(
+         'Content-Type', 'application/json',
+         'Authorization', 'Bearer ' || (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'cron_secret')
+       )
+     );
+     $$
+   );
+   ```
+   Secrets are never hardcoded in plaintext SQL migrations or git commits.
+

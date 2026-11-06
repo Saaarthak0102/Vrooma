@@ -35,6 +35,10 @@ const EXPECTED_MIGRATIONS = [
   "0011_functions_rpc.sql",
   "0012_cron_jobs.sql",
   "0013_storage.sql",
+  "0014_rpc_privilege_hardening.sql",
+  "0015_realtime_leads.sql",
+  "0016_cron_jobs_and_cancel_fix.sql",
+  "0017_fix_create_lead_citext.sql",
 ];
 
 const KNOWN_TABLES = [

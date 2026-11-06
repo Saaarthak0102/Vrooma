@@ -12,6 +12,36 @@
 import fs from "node:fs";
 import path from "node:path";
 
+const PROD_REF = process.env.SUPABASE_PROD_REF || "ajumkjokagqfdikfguti";
+
+// 1. Check for forbidden .env.production* files
+const filesInRoot = fs.readdirSync(process.cwd());
+const prodEnvFiles = filesInRoot.filter((f) => f.startsWith(".env.production"));
+if (prodEnvFiles.length > 0) {
+  console.error("\n❌ FATAL SECURITY VIOLATION: Production env file found on disk:");
+  console.error(` Found: ${prodEnvFiles.join(", ")}`);
+  console.error(" Real production secrets must live in hosting platform env settings only.\n");
+  process.exit(1);
+}
+
+// 2. Check that .env.local does not contain PROD ref in URLs or keys
+const envLocalPath = path.resolve(process.cwd(), ".env.local");
+if (fs.existsSync(envLocalPath)) {
+  const content = fs.readFileSync(envLocalPath, "utf-8");
+  for (const line of content.split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const [key, ...rest] = trimmed.split("=");
+    const val = rest.join("=").trim().replace(/["']/g, "");
+    if (key !== "SUPABASE_PROD_REF" && val.includes(PROD_REF)) {
+      console.error("\n❌ FATAL SECURITY VIOLATION: .env.local contains production project reference!");
+      console.error(` Key '${key}' references production ref '${PROD_REF}'.`);
+      console.error(" .env.local must strictly contain DEV credentials only.\n");
+      process.exit(1);
+    }
+  }
+}
+
 function loadEnvFile(filePath) {
   if (!fs.existsSync(filePath)) return {};
   const content = fs.readFileSync(filePath, "utf-8");

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { env } from "@/lib/env";
+import { sendEmail } from "@/server/services/outbox";
 
 const BACKOFF_MINUTES = [1, 5, 30, 120];
 
@@ -9,43 +10,12 @@ function getNextAttemptTime(attempts: number): string {
   return new Date(Date.now() + delayMinutes * 60 * 1000).toISOString();
 }
 
-/**
- * Sends email via Resend if RESEND_API_KEY is configured, else simulates transmission.
- */
-async function sendEmail(to: string, template: string, body: string): Promise<void> {
-  const resendApiKey = process.env.RESEND_API_KEY;
-
-  if (resendApiKey) {
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${resendApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: "Vrooma Lucknow <updates@vrooma.in>",
-        to: [to],
-        subject: `Vrooma Dealership Notification: ${template.replace(/_/g, " ")}`,
-        text: body,
-      }),
-    });
-
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(`Resend API error (${res.status}): ${errText}`);
-    }
-  } else {
-    // Simulated delivery for dev / CI environments
-    console.info(`[Outbox Worker Simulated Email] To: ${to} | Template: ${template}`);
-  }
-}
-
 export async function GET(request: NextRequest) {
   // 1. Secret authorization check
   const authHeader = request.headers.get("authorization");
-  const secret = authHeader?.replace("Bearer ", "");
+  const expectedSecret = env.CRON_SECRET || "vrooma-cron-secret-local";
 
-  if (env.CRON_SECRET && secret !== env.CRON_SECRET) {
+  if (!authHeader || authHeader !== `Bearer ${expectedSecret}`) {
     return NextResponse.json({ ok: false, error: "Unauthorized cron execution" }, { status: 401 });
   }
 
@@ -154,4 +124,6 @@ export async function GET(request: NextRequest) {
     },
   });
 }
+
+export const POST = GET;
 

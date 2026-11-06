@@ -4,9 +4,9 @@ import { env } from "@/lib/env";
 
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
-  const secret = authHeader?.replace("Bearer ", "");
+  const expectedSecret = env.CRON_SECRET || "vrooma-cron-secret-local";
 
-  if (env.CRON_SECRET && secret !== env.CRON_SECRET) {
+  if (!authHeader || authHeader !== `Bearer ${expectedSecret}`) {
     return NextResponse.json({ ok: false, error: "Unauthorized cron execution" }, { status: 401 });
   }
 
@@ -29,3 +29,5 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
   }
 }
+
+export const POST = GET;
