@@ -89,6 +89,28 @@ export function ModelDetailView({
   }, [selectedVariant.id, selectedCity, includeAccessories, user?.id]);
 
   const onRoadBreakup = onRoad?.tier === "full" ? onRoad.breakup : null;
+
+  // Validity date of the price rule behind the headline (shown next to the price, as the brief requires).
+  const onRoadValidUntilRaw =
+    onRoad?.tier === "full" ? onRoad.breakup.validUntil : onRoad?.tier === "teaser" ? onRoad.validUntil : null;
+  const onRoadValidUntil = onRoadValidUntilRaw
+    ? new Date(onRoadValidUntilRaw).toLocaleDateString("en-IN", {
+        timeZone: "Asia/Kolkata",
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      })
+    : null;
+
+  // Smooth-scroll to the breakup section (plain anchor still works without JS / with reduced motion).
+  const scrollToBreakup = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    const target = document.getElementById("price-breakup");
+    if (!target) return;
+    e.preventDefault();
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    target.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+    history.replaceState(null, "", "#price-breakup");
+  };
   const onRoadHeadline =
     onRoad?.tier === "full" ? onRoad.breakup.total : onRoad?.tier === "teaser" ? onRoad.total : null;
 
@@ -236,13 +258,32 @@ export function ModelDetailView({
                   On-Road ({cityName})
                 </span>
                 <span className="text-base sm:text-lg font-black text-emerald-700">
-                  {onRoadHeadline !== null ? formatINR(onRoadHeadline) : "—"}
+                  {onRoadHeadline !== null ? formatINR(onRoadHeadline) : onRoadLoading ? "…" : "—"}
                 </span>
+                {onRoadValidUntil && (
+                  <span className="text-[10px] text-ink-mute block">Valid until {onRoadValidUntil}</span>
+                )}
               </div>
             </div>
-            <p className="text-[11px] text-ink-mute">
-              Includes road tax, registration, insurance, logistics & statutory charges for {cityName}.
-            </p>
+            {onRoadHeadline !== null ? (
+              <p className="text-[11px] text-ink-mute">
+                Includes road tax, registration, insurance, logistics & statutory charges for {cityName}.
+                Prices may change.{" "}
+                <a
+                  href="#price-breakup"
+                  onClick={scrollToBreakup}
+                  className="font-semibold text-accent-ink underline underline-offset-2 hover:text-ink"
+                >
+                  View full price breakup
+                </a>
+              </p>
+            ) : (
+              <p className="text-[11px] text-ink-mute">
+                {onRoadLoading
+                  ? "Fetching the official on-road price…"
+                  : `The on-road price for ${cityName} is being updated. Please contact the showroom for a quote.`}
+              </p>
+            )}
           </div>
 
           {/* Variant Selector & Highlights */}
@@ -265,7 +306,7 @@ export function ModelDetailView({
       {/* =========================================================================
           STAGE 2: PRICING & FINANCING (BALANCED TWO-COLUMN 50/50 SECTION)
          ========================================================================= */}
-      <section className="mt-14 pt-12 border-t border-border/80 space-y-6">
+      <section id="price-breakup" className="mt-14 pt-12 border-t border-border/80 space-y-6 scroll-mt-24">
         <div>
           <h2 className="text-xl sm:text-2xl font-black uppercase tracking-tight text-ink">
             Pricing & Financing

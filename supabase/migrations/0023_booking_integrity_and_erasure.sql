@@ -76,7 +76,7 @@ GRANT EXECUTE ON FUNCTION public.cancel_booking(UUID, TEXT) TO authenticated, se
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_bookings_active_idempotency_key
   ON public.bookings (idempotency_key)
-  WHERE idempotency_key IS NOT NULL AND status::text <> 'cancelled';
+  WHERE idempotency_key IS NOT NULL AND status <> 'cancelled';
 
 CREATE OR REPLACE FUNCTION private.anonymise_user(p_uid UUID)
 RETURNS VOID AS $$
