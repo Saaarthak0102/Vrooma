@@ -157,7 +157,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [refreshAuth]);
 
   const openSignInSheet = useCallback(
     (onSuccess?: () => void, intent?: Omit<PendingIntent, "createdAt">) => {

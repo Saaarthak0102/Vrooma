@@ -68,17 +68,24 @@ export async function GET(request: NextRequest) {
         console.info(`[Outbox Worker Simulated ${msg.channel.toUpperCase()}] To: ${msg.to_address}`);
       }
 
-      // Mark success
-      await admin
-        .from("messages_outbox")
-        .update({
-          status: "sent",
-          attempts: msg.attempts + 1,
-          sent_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          last_error: null,
-        })
-        .eq("id", msg.id);
+      // Mark success. The message is already delivered at this point, so a failed bookkeeping write must be
+      // retried: leaving the row in 'sending' would make the stale-row retry send the same message twice.
+      const markSent = () =>
+        admin
+          .from("messages_outbox")
+          .update({
+            status: "sent",
+            attempts: msg.attempts + 1,
+            sent_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            last_error: null,
+          })
+          .eq("id", msg.id);
+      let { error: sentErr } = await markSent();
+      if (sentErr) ({ error: sentErr } = await markSent());
+      if (sentErr) {
+        console.error(`[Outbox Worker] Message ${msg.id} was delivered but could not be marked sent: ${sentErr.message}`);
+      }
 
       sentCount++;
     } catch (err: any) {
@@ -114,6 +121,14 @@ export async function GET(request: NextRequest) {
       }
     }
   }
+
+  // Rows that exhausted their attempts (for example a crashed final send left in 'sending') are never picked
+  // up again by the query above, so close them out as 'dead' instead of leaving them looking in-flight.
+  await admin
+    .from("messages_outbox")
+    .update({ status: "dead", updated_at: new Date().toISOString(), last_error: "Exceeded maximum delivery attempts" })
+    .in("status", ["pending", "failed", "sending"])
+    .gte("attempts", 5);
 
   return NextResponse.json({
     ok: true,

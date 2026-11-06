@@ -13,6 +13,7 @@ export interface UserDataExport {
   enquiries: Array<Record<string, any>>;
   savedItems: Array<Record<string, any>>;
   tradeInSubmissions: Array<Record<string, any>>;
+  supportChats: Array<Record<string, any>>;
 }
 
 /**
@@ -30,6 +31,7 @@ export async function generateUserDataExportAction(): Promise<ActionResponse<Use
       { data: leads },
       { data: savedItems },
       { data: tradeIns },
+      { data: chatRows },
     ] = await Promise.all([
       admin.from("profiles").select("*").eq("id", user.id).single(),
       admin.from("consents").select("purpose, granted, policy_version, source, created_at").eq("user_id", user.id),
@@ -37,27 +39,27 @@ export async function generateUserDataExportAction(): Promise<ActionResponse<Use
       admin.from("leads").select("ref, source, status, created_at, models:model_id(name), used_cars:used_car_id(model_name)").eq("user_id", user.id),
       admin.from("saved_items").select("created_at, models:model_id(name), used_cars:used_car_id(model_name)").eq("user_id", user.id),
       admin.from("trade_in_requests").select("brand, model, year, km, condition, notes, created_at").eq("user_id", user.id),
+      admin.from("chat_conversations").select("title, created_at, chat_messages(role, content, created_at)").eq("user_id", user.id),
     ]);
 
     // Record formal export in data_requests table
-    try {
-      await admin.from("data_requests").insert({
-        user_id: user.id,
-        kind: "export",
-        status: "done",
-        note: "Self-service instant export downloaded by user",
-      });
+    // supabase-js reports failures through { error }, it does not throw: check both writes explicitly.
+    const { error: reqErr } = await admin.from("data_requests").insert({
+      user_id: user.id,
+      kind: "export",
+      status: "done",
+      note: "Self-service instant export downloaded by user",
+    });
+    if (reqErr) console.warn(`[data-rights] Could not record export request: ${reqErr.message}`);
 
-      await admin.from("audit_log").insert({
-        actor_id: user.id,
-        table_name: "data_requests",
-        record_id: user.id,
-        action: "DATA_EXPORT_GENERATED",
-        new_values: { requested_at: new Date().toISOString() },
-      });
-    } catch (auditErr: any) {
-      console.warn(`[data-rights] Audit logging warning: ${auditErr?.message}`);
-    }
+    const { error: auditErr } = await admin.from("audit_log").insert({
+      actor_id: user.id,
+      table_name: "data_requests",
+      record_id: user.id,
+      action: "DATA_EXPORT_GENERATED",
+      new_values: { requested_at: new Date().toISOString() },
+    });
+    if (auditErr) console.warn(`[data-rights] Could not write audit entry: ${auditErr.message}`);
 
     const exportPayload: UserDataExport = {
       exportDate: new Date().toISOString(),
@@ -68,6 +70,7 @@ export async function generateUserDataExportAction(): Promise<ActionResponse<Use
       enquiries: leads || [],
       savedItems: savedItems || [],
       tradeInSubmissions: tradeIns || [],
+      supportChats: (chatRows as Array<Record<string, any>> | null) || [],
     };
 
     return successResponse(exportPayload);

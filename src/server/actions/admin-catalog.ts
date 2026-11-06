@@ -5,6 +5,7 @@ import { requireRole } from "@/server/auth/viewer";
 import { createClient as createUserClient } from "@/lib/supabase/server";
 import { safeRevalidateTag, safeRevalidatePath } from "@/server/cache";
 import { ActionResponse, successResponse, errorResponse } from "@/lib/errors";
+import { priceRuleSchema } from "@/lib/validation/price-rule";
 import { Role, BodyType, FuelType, CarStatus } from "@/types/domain";
 import type { Database } from "@/types/db";
 
@@ -50,6 +51,19 @@ export async function saveModelAction(payload: {
   try {
     const { profile } = await requireRole("admin");
     const supabase = createAdminClient();
+
+    if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(payload.slug || "")) {
+      return errorResponse("VALIDATION_FAILED", "Slug may only contain lowercase letters, numbers and single hyphens.");
+    }
+    if (!payload.name?.trim() || payload.name.length > 100) {
+      return errorResponse("VALIDATION_FAILED", "Model name is required (max 100 characters).");
+    }
+    if ((payload.tagline ?? "").length > 200) {
+      return errorResponse("VALIDATION_FAILED", "Tagline must be 200 characters or fewer.");
+    }
+    if (!payload.hero_image?.trim()) {
+      return errorResponse("VALIDATION_FAILED", "A hero image is required.");
+    }
 
     if (payload.id) {
       // Optimistic concurrency check
@@ -179,20 +193,27 @@ export async function savePriceRuleAction(payload: {
     const { profile } = await requireRole("admin");
     const supabase = createAdminClient();
 
+    // On-road prices come from this table, so reject bad numbers and impossible date ranges here.
+    const parsed = priceRuleSchema.safeParse(payload);
+    if (!parsed.success) {
+      return errorResponse("VALIDATION_FAILED", parsed.error.errors[0]?.message || "Invalid price rule.");
+    }
+    const rule = parsed.data;
+
     const ruleData: Database["public"]["Tables"]["price_rules"]["Insert"] = {
-      city_id: payload.city_id,
-      model_id: payload.model_id || null,
-      variant_id: payload.variant_id || null,
-      fuel: (payload.fuel || null) as FuelType | null,
-      road_tax_pct: payload.road_tax_pct,
-      registration: payload.registration,
-      insurance: payload.insurance,
-      handling: payload.handling,
-      accessories: payload.accessories,
-      tcs_pct: payload.tcs_pct,
-      valid_from: payload.valid_from,
-      valid_until: payload.valid_until,
-      notes: payload.notes || null,
+      city_id: rule.city_id,
+      model_id: rule.model_id || null,
+      variant_id: rule.variant_id || null,
+      fuel: (rule.fuel || null) as FuelType | null,
+      road_tax_pct: rule.road_tax_pct,
+      registration: rule.registration,
+      insurance: rule.insurance,
+      handling: rule.handling,
+      accessories: rule.accessories,
+      tcs_pct: rule.tcs_pct ?? 1,
+      valid_from: rule.valid_from,
+      valid_until: rule.valid_until,
+      notes: rule.notes || null,
       updated_at: new Date().toISOString(),
     };
 

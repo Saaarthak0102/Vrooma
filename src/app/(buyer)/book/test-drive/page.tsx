@@ -103,7 +103,7 @@ function BookTestDriveWizard() {
     }
     loadInitial();
     return () => { isMounted = false; };
-  }, []);
+  }, [modelParam, variantParam]);
 
   // When showroom changes, update demo cars and slots
   const handleShowroomChange = async (showroom: Showroom) => {

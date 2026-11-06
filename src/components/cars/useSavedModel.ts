@@ -7,6 +7,8 @@ import { useRequireAuth } from "@/components/auth/useRequireAuth";
 import { isModelSavedAction, toggleSaveVehicleAction } from "@/server/actions/buyer-dashboard";
 
 const SYNC_EVENT = "vrooma:saved-model-changed";
+// Shared across every Save button on the page so two buttons cannot fire at once.
+const inFlight = new Set<string>();
 
 /**
  * Persisted "save this car" state for a model page. Backed by the saved_items table, so it survives
@@ -14,13 +16,14 @@ const SYNC_EVENT = "vrooma:saved-model-changed";
  */
 export function useSavedModel(modelSlug: string) {
   const { user } = useAuth();
+  const userId = user?.id;
   const { requireAuth } = useRequireAuth();
   const [saved, setSaved] = useState(false);
   const [pending, setPending] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    if (!user) {
+    if (!userId) {
       setSaved(false);
       return;
     }
@@ -30,7 +33,7 @@ export function useSavedModel(modelSlug: string) {
     return () => {
       cancelled = true;
     };
-  }, [modelSlug, user?.id]);
+  }, [modelSlug, userId]);
 
   useEffect(() => {
     const onSync = (e: Event) => {
@@ -43,10 +46,11 @@ export function useSavedModel(modelSlug: string) {
 
   const toggle = useCallback(() => {
     requireAuth(async () => {
-      if (pending) return;
+      if (inFlight.has(modelSlug)) return;
+      inFlight.add(modelSlug);
       setPending(true);
       try {
-        const res = await toggleSaveVehicleAction("model", modelSlug);
+        const res = await toggleSaveVehicleAction("model", modelSlug, !saved);
         if (res.ok) {
           setSaved(res.data.isSaved);
           window.dispatchEvent(
@@ -59,10 +63,11 @@ export function useSavedModel(modelSlug: string) {
       } catch {
         toast.error("Could not update saved vehicles.");
       } finally {
+        inFlight.delete(modelSlug);
         setPending(false);
       }
     });
-  }, [requireAuth, pending, modelSlug]);
+  }, [requireAuth, saved, modelSlug]);
 
   return { saved, pending, toggle };
 }

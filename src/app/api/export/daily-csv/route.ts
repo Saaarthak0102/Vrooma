@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getViewer } from "@/server/auth/viewer";
-import { env } from "@/lib/env";
+import { authorizeCron } from "@/lib/cron-auth";
 import { getISTDayRangeUTC } from "@/server/repositories/slots";
 import { escapeCsvCellForExport } from "@/server/services/csv-import";
 import { maskVehicleReg } from "@/lib/validation/vehicle";
@@ -20,13 +20,13 @@ function formatISTDate(isoString: string): string {
 export async function GET(request: NextRequest) {
   try {
     // 1. Authorization check: CRON_SECRET or Admin/Manager session
-    const authHeader = request.headers.get("authorization");
-    const secret = authHeader?.replace("Bearer ", "");
     let actorId = "system_cron";
 
-    const isCronAuthorized = env.CRON_SECRET && secret === env.CRON_SECRET;
-
-    if (!isCronAuthorized) {
+    if ((request.headers.get("authorization") ?? "").startsWith("Bearer ")) {
+      // Machine caller: shared timing-safe check (fails closed in production when CRON_SECRET is unset).
+      const denied = authorizeCron(request);
+      if (denied) return denied;
+    } else {
       const viewer = await getViewer();
       if (!viewer.isAuthenticated || !viewer.profile) {
         return NextResponse.json({ ok: false, error: "Unauthorized access" }, { status: 401 });
@@ -41,6 +41,10 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const todayIST = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date());
     const dateParam = searchParams.get("date") || todayIST;
+    // The value ends up in the SQL range and the download filename: accept only a real YYYY-MM-DD date.
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateParam) || Number.isNaN(Date.parse(`${dateParam}T00:00:00Z`))) {
+      return NextResponse.json({ ok: false, error: "date must be YYYY-MM-DD" }, { status: 400 });
+    }
 
     const { startUTC, endUTC } = getISTDayRangeUTC(dateParam);
     const admin = createAdminClient();

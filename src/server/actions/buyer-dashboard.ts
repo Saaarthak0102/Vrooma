@@ -61,6 +61,26 @@ export async function getBuyerDashboardDataAction(): Promise<ActionResponse<Buye
       console.warn(`[dashboard] Failed to load bookings: ${bookingErr.message}`);
     }
 
+    // The consultant named on each booking is the one assigned to the lead created with it (lead.source_ref = booking ref).
+    const consultantByRef = new Map<string, string>();
+    const refs = (bookingRows || []).map((r: any) => r.ref).filter(Boolean) as string[];
+    if (refs.length > 0) {
+      const { data: refLeads } = await admin
+        .from("leads")
+        .select("source_ref, assigned_to")
+        .in("source_ref", refs)
+        .not("assigned_to", "is", null);
+      const consultantIds = Array.from(new Set((refLeads || []).map((l) => l.assigned_to as string)));
+      if (consultantIds.length > 0) {
+        const { data: consultants } = await admin.from("profiles").select("id, full_name").in("id", consultantIds);
+        const nameById = new Map((consultants || []).map((c) => [c.id, c.full_name as string]));
+        for (const l of refLeads || []) {
+          const name = nameById.get(l.assigned_to as string);
+          if (l.source_ref && name) consultantByRef.set(l.source_ref, name);
+        }
+      }
+    }
+
     const allBookings: Booking[] = (bookingRows || []).map((row: any) => {
       const vInfo = typeof row.vehicle_info === "object" && row.vehicle_info !== null
         ? row.vehicle_info
@@ -69,7 +89,7 @@ export async function getBuyerDashboardDataAction(): Promise<ActionResponse<Buye
       const facilityName =
         row.slots?.showrooms?.name ||
         row.slots?.workshops?.name ||
-        "Hazratganj Flagship Showroom";
+        "Vrooma facility";
 
       return {
         id: row.id,
@@ -87,7 +107,8 @@ export async function getBuyerDashboardDataAction(): Promise<ActionResponse<Buye
         starts_at: row.slots?.starts_at || row.created_at,
         ends_at: row.slots?.ends_at || row.created_at,
         notes: row.notes || undefined,
-        consultant_name: "Assigned Specialist",
+        // Undefined until a consultant is actually assigned: the UI then hides the line instead of faking a name.
+        consultant_name: consultantByRef.get(row.ref) ?? undefined,
         created_at: row.created_at,
       };
     });
@@ -211,7 +232,9 @@ export async function isModelSavedAction(modelSlug: string): Promise<ActionRespo
  */
 export async function toggleSaveVehicleAction(
   targetType: "model" | "used",
-  targetIdOrSlug: string
+  targetIdOrSlug: string,
+  /** When given, the call SETS the state (true = saved, false = not saved) instead of flipping it, so a stale tab cannot invert the user's intent. */
+  desired?: boolean
 ): Promise<ActionResponse<{ isSaved: boolean }>> {
   try {
     const { user } = await requireUser();
@@ -239,16 +262,21 @@ export async function toggleSaveVehicleAction(
         .maybeSingle();
 
       if (existing) {
+        if (desired === true) return successResponse({ isSaved: true });
         await admin.from("saved_items").delete().eq("id", existing.id);
         return successResponse({ isSaved: false });
       }
+      if (desired === false) return successResponse({ isSaved: false });
 
       const { error: insertErr } = await admin.from("saved_items").insert({
         user_id: user.id,
         model_id: modelId,
         used_car_id: null,
       });
-      if (insertErr) return errorResponse("INTERNAL_ERROR", insertErr.message);
+      if (insertErr) {
+        if (insertErr.code === "23505") return successResponse({ isSaved: true }); // saved concurrently
+        return errorResponse("INTERNAL_ERROR", "Could not update saved vehicles. Please try again.");
+      }
       return successResponse({ isSaved: true });
     } else {
       const { data: usedCar } = await admin
@@ -269,16 +297,21 @@ export async function toggleSaveVehicleAction(
         .maybeSingle();
 
       if (existing) {
+        if (desired === true) return successResponse({ isSaved: true });
         await admin.from("saved_items").delete().eq("id", existing.id);
         return successResponse({ isSaved: false });
       }
+      if (desired === false) return successResponse({ isSaved: false });
 
       const { error: insertErr } = await admin.from("saved_items").insert({
         user_id: user.id,
         model_id: null,
         used_car_id: usedCarId,
       });
-      if (insertErr) return errorResponse("INTERNAL_ERROR", insertErr.message);
+      if (insertErr) {
+        if (insertErr.code === "23505") return successResponse({ isSaved: true }); // saved concurrently
+        return errorResponse("INTERNAL_ERROR", "Could not update saved vehicles. Please try again.");
+      }
       return successResponse({ isSaved: true });
     }
   } catch (err: any) {

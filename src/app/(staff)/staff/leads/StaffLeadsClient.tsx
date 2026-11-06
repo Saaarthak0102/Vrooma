@@ -76,7 +76,7 @@ export function StaffLeadsClient({ initialLeads }: StaffLeadsClientProps) {
     }
 
     return list;
-  }, [initialLeads, search, statusFilter, sourceFilter]);
+  }, [leads, search, statusFilter, sourceFilter]);
 
   const handleReset = () => {
     setSearch("");

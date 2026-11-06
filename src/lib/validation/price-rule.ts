@@ -6,14 +6,18 @@ export const priceRuleSchema = z.object({
   variant_id: z.string().optional().nullable(),
   fuel: z.enum(["petrol", "diesel", "cng", "ev", "hybrid"]).optional().nullable(),
   road_tax_pct: z.coerce.number().min(0).max(30),
-  registration: z.coerce.number().min(0),
-  insurance: z.coerce.number().min(0),
-  handling: z.coerce.number().min(0),
-  accessories: z.coerce.number().min(0),
+  // Money is stored as whole rupees (context.md: integer rupees convention).
+  registration: z.coerce.number().int("Whole rupees only").min(0).max(10_000_000),
+  insurance: z.coerce.number().int("Whole rupees only").min(0).max(10_000_000),
+  handling: z.coerce.number().int("Whole rupees only").min(0).max(10_000_000),
+  accessories: z.coerce.number().int("Whole rupees only").min(0).max(10_000_000),
   tcs_pct: z.coerce.number().min(0).max(5).optional().nullable(),
   valid_from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format must be YYYY-MM-DD"),
   valid_until: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format must be YYYY-MM-DD"),
-  notes: z.string().optional().nullable(),
+  notes: z.string().max(500).optional().nullable(),
+}).refine((r) => r.valid_from <= r.valid_until, {
+  message: "Valid-until must be on or after valid-from",
+  path: ["valid_until"],
 });
 
 export type PriceRuleInput = z.infer<typeof priceRuleSchema>;
