@@ -169,6 +169,95 @@ export async function deactivateModelAction(id: string): Promise<ActionResponse<
   }
 }
 
+const VARIANT_FUELS = ["petrol", "diesel", "cng", "ev", "hybrid"];
+const VARIANT_TRANSMISSIONS = ["manual", "automatic"];
+
+/**
+ * Create or update a trim variant. Ex-showroom is the base of every on-road quote, so it is validated as a
+ * positive whole-rupee amount (integer rupees convention). Admin only.
+ */
+export async function saveVariantAction(payload: {
+  id?: string;
+  model_id: string;
+  name: string;
+  fuel: string;
+  transmission: string;
+  ex_showroom: number;
+  specs?: Record<string, string>;
+  features?: string[];
+  is_active?: boolean;
+}): Promise<ActionResponse<{ id: string }>> {
+  try {
+    const { profile } = await requireRole("admin");
+    const supabase = createAdminClient();
+
+    if (!payload.model_id) {
+      return errorResponse("VALIDATION_FAILED", "Choose the model this variant belongs to.");
+    }
+    const name = (payload.name ?? "").trim();
+    if (!name || name.length > 100) {
+      return errorResponse("VALIDATION_FAILED", "Variant name is required (max 100 characters).");
+    }
+    if (!VARIANT_FUELS.includes(payload.fuel)) {
+      return errorResponse("VALIDATION_FAILED", "Choose a valid fuel type.");
+    }
+    if (!VARIANT_TRANSMISSIONS.includes(payload.transmission)) {
+      return errorResponse("VALIDATION_FAILED", "Choose manual or automatic transmission.");
+    }
+    if (!Number.isInteger(payload.ex_showroom) || payload.ex_showroom <= 0 || payload.ex_showroom > 100_000_000) {
+      return errorResponse("VALIDATION_FAILED", "Ex-showroom price must be a whole number of rupees greater than zero.");
+    }
+
+    const specs: Record<string, string> = {};
+    for (const [key, value] of Object.entries(payload.specs ?? {})) {
+      const k = key.trim().slice(0, 60);
+      const v = String(value ?? "").trim().slice(0, 120);
+      if (k && v) specs[k] = v;
+    }
+    const features = (payload.features ?? [])
+      .map((f) => String(f).trim().slice(0, 120))
+      .filter(Boolean)
+      .slice(0, 40);
+
+    const row = {
+      model_id: payload.model_id,
+      name,
+      fuel: payload.fuel as FuelType,
+      transmission: payload.transmission as Database["public"]["Tables"]["variants"]["Insert"]["transmission"],
+      ex_showroom: payload.ex_showroom,
+      specs,
+      features,
+      is_active: payload.is_active ?? true,
+    };
+
+    if (payload.id) {
+      const { data, error } = await supabase
+        .from("variants")
+        .update({ ...row, updated_at: new Date().toISOString() })
+        .eq("id", payload.id)
+        .select()
+        .single();
+      if (error) return errorResponse("INTERNAL_ERROR", error.message);
+
+      await logAudit(profile.id, "variants", payload.id, "UPDATE", null, data);
+      safeRevalidateTag("models");
+      safeRevalidateTag("price");
+      safeRevalidatePath("/cars");
+      return successResponse({ id: payload.id });
+    }
+
+    const { data, error } = await supabase.from("variants").insert(row).select().single();
+    if (error) return errorResponse("INTERNAL_ERROR", error.message);
+
+    await logAudit(profile.id, "variants", data.id, "INSERT", null, data);
+    safeRevalidateTag("models");
+    safeRevalidatePath("/cars");
+    return successResponse({ id: data.id });
+  } catch (err: any) {
+    return errorResponse("INTERNAL_ERROR", err?.message || "Failed to save variant");
+  }
+}
+
 // ==========================================
 // 2. PRICING RULES (with exclusion handling)
 // ==========================================
@@ -288,19 +377,28 @@ export async function deletePriceRuleAction(id: string): Promise<ActionResponse<
 // 3. USED CARS (Manager / Admin CRUD)
 // ==========================================
 
+/**
+ * Create (no `id`) or patch (with `id`) a used car.
+ *
+ * Patch semantics on update: only fields that are present in the payload are validated and written.
+ * Omitting a field leaves it untouched. This matters because the edit form does not carry photos, the
+ * inspection score, the private registration number or the manager's price, and an update must never
+ * blank or revert them. Creating a car requires every core field.
+ */
 export async function saveUsedCarAction(payload: {
   id?: string;
-  stock_id: string;
+  stock_id?: string;
   model_id?: string | null;
-  model_name: string;
-  variant_name: string;
-  fuel: string;
-  year: number;
-  km: number;
-  owners: number;
-  price: number;
+  model_name?: string;
+  variant_name?: string;
+  fuel?: string;
+  year?: number;
+  km?: number;
+  owners?: number;
+  price?: number;
   status?: string;
-  reg_no_private: string;
+  /** The real plate. Never the masked form; rejected if it contains "*". */
+  reg_no_private?: string;
   showroom_id?: string | null;
   certified?: boolean;
   inspection?: Record<string, any>;
@@ -310,56 +408,80 @@ export async function saveUsedCarAction(payload: {
   try {
     const { profile } = await requireRole("admin", "manager");
     const supabase = createAdminClient();
+    const isUpdate = Boolean(payload.id);
 
     // Server-side validation: never trust numbers coming from the form.
     const isInt = (n: unknown, min: number, max: number) =>
       typeof n === "number" && Number.isInteger(n) && n >= min && n <= max;
-    if (!payload.stock_id?.trim() || !payload.model_name?.trim() || !payload.variant_name?.trim()) {
+    const provided = (v: unknown) => v !== undefined && v !== null;
+
+    if (!isUpdate && (!payload.stock_id?.trim() || !payload.model_name?.trim() || !payload.variant_name?.trim())) {
       return errorResponse("VALIDATION_FAILED", "Stock ID, model and variant are required.");
     }
-    if (!isInt(payload.price, 1, 100_000_000)) {
+    if (!isUpdate && !payload.fuel) {
+      return errorResponse("VALIDATION_FAILED", "Fuel type is required.");
+    }
+    if ((!isUpdate || provided(payload.price)) && !isInt(payload.price, 1, 100_000_000)) {
       return errorResponse("VALIDATION_FAILED", "Price must be a whole number of rupees between 1 and 10,00,00,000.");
     }
-    if (!isInt(payload.km, 0, 2_000_000)) {
+    if ((!isUpdate || provided(payload.km)) && !isInt(payload.km, 0, 2_000_000)) {
       return errorResponse("VALIDATION_FAILED", "Odometer must be a whole number of kilometres.");
     }
-    if (!isInt(payload.year, 1990, new Date().getFullYear() + 1)) {
+    if ((!isUpdate || provided(payload.year)) && !isInt(payload.year, 1990, new Date().getFullYear() + 1)) {
       return errorResponse("VALIDATION_FAILED", "Please enter a valid manufacturing year.");
     }
-    if (!isInt(payload.owners, 1, 10)) {
+    if ((!isUpdate || provided(payload.owners)) && !isInt(payload.owners, 1, 10)) {
       return errorResponse("VALIDATION_FAILED", "Owners must be between 1 and 10.");
+    }
+    if ((!isUpdate || provided(payload.reg_no_private)) && !payload.reg_no_private?.trim()) {
+      return errorResponse("VALIDATION_FAILED", "Registration number is required.");
+    }
+    if (payload.reg_no_private?.includes("*")) {
+      return errorResponse(
+        "VALIDATION_FAILED",
+        "That looks like a masked registration number. Enter the full plate, or leave it unchanged."
+      );
     }
 
     let showroomId = payload.showroom_id || null;
-    if (!showroomId && !payload.id) {
+    if (!showroomId && !isUpdate) {
       const { data: firstShowroom } = await supabase.from("showrooms").select("id").eq("is_active", true).limit(1).maybeSingle();
       showroomId = firstShowroom?.id ?? null;
     }
 
-    const carData: Omit<Database["public"]["Tables"]["used_cars"]["Insert"], "listed_at" | "showroom_id"> & { showroom_id?: string } = {
-      stock_id: payload.stock_id,
-      model_id: payload.model_id || null,
-      model_name: payload.model_name,
-      variant_name: payload.variant_name,
-      fuel: payload.fuel as FuelType,
-      year: payload.year,
-      km: payload.km,
-      owners: payload.owners,
-      price: payload.price,
-      status: (payload.status || "available") as CarStatus,
-      reg_no_private: payload.reg_no_private,
-      ...(showroomId ? { showroom_id: showroomId } : {}),
-      certified: payload.certified ?? true,
-      inspection: payload.inspection || {},
-      inspection_score: payload.inspection_score ?? null,
-      images: payload.images || [],
-      updated_at: new Date().toISOString(),
-    };
+    type UsedCarUpdate = Database["public"]["Tables"]["used_cars"]["Update"];
+    const patch: UsedCarUpdate = { updated_at: new Date().toISOString() };
+    if (provided(payload.stock_id)) patch.stock_id = payload.stock_id!;
+    if (payload.model_id !== undefined) patch.model_id = payload.model_id || null;
+    if (provided(payload.model_name)) patch.model_name = payload.model_name!;
+    if (provided(payload.variant_name)) patch.variant_name = payload.variant_name!;
+    if (provided(payload.fuel)) patch.fuel = payload.fuel as FuelType;
+    if (provided(payload.year)) patch.year = payload.year!;
+    if (provided(payload.km)) patch.km = payload.km!;
+    if (provided(payload.owners)) patch.owners = payload.owners!;
+    if (provided(payload.price)) patch.price = payload.price!;
+    if (provided(payload.status)) patch.status = payload.status as CarStatus;
+    if (provided(payload.reg_no_private)) patch.reg_no_private = payload.reg_no_private!.trim();
+    if (provided(payload.showroom_id)) patch.showroom_id = payload.showroom_id!;
+    if (provided(payload.certified)) patch.certified = payload.certified!;
+    if (provided(payload.inspection)) patch.inspection = payload.inspection!;
+    if (payload.inspection_score !== undefined) patch.inspection_score = payload.inspection_score;
+    if (provided(payload.images)) patch.images = payload.images!;
+
+    // Insert defaults apply only when creating.
+    const carData = {
+      ...patch,
+      status: (patch.status ?? "available") as CarStatus,
+      certified: patch.certified ?? true,
+      inspection: patch.inspection ?? {},
+      inspection_score: patch.inspection_score ?? null,
+      images: patch.images ?? [],
+    } as Database["public"]["Tables"]["used_cars"]["Insert"];
 
     if (payload.id) {
       const { data, error } = await supabase
         .from("used_cars")
-        .update(carData)
+        .update(patch)
         .eq("id", payload.id)
         .select()
         .single();
@@ -374,7 +496,7 @@ export async function saveUsedCarAction(payload: {
       if (!showroomId) return errorResponse("VALIDATION_FAILED", "Please choose the showroom or yard that holds this car.");
       const { data, error } = await supabase
         .from("used_cars")
-        .insert({ ...carData, showroom_id: showroomId, listed_at: new Date().toISOString() })
+        .insert({ ...carData, showroom_id: showroomId, listed_at: new Date().toISOString() } as Database["public"]["Tables"]["used_cars"]["Insert"])
         .select()
         .single();
 

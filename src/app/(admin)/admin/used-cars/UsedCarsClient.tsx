@@ -63,10 +63,19 @@ export function UsedCarsClient({ initialUsedCars }: UsedCarsClientProps) {
       header: "Inspection",
       cell: (c) => (
         <div className="flex items-center gap-1.5">
-          <Badge variant="ok" className="text-[10px]">
-            {c.inspection_score ?? 92}/100
-          </Badge>
-          <span className="text-[10px] text-ink-mute">140-pt</span>
+          {typeof c.inspection_score === "number" ? (
+            <>
+              <Badge variant="ok" className="text-[10px]">
+                {c.inspection_score}/100
+              </Badge>
+              <span className="text-[10px] text-ink-mute">140-pt</span>
+            </>
+          ) : (
+            // Never invent a score: an unscored car says so.
+            <Badge variant="outline" className="text-[10px]">
+              Not scored
+            </Badge>
+          )}
         </div>
       ),
     },

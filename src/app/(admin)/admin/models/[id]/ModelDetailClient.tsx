@@ -10,15 +10,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { ArrowLeft, Save, Plus } from "lucide-react";
-import { notWired } from "@/components/dev/NotWired";
-import { Model, Variant } from "@/types/domain";
+import { Badge } from "@/components/ui/badge";
+import { useRouter } from "next/navigation";
+import type { AdminModel, AdminVariant } from "@/server/repositories/admin-models";
+import { VariantDialog } from "@/components/admin/VariantDialog";
 import { saveModelAction } from "@/server/actions/admin-catalog";
 
 interface ModelDetailClientProps {
-  model: Model;
+  model: AdminModel;
 }
 
 export function ModelDetailClient({ model }: ModelDetailClientProps) {
+  const router = useRouter();
+  const [variantDialogOpen, setVariantDialogOpen] = useState(false);
+  const [editingVariant, setEditingVariant] = useState<AdminVariant | null>(null);
   const [name, setName] = useState(model.name);
   const [tagline, setTagline] = useState(model.tagline);
   const [bodyType, setBodyType] = useState(model.body_type);
@@ -36,10 +41,15 @@ export function ModelDetailClient({ model }: ModelDetailClientProps) {
         tagline,
         body_type: bodyType,
         hero_image: model.hero_image,
+        // saveModelAction resets anything omitted, so carry the current values through untouched.
+        gallery: model.gallery,
+        is_featured: model.is_featured ?? false,
         is_active: isActive,
+        expected_updated_at: model.updated_at,
       });
       if (res.ok) {
         toast.success(`Model ${name} updated successfully in catalog`);
+        router.refresh();
       } else {
         toast.error(res.error.message);
       }
@@ -90,6 +100,7 @@ export function ModelDetailClient({ model }: ModelDetailClientProps) {
                   <SelectItem value="suv">SUV</SelectItem>
                   <SelectItem value="hatchback">Hatchback</SelectItem>
                   <SelectItem value="mpv">MPV</SelectItem>
+                  <SelectItem value="ev">EV</SelectItem>
                 </SelectContent>
               </Select>
             </FormField>
@@ -121,20 +132,40 @@ export function ModelDetailClient({ model }: ModelDetailClientProps) {
               Configured trim lines with engine, fuel, and transmission specifications.
             </p>
           </div>
-          <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={notWired("Add Variant", 3)}>
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1 text-xs h-9"
+            onClick={() => {
+              setEditingVariant(null);
+              setVariantDialogOpen(true);
+            }}
+          >
             <Plus className="h-3.5 w-3.5" />
             <span>Add Variant</span>
           </Button>
         </div>
 
         <div className="space-y-2">
-          {model.variants?.map((v: Variant) => (
+          {model.variants.length === 0 && (
+            <p className="rounded-lg border border-dashed border-border p-4 text-center text-xs text-ink-mute">
+              No variants yet. Add the first trim so buyers can see prices.
+            </p>
+          )}
+          {model.variants.map((v: AdminVariant) => (
             <div
               key={v.id}
               className="flex items-center justify-between p-3 rounded-lg border border-border bg-bg-sheen/50 text-xs"
             >
               <div>
-                <span className="font-bold text-ink block">{v.name}</span>
+                <span className="font-bold text-ink block">
+                  {v.name}
+                  {!v.is_active && (
+                    <Badge variant="outline" className="ml-2 text-[10px]">
+                      Hidden
+                    </Badge>
+                  )}
+                </span>
                 <span className="text-ink-mute text-[10px] uppercase">
                   {v.fuel} · {v.transmission}
                 </span>
@@ -146,8 +177,11 @@ export function ModelDetailClient({ model }: ModelDetailClientProps) {
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="h-7 px-2 text-[11px]"
-                  onClick={notWired(`Edit Variant ${v.name}`, 3)}
+                  className="h-9 px-3 text-[11px]"
+                  onClick={() => {
+                    setEditingVariant(v);
+                    setVariantDialogOpen(true);
+                  }}
                 >
                   Edit
                 </Button>
@@ -156,6 +190,14 @@ export function ModelDetailClient({ model }: ModelDetailClientProps) {
           ))}
         </div>
       </div>
+
+      <VariantDialog
+        open={variantDialogOpen}
+        onOpenChange={setVariantDialogOpen}
+        modelId={model.id}
+        modelName={model.name}
+        variant={editingVariant}
+      />
     </div>
   );
 }

@@ -2,23 +2,31 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { Lead, Profile } from "@/types/domain";
+import { useRouter } from "next/navigation";
+import { Lead, Profile, Role } from "@/types/domain";
+import type { LeadEventView } from "@/server/repositories/leads";
 import { SlaTimer } from "@/components/staff/SlaTimer";
 import { StatusPill } from "@/components/staff/StatusPill";
 import { AiSummaryCard } from "@/components/staff/AiSummaryCard";
 import { ReplyDraftEditor } from "@/components/staff/ReplyDraftEditor";
 import { ReassignDialog } from "@/components/staff/ReassignDialog";
+import { LeadStatusControl } from "@/components/staff/LeadStatusControl";
+import { LeadTimeline } from "@/components/staff/LeadTimeline";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, Phone, Mail, MapPin, Calendar, Clock, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Phone, Mail } from "lucide-react";
 
 interface LeadDetailClientProps {
   initialLead: Lead;
   consultants: Profile[];
+  events: LeadEventView[];
+  viewerRole: Role;
 }
 
-export function LeadDetailClient({ initialLead, consultants }: LeadDetailClientProps) {
+export function LeadDetailClient({ initialLead, consultants, events, viewerRole }: LeadDetailClientProps) {
   const [lead, setLead] = useState<Lead>(initialLead);
+  const router = useRouter();
+  // The timeline is server-rendered from lead_events; re-fetch it after any change.
+  const refreshTimeline = () => router.refresh();
 
   return (
     <div className="space-y-6 max-w-4xl animate-in fade-in">
@@ -37,8 +45,7 @@ export function LeadDetailClient({ initialLead, consultants }: LeadDetailClientP
             consultants={consultants}
             currentAssignedId={lead.assigned_to}
             onReassigned={() => {
-              // Refresh state
-              setLead((prev) => ({ ...prev }));
+              refreshTimeline();
             }}
           />
         </div>
@@ -105,6 +112,23 @@ export function LeadDetailClient({ initialLead, consultants }: LeadDetailClientP
         )}
       </div>
 
+      {/* One-step stage change (Lost asks for a reason) */}
+      <LeadStatusControl
+        leadId={lead.id}
+        status={lead.status}
+        viewerRole={viewerRole}
+        onChanged={(status) => {
+          setLead((prev) => ({
+            ...prev,
+            status,
+            first_contacted_at:
+              prev.first_contacted_at ||
+              (status === "new" || status === "lost" ? prev.first_contacted_at : new Date().toISOString()),
+          }));
+          refreshTimeline();
+        }}
+      />
+
       {/* AI Buyer Briefing / Summariser */}
       <AiSummaryCard
         summary={lead.ai_summary}
@@ -123,8 +147,12 @@ export function LeadDetailClient({ initialLead, consultants }: LeadDetailClientP
             status: "contacted",
             first_contacted_at: prev.first_contacted_at || new Date().toISOString(),
           }));
+          refreshTimeline();
         }}
       />
+
+      {/* Audit timeline from lead_events */}
+      <LeadTimeline events={events} />
     </div>
   );
 }

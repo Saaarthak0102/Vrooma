@@ -10,15 +10,56 @@ import { Input } from "@/components/ui/input";
 import { FormField } from "@/components/forms/PhoneField";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Plus, Calculator } from "lucide-react";
-import { notWired } from "@/components/dev/NotWired";
+import { useRouter } from "next/navigation";
+import { Plus, Calculator, Pencil, Trash2 } from "lucide-react";
+import { useConfirm } from "@/components/ui/confirm-dialog";
+import { PriceRuleDialog, PriceRuleModelOption } from "@/components/admin/PriceRuleDialog";
+import { deletePriceRuleAction } from "@/server/actions/admin-catalog";
+import { KANPUR_CITY_ID } from "@/lib/cities";
 
 interface PricesClientProps {
   initialRules: PriceRule[];
+  models: PriceRuleModelOption[];
 }
 
-export function PricesClient({ initialRules }: PricesClientProps) {
-  const [rules] = useState<PriceRule[]>(initialRules);
+export function PricesClient({ initialRules, models }: PricesClientProps) {
+  const router = useRouter();
+  const confirm = useConfirm();
+  // Rules come straight from the server component, so router.refresh() after a save shows the new table.
+  const rules = initialRules;
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingRule, setEditingRule] = useState<PriceRule | null>(null);
+
+  const modelName = (id?: string | null) => models.find((m) => m.id === id)?.name;
+  const variantName = (id?: string | null) =>
+    models.flatMap((m) => m.variants).find((v) => v.id === id)?.name;
+
+  const openCreate = () => {
+    setEditingRule(null);
+    setDialogOpen(true);
+  };
+  const openEdit = (rule: PriceRule) => {
+    setEditingRule(rule);
+    setDialogOpen(true);
+  };
+  const handleDelete = async (rule: PriceRule) => {
+    const ok = await confirm({
+      title: "Delete this price rule?",
+      description:
+        "Buyers in this city lose the on-road breakup for this scope until another rule covers it. This is recorded in the audit log.",
+      confirmLabel: "Delete rule",
+      cancelLabel: "Keep it",
+      destructive: true,
+    });
+    if (!ok) return;
+    const res = await deletePriceRuleAction(rule.id);
+    if (!res.ok) {
+      toast.error(res.error?.message ?? "Could not delete the rule.");
+      return;
+    }
+    toast.success("Price rule deleted.");
+    router.refresh();
+  };
   const [previewVariantPrice, setPreviewVariantPrice] = useState(1245000); // Sample NEW-H-02
   const [activePreviewRule, setActivePreviewRule] = useState<PriceRule>(
     rules[0] || {
@@ -46,18 +87,23 @@ export function PricesClient({ initialRules }: PricesClientProps) {
       header: "Rule ID / City",
       cell: (r) => (
         <div>
-          <span className="font-bold text-xs text-ink block font-mono">{r.id.slice(0, 18)}...</span>
-          <span className="text-[11px] text-ink-mute capitalize">
-            {r.city_id.includes("c0000001-0000-0000-0000-000000000002") ? "Kanpur" : "Lucknow"}
+          <span className="font-bold text-xs text-ink block">
+            {r.city_id === KANPUR_CITY_ID ? "Kanpur" : "Lucknow"}
           </span>
+          <span className="text-[11px] text-ink-mute font-mono">{r.id.slice(0, 8)}</span>
         </div>
       ),
     },
     {
       header: "Model / Variant",
       cell: (r) => (
-        <span className="text-xs font-medium font-mono">
-          {r.variant_id ? `Variant: ${r.variant_id.slice(0, 8)}` : r.model_id ? `Model: ${r.model_id.slice(0, 8)}` : "General City Rule"}
+        <span className="text-xs font-medium">
+          {r.variant_id
+            ? `${modelName(r.model_id) ?? "Model"} · ${variantName(r.variant_id) ?? "Variant"}`
+            : r.model_id
+              ? `${modelName(r.model_id) ?? "Model"} (all variants)`
+              : "All models (city-wide)"}
+          {r.fuel ? <span className="block text-[11px] capitalize text-ink-mute">{r.fuel} only</span> : null}
         </span>
       ),
     },
@@ -88,21 +134,42 @@ export function PricesClient({ initialRules }: PricesClientProps) {
       ),
     },
     {
-      header: "Preview",
+      header: "Actions",
       className: "text-right",
       cell: (r) => (
-        <Button
-          variant="secondary"
-          size="sm"
-          className="text-xs h-7 px-2.5 gap-1"
-          onClick={() => {
-            setActivePreviewRule(r);
-            toast.info(`Previewing calculation using rule: ${r.id.slice(0, 8)}...`);
-          }}
-        >
-          <Calculator className="h-3 w-3" />
-          <span>Simulate</span>
-        </Button>
+        <div className="flex items-center justify-end gap-1.5">
+          <Button
+            variant="secondary"
+            size="sm"
+            className="text-xs h-9 px-2.5 gap-1"
+            onClick={() => {
+              setActivePreviewRule(r);
+              toast.info("Simulator now uses this rule.");
+            }}
+          >
+            <Calculator className="h-3 w-3" />
+            <span>Simulate</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-xs h-9 px-2.5 gap-1"
+            onClick={() => openEdit(r)}
+            aria-label="Edit rule"
+          >
+            <Pencil className="h-3 w-3" />
+            <span>Edit</span>
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-xs h-9 w-9 px-0 text-danger hover:bg-danger/10"
+            onClick={() => handleDelete(r)}
+            aria-label="Delete rule"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        </div>
       ),
     },
   ];
@@ -116,11 +183,18 @@ export function PricesClient({ initialRules }: PricesClientProps) {
             Source of truth for buyer on-road quotes across Lucknow and Kanpur. Never hardcoded.
           </p>
         </div>
-        <Button size="sm" className="gap-1.5 text-xs" onClick={notWired("Create Price Rule", 3)}>
+        <Button size="sm" className="gap-1.5 text-xs" onClick={openCreate}>
           <Plus className="h-4 w-4" />
           <span>New RTO Rule</span>
         </Button>
       </div>
+
+      <PriceRuleDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        rule={editingRule}
+        models={models}
+      />
 
       {/* Live Interactive Simulation Widget */}
       <div className="rounded-2xl border border-accent/40 bg-accent-soft/20 p-6 shadow-sm space-y-4">

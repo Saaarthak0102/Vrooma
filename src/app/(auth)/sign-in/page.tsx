@@ -113,8 +113,16 @@ export default function SignInPage() {
         return;
       }
 
+      // Same rule as the email-link path (post-verify.ts): staff who arrive at the default destination land in
+      // their console. An explicit ?next= is always honoured. Buyers are unaffected.
       const destination = safeNext(nextParam);
-      router.push(destination);
+      if (destination === "/dashboard" && res.data.role === "admin") {
+        router.push("/admin");
+      } else if (destination === "/dashboard" && (res.data.role === "consultant" || res.data.role === "manager")) {
+        router.push("/staff");
+      } else {
+        router.push(destination);
+      }
     } catch {
       toast.error("Verification failed. Please try again.");
     } finally {

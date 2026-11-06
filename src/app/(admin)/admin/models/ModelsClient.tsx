@@ -6,18 +6,20 @@ import { DataTable, Column } from "@/components/admin/DataTable";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatINR } from "@/lib/money";
-import { Model } from "@/types/domain";
+import type { AdminModel } from "@/server/repositories/admin-models";
+import { ModelCreateDialog } from "@/components/admin/ModelCreateDialog";
 import { Plus, Edit, Eye } from "lucide-react";
-import { notWired } from "@/components/dev/NotWired";
 
 interface ModelsClientProps {
-  initialModels: Model[];
+  initialModels: AdminModel[];
 }
 
 export function ModelsClient({ initialModels }: ModelsClientProps) {
-  const [models] = useState<Model[]>(initialModels);
+  // Straight from the server component so router.refresh() after a save updates the table.
+  const models = initialModels;
+  const [createOpen, setCreateOpen] = useState(false);
 
-  const columns: Column<Model>[] = [
+  const columns: Column<AdminModel>[] = [
     {
       header: "Model Name",
       cell: (m) => (
@@ -35,13 +37,22 @@ export function ModelsClient({ initialModels }: ModelsClientProps) {
       header: "Ex-Showroom Range",
       cell: (m) => (
         <span className="font-semibold text-xs">
-          {formatINR(m.min_price)} – {formatINR(m.max_price)}
+          {m.min_price !== undefined && m.max_price !== undefined
+            ? `${formatINR(m.min_price)} – ${formatINR(m.max_price)}`
+            : "No live variants"}
         </span>
       ),
     },
     {
       header: "Variants",
-      cell: (m) => <span>{m.variants?.length || 0} active</span>,
+      cell: (m) => {
+        const live = m.variants.filter((v) => v.is_active).length;
+        return (
+          <span>
+            {live} live{m.variants.length > live ? `, ${m.variants.length - live} hidden` : ""}
+          </span>
+        );
+      },
     },
     {
       header: "Status",
@@ -82,11 +93,13 @@ export function ModelsClient({ initialModels }: ModelsClientProps) {
             Manage Brand X passenger vehicle models, variant specifications, and color galleries.
           </p>
         </div>
-        <Button size="sm" className="gap-1.5 text-xs" onClick={notWired("Create New Model", 3)}>
+        <Button size="sm" className="gap-1.5 text-xs" onClick={() => setCreateOpen(true)}>
           <Plus className="h-4 w-4" />
           <span>Add New Model</span>
         </Button>
       </div>
+
+      <ModelCreateDialog open={createOpen} onOpenChange={setCreateOpen} />
 
       <DataTable
         columns={columns}

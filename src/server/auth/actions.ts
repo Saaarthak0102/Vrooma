@@ -72,7 +72,7 @@ export async function requestOtp(
 export async function verifyOtp(
   rawEmail: string,
   rawToken: string
-): Promise<ActionResponse<{ verified: boolean; isComplete: boolean; userId: string }>> {
+): Promise<ActionResponse<{ verified: boolean; isComplete: boolean; userId: string; role: string | null }>> {
   try {
     const email = normalizeEmail(rawEmail);
     const token = rawToken.trim().replace(/\D/g, "");
@@ -100,7 +100,7 @@ export async function verifyOtp(
     // Check if the user already has a completed profile
     const { data: profile } = await supabase
       .from("profiles")
-      .select("onboarding_completed_at")
+      .select("onboarding_completed_at, role")
       .eq("id", data.user.id)
       .single();
 
@@ -110,6 +110,8 @@ export async function verifyOtp(
       verified: true,
       isComplete,
       userId: data.user.id,
+      // Lets the sign-in page send staff to their console, matching the email-link path in post-verify.ts.
+      role: profile?.role ?? null,
     });
   } catch (err) {
     const appErr = toAppError(err);

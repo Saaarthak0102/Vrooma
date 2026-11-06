@@ -155,7 +155,7 @@ export async function sendLeadReplyAction(
     // Fetch lead details
     const { data: lead, error: leadErr } = await admin
       .from("leads")
-      .select("id, ref, name, phone, email, status, showroom_id, assigned_to")
+      .select("id, ref, name, phone, email, status, showroom_id, assigned_to, ai_draft")
       .eq("id", leadId)
       .single();
 
@@ -193,6 +193,18 @@ export async function sendLeadReplyAction(
         message_length: message.length,
       },
     });
+
+    // Audit trail for /admin/ai-logs: prompt = the AI draft, response = what the consultant actually sent.
+    // Never blocks the reply if the log write fails.
+    if (lead.ai_draft) {
+      const { error: logErr } = await admin.from("ai_logs").insert({
+        lead_id: lead.id,
+        action: message.trim() === lead.ai_draft.trim() ? "reply_sent_unedited" : "reply_sent_edited",
+        prompt: lead.ai_draft,
+        response: message.trim(),
+      });
+      if (logErr) console.warn(`[leads] ai_logs write failed: ${logErr.message}`);
+    }
 
     // If lead was still 'new', update to 'contacted'
     // IMPORTANT: call as the signed-in consultant. The RPC checks private.is_staff() and lead ownership

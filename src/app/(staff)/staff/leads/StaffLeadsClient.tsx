@@ -125,8 +125,9 @@ export function StaffLeadsClient({ initialLeads }: StaffLeadsClientProps) {
               <SelectItem value="all">All Statuses</SelectItem>
               <SelectItem value="new">New (Awaiting SLA)</SelectItem>
               <SelectItem value="contacted">Contacted</SelectItem>
-              <SelectItem value="qualified">Qualified</SelectItem>
-              <SelectItem value="test_drive_booked">Test Drive Fixed</SelectItem>
+              <SelectItem value="test_drive_booked">Test Drive Booked</SelectItem>
+              <SelectItem value="negotiating">Negotiating</SelectItem>
+              <SelectItem value="won">Won</SelectItem>
               <SelectItem value="lost">Lost</SelectItem>
             </SelectContent>
           </Select>
@@ -142,6 +143,8 @@ export function StaffLeadsClient({ initialLeads }: StaffLeadsClientProps) {
               <SelectItem value="portal">Auto Portals</SelectItem>
               <SelectItem value="social">Social Ads</SelectItem>
               <SelectItem value="walkin">Walk-in Visit</SelectItem>
+              <SelectItem value="chat">Chat Assistant</SelectItem>
+              <SelectItem value="trade_in">Trade-in Request</SelectItem>
             </SelectContent>
           </Select>
           <Button

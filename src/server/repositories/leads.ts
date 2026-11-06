@@ -148,6 +148,40 @@ export async function getLeadById(id: string): Promise<Lead | null> {
   return mapRowToLead(data);
 }
 
+export interface LeadEventView {
+  id: string;
+  type: string;
+  payload: Record<string, unknown>;
+  created_at: string;
+  actor_name: string | null;
+}
+
+/**
+ * Timeline of a lead (newest first), with the acting staff member's name.
+ * Callers must already have authorised the viewer for this lead.
+ */
+export async function listLeadEvents(leadId: string): Promise<LeadEventView[]> {
+  const supabase = getClient();
+  const { data, error } = await supabase
+    .from("lead_events")
+    .select("id, type, payload, created_at, actor:actor_id ( full_name )")
+    .eq("lead_id", leadId)
+    .order("created_at", { ascending: false })
+    .limit(50);
+
+  if (error) {
+    throw new AppError("INTERNAL_ERROR", 500, `Failed to list lead events: ${error.message}`);
+  }
+
+  return (data ?? []).map((row: any) => ({
+    id: row.id,
+    type: row.type,
+    payload: (row.payload ?? {}) as Record<string, unknown>,
+    created_at: row.created_at,
+    actor_name: row.actor?.full_name ?? null,
+  }));
+}
+
 /**
  * Create a new customer lead using database RPC create_lead.
  * Handles deduplication, auto-assignment, and SLA initiation.

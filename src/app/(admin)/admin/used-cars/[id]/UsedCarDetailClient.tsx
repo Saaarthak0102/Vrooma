@@ -32,18 +32,12 @@ export function UsedCarDetailClient({ car }: UsedCarDetailClientProps) {
       const parsedInspection = JSON.parse(inspectionJson);
       setJsonError(null);
 
+      // Patch only what this form edits. The price is set by the manager card above, and the private
+      // registration, photos and inspection score are not on this form, so they must stay untouched.
       const res = await saveUsedCarAction({
         id: car.id,
-        stock_id: car.stock_id,
-        model_name: car.model_name,
-        variant_name: car.variant_name,
-        fuel: car.fuel,
-        year: car.year,
         km: parseInt(km, 10) || car.km,
-        owners: car.owners,
-        price: car.price,
         status,
-        reg_no_private: car.reg_no_masked,
         inspection: parsedInspection,
       });
 

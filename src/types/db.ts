@@ -617,12 +617,14 @@ export interface Database {
         Relationships: [];
       };
       ai_logs: {
+        // Mirrors migration 0008 / generated database.types.ts (the old model/tokens_used columns never existed).
         Row: {
           id: string;
-          prompt: string;
-          response: string;
-          model: string;
-          tokens_used: number;
+          lead_id: string | null;
+          action: string;
+          prompt: string | null;
+          response: string | null;
+          latency_ms: number | null;
           created_at: string;
         };
         Insert: OptionalNullable<Omit<Database["public"]["Tables"]["ai_logs"]["Row"], "id" | "created_at">> & {
