@@ -8,8 +8,8 @@ export const SUPPORTED_LOCALES = ["en", "hi"] as const;
 export type Locale = (typeof SUPPORTED_LOCALES)[number];
 
 export const CITIES = [
-  { id: "city-lucknow", name: "Lucknow", state: "Uttar Pradesh", slug: "lucknow" },
-  { id: "city-kanpur", name: "Kanpur", state: "Uttar Pradesh", slug: "kanpur" },
+  { id: "c0000001-0000-0000-0000-000000000001", name: "Lucknow", state: "Uttar Pradesh", slug: "lucknow" },
+  { id: "c0000001-0000-0000-0000-000000000002", name: "Kanpur", state: "Uttar Pradesh", slug: "kanpur" },
 ] as const;
 
 export const DEFAULT_CITY = CITIES[0];

@@ -1,5 +1,6 @@
 "use server";
 
+import { normalizeCityId } from "@/lib/cities";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireRole } from "./viewer";
@@ -178,6 +179,11 @@ export async function completeProfile(
       return errorResponse("VALIDATION_FAILED", "Invalid Indian mobile number (+91 6-9XXXXXXXXX).");
     }
 
+    const cityId = normalizeCityId(data.city_id);
+    if (!cityId) {
+      return errorResponse("VALIDATION_FAILED", "Please select a valid city.", { city_id: ["Unknown city"] });
+    }
+
     const whatsappNormalized = data.whatsapp ? normalizeIndianPhone(data.whatsapp) : phoneNormalized;
 
     const supabase = await createClient();
@@ -197,7 +203,7 @@ export async function completeProfile(
         p_full_name: data.full_name,
         p_phone: phoneNormalized,
         p_whatsapp: whatsappNormalized,
-        p_city_id: data.city_id,
+        p_city_id: cityId,
         p_locale: data.locale || "en",
         p_address: data.address || null,
         p_pincode: data.pincode || null,

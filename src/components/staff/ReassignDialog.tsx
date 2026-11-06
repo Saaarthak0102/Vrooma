@@ -1,5 +1,6 @@
 "use client";
 
+import { KANPUR_CITY_ID } from "@/lib/cities";
 import React, { useState } from "react";
 import { Profile } from "@/types/domain";
 import { reassignLeadAction } from "@/server/actions/leads";
@@ -83,7 +84,7 @@ export function ReassignDialog({
             <SelectContent>
               {consultants.map((c) => (
                 <SelectItem key={c.id} value={c.id} className="text-xs">
-                  {c.full_name} ({c.city_id === "city-kanpur" ? "Kanpur" : "Lucknow"})
+                  {c.full_name} ({c.city_id === KANPUR_CITY_ID ? "Kanpur" : "Lucknow"})
                 </SelectItem>
               ))}
             </SelectContent>

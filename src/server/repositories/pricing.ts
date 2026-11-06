@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { PriceRule, FuelType } from "@/types/domain";
 import { cachedQuery } from "@/server/cache";
 import { AppError } from "@/lib/errors";
+import { normalizeCityId } from "@/lib/cities";
 
 export interface GetPriceRuleParams {
   cityId: string;
@@ -13,18 +14,6 @@ export interface GetPriceRuleParams {
 }
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-function normalizeCityId(id?: string): string | null {
-  if (!id) return null;
-  const lower = id.toLowerCase().trim();
-  if (lower === "city-lucknow" || lower === "lucknow") {
-    return "c0000001-0000-0000-0000-000000000001";
-  }
-  if (lower === "city-kanpur" || lower === "kanpur") {
-    return "c0000001-0000-0000-0000-000000000002";
-  }
-  return UUID_REGEX.test(id) ? id : null;
-}
 
 function normalizeModelId(id?: string): string | null {
   if (!id) return null;

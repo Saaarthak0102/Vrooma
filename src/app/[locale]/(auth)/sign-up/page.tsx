@@ -1,5 +1,7 @@
 "use client";
 
+import { CITIES, DEFAULT_CITY } from "@/lib/constants";
+import { normalizeCityId } from "@/lib/cities";
 import React, { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { Link, useRouter } from "@/i18n/navigation";
@@ -44,7 +46,7 @@ export default function SignUpPage() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phoneDigits, setPhoneDigits] = useState("");
-  const [cityId, setCityId] = useState("city-lucknow");
+  const [cityId, setCityId] = useState<string>(DEFAULT_CITY.id);
   const [preferredLocale, setPreferredLocale] = useState<"en" | "hi">(locale === "hi" ? "hi" : "en");
 
   // Optional collapsible fields
@@ -350,8 +352,8 @@ export default function SignUpPage() {
                       <SelectValue placeholder="Select City" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="city-lucknow">Lucknow (UP)</SelectItem>
-                      <SelectItem value="city-kanpur">Kanpur (UP)</SelectItem>
+                      <SelectItem value={CITIES[0].id}>Lucknow (UP)</SelectItem>
+                      <SelectItem value={CITIES[1].id}>Kanpur (UP)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
