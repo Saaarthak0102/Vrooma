@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { POST } from "@/app/api/newsletter/route";
 import { NextRequest } from "next/server";
 import crypto from "node:crypto";
@@ -6,6 +6,17 @@ import fs from "node:fs";
 import path from "node:path";
 
 describe("Newsletter DPDP Consent & Security API", () => {
+  // These tests model a Vercel deployment: client IP comes from the platform-written forwarded header.
+  // (With the default TRUSTED_PROXY=none every request would share one rate-limit bucket.)
+  const previousProxy = process.env.TRUSTED_PROXY;
+  beforeAll(() => {
+    process.env.TRUSTED_PROXY = "vercel";
+  });
+  afterAll(() => {
+    if (previousProxy === undefined) delete process.env.TRUSTED_PROXY;
+    else process.env.TRUSTED_PROXY = previousProxy;
+  });
+
   it("blocks submission without consent checkbox (400 Bad Request)", async () => {
     const req = new NextRequest("http://localhost:3000/api/newsletter", {
       method: "POST",

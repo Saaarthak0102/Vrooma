@@ -54,6 +54,7 @@ function mapRowToLead(row: any): Lead {
 
   return {
     id: row.id,
+    ref: row.ref ?? null,
     source: row.source as LeadSource,
     user_id: row.user_id,
     name: row.name,

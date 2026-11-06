@@ -26,44 +26,47 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
       - name: Setup Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
+          cache: 'pnpm'
 
       - name: Install Dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Check Environment Validation
-        run: npm run check:env
+        run: pnpm check:env
         env:
           APP_ENV: production
           SKIP_ENV_VALIDATION: 1
 
       - name: Typecheck TypeScript
-        run: npm run typecheck
+        run: pnpm typecheck
 
       - name: Run ESLint
-        run: npm run lint
+        run: pnpm lint
 
       - name: Check Dead Buttons & Wiring
         run: |
-          npm run check:wiring
-          npm run check:buttons
+          pnpm check:wiring
+          pnpm check:buttons
 
       - name: Run Unit & RLS Tests
-        run: npm test
+        run: pnpm test
         env:
-          NEXT_PUBLIC_USE_MOCK: false
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_DEV_URL || 'https://eobtzcwinjmimzisypca.supabase.co' }}
           NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_DEV_PUBLISHABLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.dummy' }}
 
       - name: Production Build
-        run: npm run build
+        run: pnpm build
         env:
           APP_ENV: production
-          NEXT_PUBLIC_USE_MOCK: false
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_DEV_URL || 'https://eobtzcwinjmimzisypca.supabase.co' }}
           NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_DEV_PUBLISHABLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.dummy' }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_DEV_SERVICE_ROLE_KEY || 'sb_secret_dummy' }}
@@ -78,17 +81,22 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
       - name: Setup Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
+          cache: 'pnpm'
 
       - name: Install Dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Run Database Integration Tests
-        run: npm run test -- tests/leads-lifecycle.test.ts tests/rls-matrix.test.ts tests/booking-engine.test.ts
+        run: pnpm test tests/leads-lifecycle.test.ts tests/rls-matrix.test.ts tests/booking-engine.test.ts
         env:
           APP_ENV: development
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_DEV_URL }}

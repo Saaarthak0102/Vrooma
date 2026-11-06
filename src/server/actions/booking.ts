@@ -231,6 +231,9 @@ export async function bookSlotAction(
           p_source: leadSource,
           p_source_ref: bookingRow.ref,
           p_consent_id: parsed.data.consentId || null,
+          // Admin client has no JWT, so name the already-authenticated buyer explicitly.
+          // The SQL function honours this only for the service role.
+          p_user_id: user.id,
         });
 
         if (leadRow?.assigned_to) {

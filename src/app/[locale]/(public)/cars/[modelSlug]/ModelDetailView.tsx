@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import Image from "next/image";
-import { Model, Variant, PriceRule, VariantColor } from "@/types/domain";
-import { computeOnRoad } from "@/lib/price-engine";
+import { Model, Variant, VariantColor } from "@/types/domain";
 import { formatINR } from "@/lib/money";
-import { mockPriceRules } from "@/data/mock/price-rules";
+import { getOnRoadAction, type OnRoadResult } from "@/server/actions/pricing";
+import { useAuth } from "@/components/auth/AuthProvider";
 import { getVehicleAsset, isApprovedVehicleAsset } from "@/constants/vehicle-assets";
 import { PageShell } from "@/components/layout/PageShell";
 import { VariantSelector } from "@/components/cars/VariantSelector";
@@ -32,13 +32,14 @@ import { cn } from "@/lib/utils";
 export interface ModelDetailViewProps {
   model: Model;
   allModels: Model[];
-  initialPriceRule: PriceRule | null;
+  /** Server-rendered teaser (headline total only) for the default variant in Lucknow. Never the raw rule. */
+  initialOnRoad: OnRoadResult | null;
 }
 
 export function ModelDetailView({
   model,
   allModels,
-  initialPriceRule,
+  initialOnRoad,
 }: ModelDetailViewProps) {
   const [selectedCity, setSelectedCity] = useState("lucknow");
   const [selectedVariant, setSelectedVariant] = useState<Variant>(
@@ -58,56 +59,37 @@ export function ModelDetailView({
   const [saved, setSaved] = useState(false);
   const { requireAuth } = useRequireAuth();
 
-  // Find matching price rule for currently selected city and variant
-  const activeRule = useMemo(() => {
-    const cityId = `city-${selectedCity}`;
-    const today = new Date().toISOString().slice(0, 10);
+  // On-road price comes from the server, computed from the admin price table and gated by session:
+  // signed out -> headline total only; signed in -> full itemised breakup. The browser never gets the raw rule.
+  const { user } = useAuth();
+  const [onRoad, setOnRoad] = useState<OnRoadResult | null>(initialOnRoad);
+  const [onRoadLoading, setOnRoadLoading] = useState(false);
 
-    // 1. Try exact variant & city match
-    let rule = mockPriceRules.find(
-      (r) =>
-        r.city_id === cityId &&
-        r.variant_id === selectedVariant.id &&
-        r.valid_from <= today &&
-        r.valid_until >= today
-    );
-
-    // 2. Try model & city match
-    if (!rule) {
-      rule = mockPriceRules.find(
-        (r) =>
-          r.city_id === cityId &&
-          r.model_id === model.id &&
-          !r.variant_id &&
-          r.valid_from <= today &&
-          r.valid_until >= today
-      );
-    }
-
-    // 3. Try general city rule
-    if (!rule) {
-      rule = mockPriceRules.find(
-        (r) =>
-          r.city_id === cityId &&
-          !r.model_id &&
-          !r.variant_id &&
-          r.valid_from <= today &&
-          r.valid_until >= today
-      );
-    }
-
-    // 4. Fallback to server-provided initialPriceRule
-    return rule || initialPriceRule;
-  }, [selectedCity, selectedVariant.id, model.id, initialPriceRule]);
-
-  // Compute On-Road Price using pure price engine and actual city rule
-  const onRoadBreakup = useMemo(() => {
-    return computeOnRoad({
-      variant: selectedVariant,
-      rule: activeRule,
+  useEffect(() => {
+    let cancelled = false;
+    setOnRoadLoading(true);
+    getOnRoadAction({
+      variantId: selectedVariant.id,
+      city: selectedCity === "kanpur" ? "kanpur" : "lucknow",
       includeAccessories,
-    });
-  }, [selectedVariant, activeRule, includeAccessories]);
+    })
+      .then((result) => {
+        if (!cancelled) setOnRoad(result);
+      })
+      .catch(() => {
+        if (!cancelled) setOnRoad({ tier: "unavailable" });
+      })
+      .finally(() => {
+        if (!cancelled) setOnRoadLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedVariant.id, selectedCity, includeAccessories, user?.id]);
+
+  const onRoadBreakup = onRoad?.tier === "full" ? onRoad.breakup : null;
+  const onRoadHeadline =
+    onRoad?.tier === "full" ? onRoad.breakup.total : onRoad?.tier === "teaser" ? onRoad.total : null;
 
   // Approved centralized vehicle asset resolution
   const currentVehicleAsset = useMemo(() => {
@@ -261,7 +243,7 @@ export function ModelDetailView({
                   On-Road ({cityName})
                 </span>
                 <span className="text-base sm:text-lg font-black text-emerald-700">
-                  {onRoadBreakup ? formatINR(onRoadBreakup.total) : "—"}
+                  {onRoadHeadline !== null ? formatINR(onRoadHeadline) : "—"}
                 </span>
               </div>
             </div>
@@ -317,12 +299,21 @@ export function ModelDetailView({
               actionLabel="Sign in with phone or email to view full breakup"
               className="rounded-2xl border border-dashed border-border/80 bg-white/80 p-6 text-center"
             >
-              <PriceBreakup
-                breakup={onRoadBreakup}
-                cityName={cityName}
-                includeAccessories={includeAccessories}
-                onToggleAccessories={setIncludeAccessories}
-              />
+              {onRoadLoading && onRoad?.tier !== "full" ? (
+                <div
+                  className="rounded-2xl border border-border/80 bg-white p-6 text-center text-xs text-ink-mute animate-pulse"
+                  aria-busy="true"
+                >
+                  Loading official price breakup…
+                </div>
+              ) : (
+                <PriceBreakup
+                  breakup={onRoadBreakup}
+                  cityName={cityName}
+                  includeAccessories={includeAccessories}
+                  onToggleAccessories={setIncludeAccessories}
+                />
+              )}
             </AuthGate>
           </div>
 

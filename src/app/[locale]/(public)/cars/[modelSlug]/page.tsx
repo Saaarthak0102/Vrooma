@@ -2,6 +2,8 @@ import React from "react";
 import { notFound } from "next/navigation";
 import { getModelBySlug, listModels } from "@/server/repositories/models";
 import { getPriceRule } from "@/server/repositories/pricing";
+import { computeOnRoad } from "@/lib/price-engine";
+import type { OnRoadResult } from "@/server/actions/pricing";
 import { constructMetadata } from "@/lib/seo";
 import { VehicleJsonLd, BreadcrumbJsonLd } from "@/components/seo/VehicleJsonLd";
 import { ModelDetailView } from "./ModelDetailView";
@@ -64,16 +66,22 @@ export default async function ModelPage({
     notFound();
   }
 
-  // Pre-fetch default price rule for first variant in Lucknow
+  // Pre-render the PUBLIC teaser only (headline total + validity) for the first variant in Lucknow.
+  // The itemised breakup is never part of this static page: it is fetched per signed-in user by getOnRoadAction.
   const defaultVariant = model.variants?.[0];
-  let priceRule = null;
+  let initialOnRoad: OnRoadResult | null = null;
   if (defaultVariant) {
     try {
-      priceRule = await getPriceRule({
+      const priceRule = await getPriceRule({
         cityId: "city-lucknow",
         variantId: defaultVariant.id,
         modelId: model.id,
+        fuel: defaultVariant.fuel,
       });
+      const headline = computeOnRoad({ variant: defaultVariant, rule: priceRule, includeAccessories: true });
+      initialOnRoad = headline
+        ? { tier: "teaser", total: headline.total, validUntil: headline.validUntil }
+        : { tier: "unavailable" };
     } catch (e) {
       console.warn(`[ModelPage] Price rule fetch failed for ${defaultVariant.id}:`, e);
     }
@@ -98,7 +106,7 @@ export default async function ModelPage({
       <ModelDetailView
         model={model}
         allModels={allModels}
-        initialPriceRule={priceRule}
+        initialOnRoad={initialOnRoad}
       />
     </>
   );

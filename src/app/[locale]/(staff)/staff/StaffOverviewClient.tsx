@@ -41,7 +41,7 @@ export function StaffOverviewClient({ initialLeads, totalBookings }: StaffOvervi
 
         <div className="flex items-center gap-2">
           <Button asChild size="sm" variant="outline" className="text-xs">
-            <Link href="/staff/import">Import CSV Leads</Link>
+            <Link href="/staff/leads/import">Import CSV Leads</Link>
           </Button>
           <Button asChild size="sm" variant="primary" className="text-xs">
             <Link href="/staff/leads">Open Lead Inbox</Link>

@@ -95,7 +95,7 @@ export function StaffLeadsClient({ initialLeads }: StaffLeadsClientProps) {
         </div>
         <div className="flex items-center gap-2">
           <Button asChild size="sm" variant="outline" className="gap-1.5 text-xs">
-            <Link href="/staff/import">
+            <Link href="/staff/leads/import">
               <FileSpreadsheet className="h-3.5 w-3.5" />
               <span>Import Portal CSV</span>
             </Link>

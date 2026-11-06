@@ -39,6 +39,8 @@ const EXPECTED_MIGRATIONS = [
   "0015_realtime_leads.sql",
   "0016_cron_jobs_and_cancel_fix.sql",
   "0017_fix_create_lead_citext.sql",
+  "0018_create_lead_actor_and_cron_jobs.sql",
+  "0019_fix_anonymise_citext_and_anon_grants.sql",
 ];
 
 const KNOWN_TABLES = [

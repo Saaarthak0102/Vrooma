@@ -1,20 +1,39 @@
 import { NextRequest, NextResponse } from "next/server";
-import { consentSchema } from "@/lib/validation/consent";
+import { z } from "zod";
+import { recordConsent } from "@/server/privacy/consent";
+import { guardUser } from "@/server/auth/api-guard";
+import { getTrustedClientIp } from "@/lib/network";
 
+const bodySchema = z.object({
+  purpose: z.enum(["marketing", "newsletter", "service_contact", "lead_contact"]),
+  granted: z.boolean(),
+});
+
+/**
+ * Appends an immutable DPDP consent row (public.consents) for the SIGNED-IN user.
+ * It used to log to the console and answer {logged: true} without storing anything.
+ * Terms/privacy consent is captured at onboarding, not here.
+ */
 export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const parsed = consentSchema.safeParse(body);
+  const session = await guardUser();
+  if (!session.ok) return session.response;
 
+  try {
+    const parsed = bodySchema.safeParse(await request.json());
     if (!parsed.success) {
-      return NextResponse.json({ ok: false, error: "Invalid consent schema" }, { status: 400 });
+      return NextResponse.json({ ok: false, error: "Invalid consent payload" }, { status: 400 });
     }
 
-    // In mock mode, log consent update
-    console.info(`[DPDP Consent Audit] Purpose: ${parsed.data.purpose} | Granted: ${parsed.data.granted}`);
-    return NextResponse.json({ ok: true, data: { logged: true, timestamp: new Date().toISOString() } });
+    const id = await recordConsent({
+      userId: session.user.id,
+      email: session.user.email,
+      purpose: parsed.data.purpose,
+      granted: parsed.data.granted,
+      source: "profile",
+      ipAddress: getTrustedClientIp(request),
+    });
+    return NextResponse.json({ ok: true, data: { consentId: id, recordedAt: new Date().toISOString() } });
   } catch (err: any) {
     return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
   }
 }
-

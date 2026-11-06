@@ -203,7 +203,7 @@ export function BookingDetailsDialog({
                 <span>DPDP Act 2023 Verified Session</span>
               </span>
               <span>
-                {t("bookedOn")}: {new Date(booking.created_at).toLocaleDateString(locale === "hi" ? "hi-IN" : "en-IN")}
+                {t("bookedOn")}: {new Date(booking.created_at).toLocaleDateString(locale === "hi" ? "hi-IN" : "en-IN", { timeZone: "Asia/Kolkata" })}
               </span>
             </div>
           </div>

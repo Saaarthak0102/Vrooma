@@ -1,34 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getPriceRule } from "@/server/repositories/pricing";
-import { getVariantById } from "@/server/repositories/variants";
-import { computeOnRoad } from "@/lib/price-engine";
+import { getOnRoadAction } from "@/server/actions/pricing";
 
+/**
+ * Gated on-road price. Same rules as the model page:
+ *   signed out -> { tier: "teaser", total, validUntil } only
+ *   signed in  -> { tier: "full", breakup } with every line
+ * The raw price rule is never returned.
+ */
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const variantId = searchParams.get("variantId");
-    const cityId = searchParams.get("cityId") || "city-lucknow";
+    const rawCity = (searchParams.get("city") || searchParams.get("cityId") || "lucknow").toLowerCase();
+    const city = rawCity.replace(/^city-/, "");
     const accessories = searchParams.get("accessories") !== "0";
 
     if (!variantId) {
       return NextResponse.json({ ok: false, error: "variantId is required" }, { status: 400 });
     }
-
-    const variant = await getVariantById(variantId);
-    if (!variant) {
-      return NextResponse.json({ ok: false, error: "Variant not found" }, { status: 404 });
+    if (city !== "lucknow" && city !== "kanpur") {
+      return NextResponse.json({ ok: false, error: "Unsupported city" }, { status: 400 });
     }
 
-    const rule = await getPriceRule({ variantId, cityId });
-    const breakup = computeOnRoad({
-      variant,
-      rule,
-      includeAccessories: accessories,
-    });
+    const result = await getOnRoadAction({ variantId, city, includeAccessories: accessories });
+    if (result.tier === "unavailable") {
+      return NextResponse.json({ ok: false, error: "No active price for this variant and city" }, { status: 404 });
+    }
 
-    return NextResponse.json({ ok: true, data: breakup });
+    return NextResponse.json({ ok: true, data: result }, { headers: { "Cache-Control": "private, no-store" } });
   } catch (err: any) {
     return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
   }
 }
-

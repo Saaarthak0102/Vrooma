@@ -114,7 +114,7 @@ UC-1190 | Used | Model S | LX | Petrol | 2021 | 58600 | 512000 | Booked
    - Radix UI primitives with custom styling tokens.
    - State management via URL params (`nuqs`) for all filter bars, tabs, and pagination.
    - Forms validated by `react-hook-form` + `zod` schemas.
-   - Backend parity: Client code imports only repository interfaces from `src/server/repositories/*`. When `NEXT_PUBLIC_USE_MOCK=true`, in-memory store is used; switching to Supabase requires changing zero UI files.
+   - Backend parity: Client code imports only repository interfaces from `src/server/repositories/*`. Data access is Supabase-backed (the in-memory mock store and `NEXT_PUBLIC_USE_MOCK` were removed in backend Phase 3); mock data now only seeds `supabase/seed.sql` and unit tests.
 2. **Integer Rupees Convention:**
    - All monetary values in database schema, TypeScript types, and repository APIs are stored as integer rupees (e.g., `1245000` for ₹12.45 Lakh). Never floating-point decimals.
    - Display formatting strictly follows Indian numbering format (e.g., `₹12,45,000` or `₹12.45 Lakh`) via `formatINR()` and `formatLakh()`.
@@ -266,8 +266,12 @@ Interactive 3D flip cards are deployed exclusively on the three main catalog rou
   - Dynamic `getLandingData` server repository aggregator with zero hardcoded prices or showroom names.
   - DPDP Act 2023 compliance: used car plate masking (`UP32 ** **** 4120`) and newsletter subscription table (migration 0008) with unticked explicit consent.
   - Full test coverage (30 tests) passing with 0 ESLint warnings.
-- **Phase 3 & Beyond (Upcoming):**
-  - Full Supabase SSR client integration swapping in-memory repositories with live PostgreSQL tables.
-  - Resend email notifications for customer confirmations.
+- **Backend Phases 0–6 (Complete):**
+  - Real Supabase auth, onboarding and role guards; production schema with RLS, RPCs, cron and storage (migrations `0001`–`0019`); mock store removed.
+  - Slots, test-drive and service bookings, lead auto-assignment with SLA flagging, CSV import/export, outbox; profile, consent, data rights and newsletter; security hardening, CI and release checklist.
+  - Status and deferrals: `docs/backend/STATUS.md`.
+- **Still upcoming:**
+  - Add the Vault secrets (`app_url`, `cron_secret`) so the HTTP cron jobs are scheduled (`select private.ensure_cron_jobs();`).
+  - Live Resend email and real WhatsApp/SMS delivery (outbox currently mocks WhatsApp/SMS).
   - Production Vercel AI SDK integration for live LLM streaming in lead copilots.
-
+  - PROD project promotion of migrations after DEV verification.

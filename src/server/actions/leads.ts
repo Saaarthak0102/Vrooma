@@ -7,7 +7,7 @@ import { requireRole } from "@/server/auth/viewer";
 import { ActionResponse, successResponse, errorResponse } from "@/lib/errors";
 import { Lead, LeadStatus } from "@/types/domain";
 
-import { FORBIDDEN_DISCOUNT_WORDS, containsForbiddenDiscountWords } from "@/lib/validation/discount";
+import { FORBIDDEN_DISCOUNT_WORDS, findForbiddenDiscountWord } from "@/lib/validation/discount";
 
 /**
  * Update lead status with optimistic concurrency protection.
@@ -142,7 +142,8 @@ export async function sendLeadReplyAction(
     }
 
     // Dealership policy constraint: discount words are hard-blocked
-    if (containsForbiddenDiscountWords(message)) {
+    // Same function as the editor warning in ReplyDraftEditor (see docs/backend/DISCOUNT_RULES.md)
+    if (findForbiddenDiscountWord(message) !== null) {
       return errorResponse(
         "VALIDATION_FAILED",
         "Dealership Policy Guardrail: Reply cannot quote discounts, price cuts, or waivers. All pricing adjustments must go through the Dealer Principal or Used-Car Manager."
@@ -152,11 +153,12 @@ export async function sendLeadReplyAction(
     // Fetch lead details
     const { data: lead, error: leadErr } = await admin
       .from("leads")
-      .select("id, ref, name, phone, email, status, showroom_id")
+      .select("id, ref, name, phone, email, status, showroom_id, assigned_to")
       .eq("id", leadId)
       .single();
 
-    if (leadErr || !lead) {
+    // 404 for both "missing" and "someone else's lead" so existence is not revealed to other consultants
+    if (leadErr || !lead || (profile.role === "consultant" && lead.assigned_to !== profile.id)) {
       return errorResponse("NOT_FOUND", "Lead record not found.");
     }
 
@@ -191,11 +193,18 @@ export async function sendLeadReplyAction(
     });
 
     // If lead was still 'new', update to 'contacted'
+    // IMPORTANT: call as the signed-in consultant. The RPC checks private.is_staff() and lead ownership
+    // from auth.uid(); through the admin (service-role) client auth.uid() is NULL, the call is refused, and
+    // the lead would stay 'new' with the SLA timer running after the buyer was already answered.
     if (lead.status === "new") {
-      await admin.rpc("set_lead_status", {
+      const userClient = await createClient();
+      const { error: statusErr } = await (userClient ?? admin).rpc("set_lead_status", {
         p_lead_id: lead.id,
         p_status: "contacted",
       });
+      if (statusErr) {
+        console.warn(`[leads] Reply sent but status update failed: ${statusErr.message}`);
+      }
     }
 
     return successResponse({ messageId: msgId });

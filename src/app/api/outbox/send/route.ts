@@ -1,13 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dispatchMessage } from "@/server/services/outbox";
+import { guardCronOrAdmin } from "@/server/auth/api-guard";
+import { z } from "zod";
 
+const sendSchema = z.object({
+  channel: z.enum(["whatsapp", "sms", "email"]),
+  to: z.string().min(3).max(254),
+  template: z.string().min(1).max(80),
+  body: z.string().min(1).max(2000),
+  leadId: z.string().uuid().optional(),
+});
+
+/** Machine or admin only: this queues an outbound message to an arbitrary address. */
 export async function POST(request: NextRequest) {
+  const denied = await guardCronOrAdmin(request);
+  if (denied) return denied;
+
   try {
-    const body = await request.json();
-    const msg = await dispatchMessage(body);
+    const parsed = sendSchema.safeParse(await request.json());
+    if (!parsed.success) {
+      return NextResponse.json({ ok: false, error: "Invalid message payload" }, { status: 400 });
+    }
+    const msg = await dispatchMessage(parsed.data);
     return NextResponse.json({ ok: true, data: msg });
   } catch (err: any) {
     return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
   }
 }
-

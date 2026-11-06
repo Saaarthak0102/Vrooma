@@ -71,3 +71,17 @@
      ```
    - Seed scripts, dev users, and test runners strictly refuse to execute against production.
 
+
+---
+
+## 4. `TRUSTED_PROXY` (client IP for rate limits and audit)
+
+`src/lib/network.ts` takes the client IP from exactly one source, chosen by `TRUSTED_PROXY`. A client-sent `cf-connecting-ip`, `x-forwarded-for`, `x-real-ip` or `true-client-ip` is never trusted unless the matching mode is on.
+
+| Value | Header trusted | Everything else | Where to set it |
+|---|---|---|---|
+| `none` (default) | none (socket address if the runtime exposes it, else a shared `unknown` bucket that is rate limited globally) | ignored | local development, any unknown host |
+| `vercel` | `x-vercel-forwarded-for`, then the first `x-forwarded-for` entry (Vercel overwrites both on external requests) | ignored | **Vercel production and preview scopes** |
+| `cloudflare` | `cf-connecting-ip` | ignored | only if the origin accepts Cloudflare traffic only |
+
+Assumption (cannot be proven in code): in `vercel` / `cloudflare` mode the origin is reachable only through that proxy. A client that can hit the origin directly could forge the header, so use `none` in that case. Values that are not valid IPs are discarded.

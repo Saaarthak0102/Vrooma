@@ -53,7 +53,8 @@ export function computeOnRoad({
   includeAccessories = true,
   date = new Date(),
 }: ComputeOnRoadParams): OnRoadBreakup | null {
-  if (!rule) {
+  if (!rule || !rule.valid_from || !rule.valid_until) {
+    // No rule, or a rule without a validity window: never invent a price.
     return null;
   }
 

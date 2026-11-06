@@ -540,8 +540,9 @@ export interface Database {
           idempotency_key: string;
           created_at: string;
           updated_at: string;
+          sent_at: string | null;
         };
-        Insert: OptionalNullable<Omit<Database["public"]["Tables"]["messages_outbox"]["Row"], "id" | "attempts" | "next_attempt_at" | "last_error" | "status" | "created_at" | "updated_at">> & {
+        Insert: OptionalNullable<Omit<Database["public"]["Tables"]["messages_outbox"]["Row"], "id" | "attempts" | "next_attempt_at" | "last_error" | "status" | "created_at" | "updated_at" | "sent_at">> & {
           id?: string;
           status?: "pending" | "sending" | "sent" | "failed" | "dead";
           attempts?: number;
@@ -549,6 +550,7 @@ export interface Database {
           last_error?: string | null;
           created_at?: string;
           updated_at?: string;
+          sent_at?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["messages_outbox"]["Insert"]>;
         Relationships: [];
@@ -835,6 +837,8 @@ export interface Database {
           p_source?: LeadSource;
           p_source_ref?: string | null;
           p_consent_id?: string | null;
+          /** Honoured ONLY for the service role (trusted server code); ignored for every other caller. */
+          p_user_id?: string | null;
         };
         Returns: Database["public"]["Tables"]["leads"]["Row"];
       };
@@ -883,6 +887,17 @@ export interface Database {
       flag_sla_breaches: {
         Args: Record<PropertyKey, never>;
         Returns: number;
+      };
+      get_cron_status: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          jobname: string;
+          schedule: string;
+          active: boolean;
+          last_run_at: string | null;
+          last_status: string | null;
+          last_message: string | null;
+        }[];
       };
       generate_slots: {
         Args: {

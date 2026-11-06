@@ -46,6 +46,17 @@ function normalizeVariantId(id?: string): string | null {
   return UUID_REGEX.test(id) ? id : null;
 }
 
+/**
+ * resolve_price_rule returns a composite. When NO rule matches, PostgREST still sends an object whose
+ * columns are all null (not a JSON null), which used to be mapped to a rule with 0% tax, zero fees and no
+ * validity date: the site then showed "on-road = ex-showroom". A real rule always has an id and dates.
+ */
+export function isEmptyRuleRow(row: unknown): boolean {
+  if (!row || typeof row !== "object") return true;
+  const r = row as Record<string, unknown>;
+  return !r.id || !r.valid_from || !r.valid_until;
+}
+
 function mapRowToPriceRule(row: any): PriceRule {
   return {
     id: row.id,
@@ -105,7 +116,7 @@ export async function getPriceRule({
         return null;
       }
 
-      if (!data) return null;
+      if (isEmptyRuleRow(data)) return null;
       return mapRowToPriceRule(data);
     },
     ["price-rule", normCity, normVariant || "none", normModel || "none", fuel || "none", targetIso],

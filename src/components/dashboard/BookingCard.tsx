@@ -16,12 +16,15 @@ export function BookingCard({ booking }: { booking: Booking }) {
 
   const isTestDrive = booking.kind === "test_drive";
   const isCancelled = booking.status === "cancelled";
+  // Fixed timeZone: server (UTC on Vercel) and browser (IST) must render identical text, or React hydration fails.
   const dateFormatted = new Date(booking.starts_at).toLocaleDateString("en-IN", {
+    timeZone: "Asia/Kolkata",
     weekday: "short",
     day: "numeric",
     month: "short",
   });
   const timeFormatted = new Date(booking.starts_at).toLocaleTimeString("en-IN", {
+    timeZone: "Asia/Kolkata",
     hour: "2-digit",
     minute: "2-digit",
     hour12: true,

@@ -1,4 +1,16 @@
 import { describe, it, expect, vi } from "vitest";
+
+// These tests prove AUTHORISATION only. The routes use the admin (service-role) client, so against the live
+// DEV project a "200 with the secret" call really drains the outbox, anonymises old leads and runs account
+// erasures. Stub the client with an empty, chainable result so nothing is read or written.
+vi.mock("@/lib/supabase/admin", () => {
+  const empty = { data: [], error: null, count: 0 };
+  const chain: any = new Proxy(function () {}, {
+    get: (_target, prop) => (prop === "then" ? (resolve: (v: unknown) => void) => resolve(empty) : chain),
+    apply: () => chain,
+  });
+  return { createAdminClient: () => chain };
+});
 import { NextRequest } from "next/server";
 import { GET as getSla } from "@/app/api/cron/sla/route";
 import { GET as getOutbox } from "@/app/api/cron/outbox/route";

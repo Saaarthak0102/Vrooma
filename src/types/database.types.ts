@@ -2062,6 +2062,7 @@ export type Database = {
           p_source?: Database["public"]["Enums"]["lead_source_type"]
           p_source_ref?: string
           p_used_car_id?: string
+          p_user_id?: string
         }
         Returns: {
           ai_draft: string | null

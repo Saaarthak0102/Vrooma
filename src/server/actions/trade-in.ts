@@ -152,6 +152,8 @@ export async function submitTradeInAction(
       p_message: leadMessage,
       p_source: "trade_in" as any,
       p_consent_id: consentId,
+      // Admin client has no JWT: attribute the lead to the signed-in viewer (null for guests).
+      p_user_id: viewer.user?.id ?? null,
     });
 
     if (leadErr || !newLead) {

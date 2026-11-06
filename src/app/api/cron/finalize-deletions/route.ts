@@ -1,17 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { env } from "@/lib/env";
+import { authorizeCron } from "@/lib/cron-auth";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
   try {
-    const authHeader = request.headers.get("authorization");
-    const secret = env.CRON_SECRET || "vrooma-cron-secret-local";
-
-    if (!authHeader || authHeader !== `Bearer ${secret}`) {
-      return NextResponse.json({ ok: false, error: "Unauthorized cron trigger" }, { status: 401 });
-    }
+    const denied = authorizeCron(request);
+    if (denied) return denied;
 
     const admin = createAdminClient();
     if (!admin) {

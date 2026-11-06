@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { profileUpdateSchema } from "@/lib/validation/profile";
 import { updateUser, getUserById } from "@/server/repositories/users";
+import { guardUser } from "@/server/auth/api-guard";
 
-export async function GET(request: NextRequest) {
+/** The target profile is ALWAYS the signed-in user. An id in the query or body is ignored. */
+export async function GET() {
+  const session = await guardUser();
+  if (!session.ok) return session.response;
+
   try {
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get("id") || "usr-buyer-1";
-    const user = await getUserById(id);
+    const user = await getUserById(session.user.id);
     if (!user) {
       return NextResponse.json({ ok: false, error: "User not found" }, { status: 404 });
     }
@@ -17,6 +20,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
+  const session = await guardUser();
+  if (!session.ok) return session.response;
+
   try {
     const body = await request.json();
     const parsed = profileUpdateSchema.safeParse(body);
@@ -28,11 +34,11 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const { id = "usr-buyer-1", full_name, email, whatsapp, address, pincode } = parsed.data;
+    const { full_name, whatsapp, address, pincode } = parsed.data;
 
-    const updated = await updateUser(id, {
+    // Only contact fields. Role, is_active and email are never writable here.
+    const updated = await updateUser(session.user.id, {
       full_name,
-      email,
       whatsapp,
       phone: whatsapp,
       address,
@@ -44,4 +50,3 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
   }
 }
-

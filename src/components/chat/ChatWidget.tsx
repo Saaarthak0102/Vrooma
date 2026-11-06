@@ -71,7 +71,7 @@ export function ChatWidget() {
     setTimeout(() => {
       let reply = "Thank you for reaching out! Our Lucknow showroom consultant is available right now. Would you like to lock a test drive slot or view our full price breakup?";
       if (text.toLowerCase().includes("model h") || text.toLowerCase().includes("price")) {
-        reply = "Model H ZX Automatic starts at ₹12,45,000 ex-showroom. Lucknow on-road price is approximately ₹14,59,450 inclusive of road tax (10%), insurance and TCS. You can see the full breakdown on the Model H page!";
+        reply = "Official on-road prices come from our live price table and include the full road tax, insurance and charges breakup. Open the model page and sign in to see the exact figure for your city.";
       } else if (text.toLowerCase().includes("used") || text.toLowerCase().includes("8 lakh")) {
         reply = "We currently have certified used cars like UC-1182 (Model C VX Diesel 2022) and UC-1190 (Model S LX 2021) available in Hazratganj, both 140-point inspected!";
       }

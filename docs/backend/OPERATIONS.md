@@ -153,37 +153,63 @@ When restoring a database from backup or spinning up a warm standby, follow this
 
 ## 6. Background Pipeline Scheduler Architecture
 
-All background maintenance and communication pipelines are exposed via guarded Next.js route handlers requiring `Authorization: Bearer <CRON_SECRET>` headers. Both `GET` and `POST` methods are accepted to accommodate different cron providers.
+Source of truth: migration `0018_create_lead_actor_and_cron_jobs.sql`, which defines `private.ensure_cron_jobs()`. The function is idempotent (it unschedules and recreates the named jobs), so it is safe to re-run.
 
-| Route | Execution Frequency | Primary Trigger | Redundancy / Fallback | Purpose |
-|---|---|---|---|---|
-| `/api/cron/sla` | Every 1 minute (`* * * * *`) | Supabase `pg_cron` (`cron.job`) | Vercel Cron | Evaluates uncontacted web enquiries, triggers 5-min SLA warnings/breaches, and notifies lead managers. |
-| `/api/cron/outbox` | Every 2 minutes (`*/2 * * * *`) | Supabase `pg_cron` (`cron.job`) | Vercel Cron | Dispatches queued customer transactional emails via Resend with exponential retry backoff. |
-| `/api/cron/data-retention` | Daily at 02:00 IST (`30 20 * * *` UTC) | Supabase `pg_cron` (`cron.job`) | Vercel Cron / External Cron | Evaluates DPDP statutory data retention periods and anonymizes cold leads. |
-| `/api/cron/finalize-deletions` | Daily at 03:00 IST (`30 21 * * *` UTC) | Supabase `pg_cron` (`cron.job`) | Vercel Cron / External Cron | Executes account erasure for user requests whose 7-day statutory cooling-off window has elapsed. |
+### 6.1 The seven jobs
 
-### 6.1 Configuring pg_cron with Supabase Vault
-To configure `pg_cron` jobs invoking Next.js cron endpoints securely over HTTPS:
-1. Store `CRON_SECRET` and `APP_URL` in Supabase Vault:
+| Job (`cron.job.jobname`) | Schedule (UTC) | What runs | Needs Vault secrets |
+|---|---|---|---|
+| `eval_lead_sla_breaches` | every minute | `SELECT public.flag_sla_breaches()` **in the database** | no |
+| `process_outbox_queue` | every minute | `pg_net` POST to `/api/cron/outbox` | yes |
+| `daily_data_retention` | 20:30 daily (02:00 IST) | `pg_net` POST to `/api/cron/data-retention` | yes |
+| `daily_finalize_deletions` | 21:30 daily (03:00 IST) | `pg_net` POST to `/api/cron/finalize-deletions` | yes |
+| `daily_slot_generation` | 20:30 daily | `SELECT public.generate_slots(CURRENT_DATE, 14)` | no |
+| `purge_expired_idempotency` | 21:30 daily | delete idempotency keys older than 24 h | no |
+| `purge_stale_rate_limits` | 21:45 daily | delete rate limits older than 2 days | no |
+
+**SLA runs in one place only:** the `eval_lead_sla_breaches` pg_cron job. `flag_sla_breaches()` is idempotent (it only touches leads whose `sla_breached_at` is still NULL), so `/api/cron/sla` is kept purely as a manual / diagnostic trigger and is **not** scheduled anywhere in production. Do not add it to Vercel Cron.
+
+All `/api/cron/*` routes require `Authorization: Bearer <CRON_SECRET>`. In production a missing `CRON_SECRET` makes them answer `503` (they never fall back to a default secret). In development, with no `CRON_SECRET` set, the documented local default is accepted so `pnpm dev` works.
+
+### 6.2 Owner steps: add the Vault secrets (DEV, then PROD)
+
+The three HTTP jobs are created only when **both** secrets exist. Until then the migration prints a NOTICE and the System page shows those jobs as "not scheduled (add Vault secrets)".
+
+1. Pick the project: DEV is `eobtzcwinjmimzisypca`, PROD is `ajumkjokagqfdikfguti`. Never paste PROD values into a DEV project or the reverse.
+2. Choose the values:
+   - `app_url`: the public base URL of **that environment's** deployment, with no trailing slash. DEV needs a URL Supabase can reach, so use a Vercel Preview URL; **`http://localhost:3000` will not work** (see 6.3). PROD: `https://vrooma.in`.
+   - `cron_secret`: a long random string (for example `openssl rand -hex 32`). It must be the **same value** as the `CRON_SECRET` environment variable of that deployment on Vercel.
+3. Open Supabase Dashboard > the project > SQL Editor and run (replace the placeholders):
    ```sql
-   SELECT vault.create_secret('https://vrooma.in', 'app_url');
-   SELECT vault.create_secret('<HIGH_ENTROPY_CRON_SECRET>', 'cron_secret');
+   select vault.create_secret('https://<your-deployment-host>', 'app_url');
+   select vault.create_secret('<the-same-value-as-CRON_SECRET-on-Vercel>', 'cron_secret');
+   select private.ensure_cron_jobs();   -- creates the three HTTP jobs
    ```
-2. Schedule jobs using `pg_net` with headers dynamically resolved from Vault:
+4. Verify:
    ```sql
-   SELECT cron.schedule(
-     'dispatch-outbox-every-2-minutes',
-     '*/2 * * * *',
-     $$
-     SELECT net.http_post(
-       url := (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'app_url') || '/api/cron/outbox',
-       headers := jsonb_build_object(
-         'Content-Type', 'application/json',
-         'Authorization', 'Bearer ' || (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'cron_secret')
-       )
-     );
-     $$
-   );
+   select jobname, schedule, active from cron.job order by jobname;           -- expect 7 rows
+   select * from public.get_cron_status();                                    -- last run per job
    ```
-   Secrets are never hardcoded in plaintext SQL migrations or git commits.
+   Then open **Admin > System Health**: every job should show a last-run time (the daily ones show "never" until their first run).
+5. To rotate a secret: `select vault.update_secret(id, '<new value>') from vault.secrets where name = 'cron_secret';`, then update the Vercel env var to the same value. No SQL job needs editing, because jobs read the secret at run time.
+6. Roll back / pause a job: `select cron.unschedule('process_outbox_queue');`. Re-running `private.ensure_cron_jobs()` recreates it.
 
+### 6.3 Local development (Supabase cannot reach localhost)
+
+Supabase's servers cannot call `http://localhost:3000`, so the HTTP jobs cannot drive a local server. Use the local runner instead:
+
+```bash
+# .env.local must contain the DEV CRON_SECRET (any random string; the dev server reads the same value)
+pnpm dev        # terminal 1
+pnpm dev:cron   # terminal 2: calls /api/cron/outbox and /api/cron/sla every 60 seconds
+pnpm dev:cron --once   # single pass
+```
+
+`scripts/dev-cron.mjs` refuses to start when `APP_ENV`/`NODE_ENV` is production, when the target host is not `localhost` / `127.0.0.1` / `[::1]`, or when `CRON_SECRET` is missing. Because the pg_cron SLA job already runs in the DEV database, the runner's `/api/cron/sla` call is a harmless no-op duplicate of an idempotent function; it is included so SLA behaviour can still be exercised against a database without pg_cron.
+
+### 6.4 Where to see that jobs ran
+
+- **Admin > System Health** shows one line per job: last run time, or "not scheduled", or the failing status.
+- SQL: `select * from public.get_cron_status();` (service role / SQL editor only).
+- Raw history: `select * from cron.job_run_details order by start_time desc limit 20;`.
+- HTTP jobs record only that the request was **sent**. `pg_net` responses are in `net._http_response`; a 401/503 there means the secrets do not match the app's `CRON_SECRET`.

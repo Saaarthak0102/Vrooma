@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createLeadSchema } from "@/lib/validation/lead";
 import { createLead, listLeads } from "@/server/repositories/leads";
 import { getTrustedClientIp } from "@/lib/network";
+import { guardRole } from "@/server/auth/api-guard";
 
 const leadRateLimitMap = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
@@ -22,22 +23,23 @@ function checkRateLimit(key: string, limit: number): boolean {
   return true;
 }
 
-function getClientIp(request: NextRequest): string {
-  const forwarded = request.headers.get("x-forwarded-for");
-  if (forwarded) {
-    return forwarded.split(",")[0].trim();
-  }
-  return request.headers.get("x-real-ip") || "unknown-ip";
-}
-
 export async function GET(request: NextRequest) {
+  // Staff only. Consultants see their own leads; managers and admins see all.
+  const session = await guardRole("consultant", "manager", "admin");
+  if (!session.ok) return session.response;
+
   try {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status") || undefined;
     const source = searchParams.get("source") || undefined;
     const search = searchParams.get("search") || undefined;
 
-    const leads = await listLeads({ status, source, search });
+    const leads = await listLeads({
+      status,
+      source,
+      search,
+      assignedTo: session.profile?.role === "consultant" ? session.user.id : undefined,
+    });
     return NextResponse.json({ ok: true, data: leads });
   } catch (err: any) {
     return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
@@ -104,7 +106,11 @@ export async function POST(request: NextRequest) {
       source: parsed.data.source,
     });
 
-    return NextResponse.json({ ok: true, data: lead }, { status: 201 });
+    // Anonymous callers get a receipt only: never the stored row (phone, assignee id, AI fields, internal notes).
+    return NextResponse.json(
+      { ok: true, data: { ref: (lead as { ref?: string | null }).ref ?? null, assigned: Boolean(lead.assigned_to) } },
+      { status: 201 }
+    );
   } catch (err: any) {
     return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
   }

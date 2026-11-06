@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll } from "vitest";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { POST as leadsPost } from "@/app/api/leads/route";
 import { NextRequest } from "next/server";
@@ -12,11 +12,18 @@ const VARIANT_H_ZX_ID = "e0000001-0000-0000-0000-000000000001";
 const HAZRATGANJ_SHOWROOM_ID = "a0000001-0000-0000-0000-000000000001";
 
 describe("Phase 09: Post-0014 End-to-End Workflow Verification", () => {
-  let anonClient: ReturnType<typeof createClient>;
-  let buyerAClient: ReturnType<typeof createClient>;
-  let buyerBClient: ReturnType<typeof createClient>;
-  let consultantClient: ReturnType<typeof createClient>;
-  const admin = createAdminClient();
+  // The public lead route derives the client IP from the platform header; model a Vercel deployment.
+  beforeAll(() => {
+    process.env.TRUSTED_PROXY = "vercel";
+  });
+
+  // Loosely typed on purpose: these tests call RPCs and tables directly, exactly as a browser would.
+  type AnyClient = SupabaseClient<any, "public", any>;
+  let anonClient: AnyClient;
+  let buyerAClient: AnyClient;
+  let buyerBClient: AnyClient;
+  let consultantClient: AnyClient;
+  const admin: any = createAdminClient();
 
   let buyerAId: string;
   let buyerBId: string;
@@ -211,8 +218,11 @@ describe("Phase 09: Post-0014 End-to-End Workflow Verification", () => {
     }
     expect(res.status).toBe(201);
     expect(json.ok).toBe(true);
+    // The anonymous submitter gets a receipt only, never the stored row
     expect(json.data.ref).toBeTruthy();
-    expect(json.data.assigned_to).toBeTruthy();
+    expect(json.data.assigned).toBe(true);
+    expect(Object.keys(json.data).sort()).toEqual(["assigned", "ref"]);
+    expect(JSON.stringify(json)).not.toMatch(/9876549999|assigned_to|ai_summary|ai_draft/);
   });
 
   // FLOW 4: Consultant registration reveal & audit logging
@@ -305,5 +315,132 @@ describe("Phase 09: Post-0014 End-to-End Workflow Verification", () => {
     });
     expect(reschedErr).toBeTruthy();
     expect(reschedErr?.message).toContain("Cannot reschedule another customer appointment");
+  });
+});
+
+describe("Follow-up 1: acting user and ownership (needs migration 0018 on DEV)", () => {
+  type AnyClient = SupabaseClient<any, "public", any>;
+  const admin: any = createAdminClient();
+  const login = async (email: string): Promise<{ client: AnyClient; id: string }> => {
+    const client: AnyClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { data, error } = await client.auth.signInWithPassword({ email, password: "VroomaDevPass2026!" });
+    if (error || !data.user) throw new Error(`login failed for ${email}: ${error?.message}`);
+    return { client, id: data.user.id };
+  };
+
+  const phone = () => "+9198" + String(Math.floor(10000000 + Math.random() * 89999999));
+
+  it("create_lead: a buyer session cannot attribute a lead to another user (p_user_id is ignored)", async () => {
+    const a = await login("dev-buyer@vrooma.in");
+    const b = await login("dev-buyer-2@vrooma.in");
+    const { data: lead, error } = await a.client.rpc("create_lead", {
+      p_name: "Attribution Probe",
+      p_phone: phone(),
+      p_showroom_id: HAZRATGANJ_SHOWROOM_ID,
+      p_source: "web",
+      p_user_id: b.id, // attacker-supplied
+    });
+    expect(error, error?.message).toBeNull();
+    expect(lead.user_id).toBe(a.id); // the JWT subject wins, not the argument
+    expect(lead.user_id).not.toBe(b.id);
+  });
+
+  it("create_lead: the service role (trusted server code) CAN name the acting buyer", async () => {
+    const a = await login("dev-buyer@vrooma.in");
+    const { data: lead, error } = await admin.rpc("create_lead", {
+      p_name: "Service Attribution Probe",
+      p_phone: phone(),
+      p_showroom_id: HAZRATGANJ_SHOWROOM_ID,
+      p_source: "web",
+      p_user_id: a.id,
+    });
+    expect(error, error?.message).toBeNull();
+    expect(lead.user_id).toBe(a.id);
+
+    const { data: ev } = await admin.from("lead_events").select("actor_id").eq("lead_id", lead.id).eq("type", "created").single();
+    expect(ev.actor_id).toBe(a.id);
+  });
+
+  it("create_lead: still not callable by anon", async () => {
+    const anon: AnyClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false } });
+    const { error } = await anon.rpc("create_lead", {
+      p_name: "x", p_phone: phone(), p_showroom_id: HAZRATGANJ_SHOWROOM_ID, p_user_id: "00000000-0000-0000-0000-000000000000",
+    });
+    expect(error).toBeTruthy();
+  });
+
+  it("set_lead_status / reassign_lead: a consultant cannot touch a lead assigned to someone else", async () => {
+    // Lead is created by the service role and assigned by the routing rules. Pick a consultant who does NOT own it.
+    const { data: lead } = await admin.rpc("create_lead", {
+      p_name: "Ownership Probe", p_phone: phone(), p_showroom_id: HAZRATGANJ_SHOWROOM_ID, p_source: "web",
+    });
+    expect(lead.assigned_to).toBeTruthy();
+
+    const candidates = ["dev-consultant@vrooma.in", "rohit.verma@vrooma.in", "ananya.shukla@vrooma.in"];
+    let outsider: { client: AnyClient; id: string } | null = null;
+    for (const email of candidates) {
+      const c = await login(email);
+      if (c.id !== lead.assigned_to) { outsider = c; break; }
+    }
+    expect(outsider).toBeTruthy();
+
+    const status = await outsider!.client.rpc("set_lead_status", { p_lead_id: lead.id, p_status: "contacted" });
+    expect(status.error?.message).toContain("not assigned to you");
+
+    const reassign = await outsider!.client.rpc("reassign_lead", {
+      p_lead_id: lead.id, p_to_consultant_id: outsider!.id, p_reason: "hijack attempt",
+    });
+    expect(reassign.error?.message).toContain("not assigned to you");
+
+    const { data: after } = await admin.from("leads").select("assigned_to, status").eq("id", lead.id).single();
+    expect(after.assigned_to).toBe(lead.assigned_to);
+    expect(after.status).toBe("new");
+  });
+
+  it("set_lead_status: the owning consultant (user session) succeeds and first_contacted_at is set", async () => {
+    const { data: lead } = await admin.rpc("create_lead", {
+      p_name: "Owner Probe", p_phone: phone(), p_showroom_id: HAZRATGANJ_SHOWROOM_ID, p_source: "web",
+    });
+    const { data: owner } = await admin.from("profiles").select("email").eq("id", lead.assigned_to).single();
+    const c = await login(owner.email);
+    const { data: updated, error } = await c.client.rpc("set_lead_status", { p_lead_id: lead.id, p_status: "contacted" });
+    expect(error, error?.message).toBeNull();
+    expect(updated.first_contacted_at).toBeTruthy();
+  });
+
+  it("set_lead_status through the admin client is refused (why sendLeadReplyAction must use the user session)", async () => {
+    const { data: lead } = await admin.rpc("create_lead", {
+      p_name: "Admin Client Probe", p_phone: phone(), p_showroom_id: HAZRATGANJ_SHOWROOM_ID, p_source: "web",
+    });
+    const { error } = await admin.rpc("set_lead_status", { p_lead_id: lead.id, p_status: "contacted" });
+    expect(error?.message).toContain("Permission denied");
+  });
+
+  it("anonymise_user is exposed to the service role only", async () => {
+    const buyer = await login("dev-buyer@vrooma.in");
+    const asBuyer = await buyer.client.rpc("anonymise_user", { p_uid: buyer.id });
+    expect(asBuyer.error).toBeTruthy();
+    // Service role: a random uuid must reach the function (it may raise "not found" but must not be "function not found")
+    const asService = await admin.rpc("anonymise_user", { p_uid: "00000000-0000-0000-0000-00000000dead" });
+    expect(asService.error?.code).not.toBe("PGRST202");
+  });
+
+  it("get_used_car_reg: refused for a buyer, allowed and audited for staff (via the same RPC the server action calls)", async () => {
+    const buyer = await login("dev-buyer@vrooma.in");
+    const staff = await login("dev-consultant@vrooma.in");
+    expect((await buyer.client.rpc("get_used_car_reg", { p_stock_id: "UC-1182" })).error).toBeTruthy();
+    const ok = await staff.client.rpc("get_used_car_reg", { p_stock_id: "UC-1182" });
+    expect(ok.error).toBeNull();
+    expect(ok.data).toMatch(/^UP32/);
+  });
+
+  it("cron status is not readable by buyers or anon", async () => {
+    const buyer = await login("dev-buyer@vrooma.in");
+    expect((await buyer.client.rpc("get_cron_status")).error).toBeTruthy();
+    const { data, error } = await admin.rpc("get_cron_status");
+    expect(error, error?.message).toBeNull();
+    expect(data.map((j: { jobname: string }) => j.jobname)).toContain("eval_lead_sla_breaches");
   });
 });

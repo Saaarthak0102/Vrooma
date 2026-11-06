@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { env } from "@/lib/env";
+import { authorizeCron } from "@/lib/cron-auth";
 import { sendEmail } from "@/server/services/outbox";
 
 const BACKOFF_MINUTES = [1, 5, 30, 120];
@@ -12,21 +12,19 @@ function getNextAttemptTime(attempts: number): string {
 
 export async function GET(request: NextRequest) {
   // 1. Secret authorization check
-  const authHeader = request.headers.get("authorization");
-  const expectedSecret = env.CRON_SECRET || "vrooma-cron-secret-local";
-
-  if (!authHeader || authHeader !== `Bearer ${expectedSecret}`) {
-    return NextResponse.json({ ok: false, error: "Unauthorized cron execution" }, { status: 401 });
-  }
+  const denied = authorizeCron(request);
+  if (denied) return denied;
 
   const admin = createAdminClient();
   const now = new Date().toISOString();
+  // A worker that crashed mid-send leaves rows in 'sending'; treat them as retryable after 10 minutes.
+  const staleCutoff = new Date(Date.now() - 10 * 60 * 1000).toISOString();
 
   // 2. Fetch up to 50 eligible pending/retrying messages
   const { data: messages, error: fetchErr } = await admin
     .from("messages_outbox")
     .select("id, channel, to_address, template, body, attempts, idempotency_key, status")
-    .in("status", ["pending", "failed"])
+    .or(`status.in.(pending,failed),and(status.eq.sending,updated_at.lt.${staleCutoff})`)
     .lte("next_attempt_at", now)
     .lt("attempts", 5)
     .order("created_at", { ascending: true })
@@ -49,16 +47,18 @@ export async function GET(request: NextRequest) {
 
   for (const msg of messages) {
     // Optimistic lock: mark 'sending'
-    const { error: lockErr } = await admin
+    const { data: claimed, error: lockErr } = await admin
       .from("messages_outbox")
       .update({
         status: "sending",
         updated_at: new Date().toISOString(),
       })
       .eq("id", msg.id)
-      .eq("status", msg.status);
+      .eq("status", msg.status)
+      .select("id");
 
-    if (lockErr) continue; // Claimed by another concurrent worker
+    // An error, or zero rows updated, means another worker claimed it first
+    if (lockErr || !claimed || claimed.length === 0) continue;
 
     try {
       if (msg.channel === "email") {
@@ -74,6 +74,7 @@ export async function GET(request: NextRequest) {
         .update({
           status: "sent",
           attempts: msg.attempts + 1,
+          sent_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           last_error: null,
         })

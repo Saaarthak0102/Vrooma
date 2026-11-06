@@ -17,6 +17,28 @@ import {
 
 export const dynamic = "force-dynamic";
 
+/** Every job the platform expects to exist. A missing one is shown as "not scheduled", never silently hidden. */
+const EXPECTED_JOBS: { name: string; label: string; needsVault?: boolean }[] = [
+  { name: "eval_lead_sla_breaches", label: "SLA check (every minute)" },
+  { name: "process_outbox_queue", label: "Outbox processing (every minute)", needsVault: true },
+  { name: "daily_data_retention", label: "Data retention (daily)", needsVault: true },
+  { name: "daily_finalize_deletions", label: "Finalise deletions (daily)", needsVault: true },
+  { name: "daily_slot_generation", label: "Slot generation (daily)" },
+  { name: "purge_expired_idempotency", label: "Purge idempotency keys (daily)" },
+  { name: "purge_stale_rate_limits", label: "Purge rate limits (daily)" },
+];
+
+function formatRunTime(iso: string | null | undefined): string {
+  if (!iso) return "never";
+  return new Date(iso).toLocaleString("en-IN", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Asia/Kolkata",
+  }) + " IST";
+}
+
 export default async function AdminSystemHealthPage() {
   const admin = createAdminClient();
 
@@ -28,6 +50,7 @@ export default async function AdminSystemHealthPage() {
     { count: pendingDataRequests },
     { data: recentCronLogs },
     { data: recentImports },
+    cronStatusResult,
   ] = await Promise.all([
     admin.from("messages_outbox").select("*", { count: "exact", head: true }).eq("status", "pending"),
     admin.from("messages_outbox").select("*", { count: "exact", head: true }).eq("status", "dead"),
@@ -36,7 +59,12 @@ export default async function AdminSystemHealthPage() {
     admin.from("data_requests").select("*", { count: "exact", head: true }).eq("status", "received"),
     admin.from("audit_log").select("action, new_values, created_at").ilike("action", "%CRON%").order("created_at", { ascending: false }).limit(6),
     admin.from("csv_imports").select("filename, rows_count, created_at").order("created_at", { ascending: false }).limit(4),
+    admin.rpc("get_cron_status"),
   ]);
+
+  // get_cron_status needs migration 0018; until it is applied show "status unavailable" rather than failing the page.
+  const cronStatusAvailable = !cronStatusResult.error;
+  const cronByName = new Map((cronStatusResult.data ?? []).map((j) => [j.jobname, j]));
 
   const hasDeadLetters = (deadOutbox || 0) > 0;
   const hasBreaches = (breachedLeads || 0) > 0;
@@ -103,6 +131,35 @@ export default async function AdminSystemHealthPage() {
               <Badge variant="outline" className="text-[10px]">
                 Auto-Monitored
               </Badge>
+            </div>
+
+            {/* Last run per scheduled job (pg_cron). */}
+            <div className="space-y-2" data-testid="cron-last-run">
+              {EXPECTED_JOBS.map((job) => {
+                const row = cronByName.get(job.name);
+                let state: string;
+                let tone = "text-ink-mute";
+                if (!cronStatusAvailable) {
+                  state = "status unavailable";
+                } else if (!row) {
+                  state = job.needsVault ? "not scheduled (add Vault secrets)" : "not scheduled";
+                  tone = "text-danger";
+                } else if (row.last_status && row.last_status !== "succeeded") {
+                  state = `${row.last_status} ${formatRunTime(row.last_run_at)}`;
+                  tone = "text-danger";
+                } else {
+                  state = `last run ${formatRunTime(row.last_run_at)}`;
+                }
+                return (
+                  <div
+                    key={job.name}
+                    className="flex items-center justify-between gap-3 p-2.5 rounded-lg bg-stone-50 border border-border/80 text-xs"
+                  >
+                    <span className="font-medium text-ink">{job.label}</span>
+                    <span className={`text-[11px] font-mono text-right ${tone}`}>{state}</span>
+                  </div>
+                );
+              })}
             </div>
 
             {(!recentCronLogs || recentCronLogs.length === 0) ? (

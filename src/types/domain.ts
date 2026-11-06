@@ -215,6 +215,8 @@ export interface Booking {
 
 export interface Lead {
   id: string;
+  /** Human-readable reference, e.g. LD-2026-0001 */
+  ref?: string | null;
   source: LeadSource;
   user_id?: string | null;
   name: string;
