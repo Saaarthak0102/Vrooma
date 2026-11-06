@@ -108,35 +108,35 @@ export function judge(result, expectStatus) {
 /* ----------------------------------- URL plan ----------------------------------- */
 
 const PUBLIC_URLS = [
-  "/en", "/hi", "/en/cars", "/hi/cars", "/en/cars/model-h", "/hi/cars/model-h",
-  "/en/used-cars", "/hi/used-cars", "/en/used-cars/UC-1182", "/en/offers", "/en/showrooms",
-  "/en/emi-calculator", "/en/contact", "/en/about", "/en/legal/privacy", "/en/legal/terms",
-  "/en/legal/data-rights", "/en/sign-in", "/en/sign-up", "/hi/sign-up",
-  "/en/verify-email?token_hash=abcdefghij1234567890&type=signup&next=%2Fdashboard",
+  "/", "/cars", "/cars/model-h",
+  "/used-cars", "/used-cars/UC-1182", "/offers", "/showrooms",
+  "/emi-calculator", "/contact", "/about", "/legal/privacy", "/legal/terms",
+  "/legal/data-rights", "/sign-in", "/sign-up",
+  "/verify-email?token_hash=abcdefghij1234567890&type=signup&next=%2Fdashboard",
 ];
 
 const PERSONA_PLAN = {
   buyer: {
     urls: [
-      "/en/dashboard", "/en/dashboard?view=bookings", "/en/dashboard?view=saved", "/en/dashboard?view=enquiries",
-      "/en/dashboard/bookings", "/en/dashboard/enquiries", "/en/dashboard/saved", "/en/dashboard/profile",
-      "/en/profile", "/en/book/test-drive", "/en/book/service", "/en/trade-in", "/hi/dashboard",
+      "/dashboard", "/dashboard?view=bookings", "/dashboard?view=saved", "/dashboard?view=enquiries",
+      "/dashboard/bookings", "/dashboard/enquiries", "/dashboard/saved", "/dashboard/profile",
+      "/profile", "/book/test-drive", "/book/service", "/trade-in",
     ],
-    walls: [{ path: "/en/staff/leads", status: 403 }, { path: "/en/admin", status: 403 }],
+    walls: [{ path: "/staff/leads", status: 403 }, { path: "/admin", status: 403 }],
   },
   consultant: {
-    urls: ["/en/staff", "/en/staff/leads", "{LEAD_DETAIL}", "/en/staff/bookings", "/en/staff/leads/import"],
-    walls: [{ path: "/en/admin", status: 403 }, { path: "/en/admin/prices", status: 403 }],
+    urls: ["/staff", "/staff/leads", "{LEAD_DETAIL}", "/staff/bookings", "/staff/leads/import"],
+    walls: [{ path: "/admin", status: 403 }, { path: "/admin/prices", status: 403 }],
   },
   manager: {
-    urls: ["/en/staff", "/en/staff/leads", "{LEAD_DETAIL}", "/en/staff/bookings"],
-    walls: [{ path: "/en/admin", status: 403 }],
+    urls: ["/staff", "/staff/leads", "{LEAD_DETAIL}", "/staff/bookings"],
+    walls: [{ path: "/admin", status: 403 }],
   },
   admin: {
     urls: [
-      "/en/admin", "/en/admin/models", "/en/admin/prices", "/en/admin/used-cars", "/en/admin/slots",
-      "/en/admin/users", "/en/admin/system", "/en/admin/showrooms", "/en/admin/assignment", "/en/admin/offers",
-      "/en/admin/banners", "/en/admin/ai-logs", "/en/staff/leads", "{LEAD_DETAIL}",
+      "/admin", "/admin/models", "/admin/prices", "/admin/used-cars", "/admin/slots",
+      "/admin/users", "/admin/system", "/admin/showrooms", "/admin/assignment", "/admin/offers",
+      "/admin/banners", "/admin/ai-logs", "/staff/leads", "{LEAD_DETAIL}",
     ],
     walls: [],
   },
@@ -304,27 +304,27 @@ async function run() {
 
     // Sign-in sheet
     rows.push(await visit(page, baseUrl, {
-      path: "/en",
+      path: "/",
       after: async (pg) => {
         await pg.getByRole("button", { name: /^sign in$/i }).first().click({ timeout: 8000 });
         await pg.getByRole("dialog").first().waitFor({ state: "visible", timeout: 8000 });
         await pg.keyboard.press("Escape");
       },
-    }, collector).then(async (r) => { r.path = "/en  [open + close sign-in sheet]"; await flushCsp(page, r); return r; }));
+    }, collector).then(async (r) => { r.path = "/  [open + close sign-in sheet]"; await flushCsp(page, r); return r; }));
 
     // Chat widget (appears after scrolling 200px)
     rows.push(await visit(page, baseUrl, {
-      path: "/en",
+      path: "/",
       after: async (pg) => {
         await pg.evaluate(() => window.scrollTo(0, 600));
         await pg.getByRole("button", { name: /open vrooma live chat/i }).click({ timeout: 8000 });
         await pg.getByRole("button", { name: /send message/i }).waitFor({ state: "visible", timeout: 8000 });
         await pg.getByRole("button", { name: /close chat/i }).click();
       },
-    }, collector).then(async (r) => { r.path = "/en  [open + close chat widget]"; await flushCsp(page, r); return r; }));
+    }, collector).then(async (r) => { r.path = "/  [open + close chat widget]"; await flushCsp(page, r); return r; }));
 
     // Signed-out role walls
-    for (const p of ["/en/dashboard", "/en/staff/leads", "/en/admin"]) {
+    for (const p of ["/dashboard", "/staff/leads", "/admin"]) {
       const r = await visit(page, baseUrl, { path: p, expectStatus: 200 }, collector);
       const landed = new URL(page.url()).pathname;
       if (!/sign-in/.test(landed)) { r.problems.push(`signed-out visit to ${p} did not redirect to sign-in (landed on ${landed})`); r.verdict = "FAIL"; }
@@ -361,9 +361,9 @@ async function run() {
       const rows = [];
       for (const raw of plan.urls) {
         if (raw === "{LEAD_DETAIL}") {
-          if (!leadId) { rows.push({ path: "/en/staff/leads/[id]", status: 0, errors: [], pageErrors: [], cspViolations: [], failedRequests: [], badResponses: [], problems: ["no lead visible to this persona to open"], verdict: "FAIL" }); continue; }
-          const r = await visit(page, baseUrl, { path: `/en/staff/leads/${leadId}` }, collector);
-          r.path = "/en/staff/leads/[id]";
+          if (!leadId) { rows.push({ path: "/staff/leads/[id]", status: 0, errors: [], pageErrors: [], cspViolations: [], failedRequests: [], badResponses: [], problems: ["no lead visible to this persona to open"], verdict: "FAIL" }); continue; }
+          const r = await visit(page, baseUrl, { path: `/staff/leads/${leadId}` }, collector);
+          r.path = "/staff/leads/[id]";
           await flushCsp(page, r);
           rows.push(r);
           continue;

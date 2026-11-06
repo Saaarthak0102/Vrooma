@@ -9,15 +9,11 @@ export async function GET(request: NextRequest) {
   const error = requestUrl.searchParams.get("error");
   const nextParam = requestUrl.searchParams.get("next") || "/dashboard";
 
-  // Check locale prefix from nextParam or default to 'en'
-  const localeMatch = nextParam.match(/^\/(en|hi)(\/|$)/);
-  const locale = localeMatch ? localeMatch[1] : "en";
-
   // Handle user cancelled OAuth or error from provider
   if (error) {
     const errorParam = error === "access_denied" ? "oauth_cancelled" : "oauth_error";
     return NextResponse.redirect(
-      new URL(`/${locale}/sign-in?error=${errorParam}`, env.NEXT_PUBLIC_SITE_URL)
+      new URL(`/sign-in?error=${errorParam}`, env.NEXT_PUBLIC_SITE_URL)
     );
   }
 
@@ -28,7 +24,7 @@ export async function GET(request: NextRequest) {
 
       if (exchangeError) {
         return NextResponse.redirect(
-          new URL(`/${locale}/sign-in?error=exchange_failed`, env.NEXT_PUBLIC_SITE_URL)
+          new URL("/sign-in?error=exchange_failed", env.NEXT_PUBLIC_SITE_URL)
         );
       }
 
@@ -44,13 +40,13 @@ export async function GET(request: NextRequest) {
         if (!profile?.onboarding_completed_at) {
           // New OAuth user needs onboarding
           return NextResponse.redirect(
-            new URL(`/${locale}/onboarding?next=${encodeURIComponent(safeNext(nextParam, locale))}`, env.NEXT_PUBLIC_SITE_URL)
+            new URL(`/onboarding?next=${encodeURIComponent(safeNext(nextParam))}`, env.NEXT_PUBLIC_SITE_URL)
           );
         }
       }
     }
   }
 
-  const finalRedirect = safeNext(nextParam, locale);
+  const finalRedirect = safeNext(nextParam);
   return NextResponse.redirect(new URL(finalRedirect, env.NEXT_PUBLIC_SITE_URL));
 }

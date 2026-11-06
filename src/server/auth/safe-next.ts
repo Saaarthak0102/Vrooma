@@ -8,7 +8,7 @@
  * - Must NOT contain protocols ('http:', 'https:', 'javascript:', 'data:')
  * - Decodes URL entities to detect obfuscated attacks
  * - Restricts to allow-listed route prefixes
- * - Supports optional locale prefix (/en or /hi)
+ * - Tolerates a legacy /en or /hi prefix (old links) and strips it; the app is English only
  * - Length limit (max 500 chars)
  * - Defaults to '/dashboard' if invalid or unsafe
  */
@@ -31,9 +31,8 @@ const ALLOWED_PATH_PREFIXES = [
   "/legal",
 ];
 
-export function safeNext(rawNext: string | null | undefined, locale = "en"): string {
-  const getFallback = (loc: string) => (loc === "hi" ? "/hi/dashboard" : "/dashboard");
-  const fallback = getFallback(locale);
+export function safeNext(rawNext: string | null | undefined): string {
+  const fallback = "/dashboard";
 
   if (!rawNext || typeof rawNext !== "string") {
     return fallback;
@@ -79,21 +78,17 @@ export function safeNext(rawNext: string | null | undefined, locale = "en"): str
   // Strip query string and hash for prefix validation
   const pathWithoutQuery = trimmed.split("?")[0].split("#")[0];
 
-  // Strip locale prefix if present (e.g. /en/cars -> /cars, /hi/cars -> /cars)
+  // Old links may still carry the retired language prefix (/en/cars, /hi/cars): drop it.
   let normalizedPath = pathWithoutQuery;
-  let targetLocale = locale;
-
-  if (normalizedPath.startsWith("/en/") || normalizedPath === "/en") {
-    normalizedPath = normalizedPath.slice(3) || "/";
-    targetLocale = "en";
-  } else if (normalizedPath.startsWith("/hi/") || normalizedPath === "/hi") {
-    normalizedPath = normalizedPath.slice(3) || "/";
-    targetLocale = "hi";
+  if (normalizedPath === "/en" || normalizedPath === "/hi") {
+    normalizedPath = "/";
+  } else if (normalizedPath.startsWith("/en/") || normalizedPath.startsWith("/hi/")) {
+    normalizedPath = normalizedPath.slice(3);
   }
 
   // Root path '/' is safe
   if (normalizedPath === "/" || normalizedPath === "") {
-    return targetLocale === "hi" ? "/hi" : "/";
+    return "/";
   }
 
   // Check against allowed path prefixes
@@ -102,15 +97,10 @@ export function safeNext(rawNext: string | null | undefined, locale = "en"): str
   );
 
   if (!isAllowed) {
-    return getFallback(targetLocale);
+    return fallback;
   }
 
   // Retain query parameters from the original sanitized string if present
   const queryAndHash = trimmed.slice(pathWithoutQuery.length);
-
-  // Return formatted localized path according to next-intl 'as-needed' rule
-  if (targetLocale === "hi") {
-    return `/hi${normalizedPath}${queryAndHash}`;
-  }
   return `${normalizedPath}${queryAndHash}`;
 }

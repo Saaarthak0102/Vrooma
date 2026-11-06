@@ -12,10 +12,8 @@ const VIEWPORTS = [
 ];
 
 const URLS = [
-  "/en/cars",
-  "/hi/cars",
-  "/en/used-cars",
-  "/hi/used-cars",
+  "/cars",
+  "/used-cars",
 ];
 
 async function isServerReady(url) {
@@ -46,7 +44,7 @@ async function run() {
   });
 
   try {
-    const ready = await waitForServer(`${baseUrl}/en/cars`, 30000);
+    const ready = await waitForServer(`${baseUrl}/cars`, 30000);
     if (!ready) {
       throw new Error("Server failed to start in time");
     }
@@ -151,8 +149,8 @@ async function run() {
           });
         }
 
-        // Capture a sample screenshot at 390x844 and 1920x1080 for /en/cars and /hi/cars
-        if ((vp.name === "1920x1080" || vp.name === "390x844" || vp.name === "360x740") && (route === "/en/cars" || route === "/hi/cars")) {
+        // Capture a sample screenshot at 390x844 and 1920x1080 for /cars
+        if ((vp.name === "1920x1080" || vp.name === "390x844" || vp.name === "360x740") && (route === "/cars")) {
           const fname = `${vp.name}_${route.replace(/\//g, "_")}.png`;
           await page.screenshot({ path: path.join(screenshotDir, fname), fullPage: false });
         }

@@ -1,5 +1,5 @@
 import React from "react";
-import { Link } from "@/i18n/navigation";
+import Link from "next/link";
 import { Booking } from "@/types/domain";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, Calendar, MapPin, User, MessageSquare, ArrowRight } from "lucide-react";

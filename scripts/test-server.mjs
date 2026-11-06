@@ -2,15 +2,10 @@ import { spawn } from "node:child_process";
 
 const routes = [
   "/",
-  "/hi",
   "/cars",
-  "/hi/cars",
   "/used-cars",
-  "/hi/used-cars",
   "/cars/model-h",
-  "/hi/cars/model-h",
   "/used-cars/UC-1182",
-  "/hi/used-cars/UC-1182",
 ];
 
 async function main() {

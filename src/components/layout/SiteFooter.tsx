@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import { Link, usePathname } from "@/i18n/navigation";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Container } from "@/components/ui/container";
 import { PillButton } from "@/components/ui/PillButton";
 import { Checkbox } from "@/components/ui/checkbox";
-import { LocaleSwitcher } from "./LocaleSwitcher";
 import { toast } from "sonner";
 import { useGSAP } from "@gsap/react";
 import { gsap, ScrollTrigger } from "@/lib/motion/register";
@@ -282,13 +282,9 @@ export function SiteFooter() {
           </div>
         </div>
 
-        {/* Bottom bar with locale toggle */}
+        {/* Bottom bar */}
         <div className="pt-12 mt-8 border-t border-ink/10 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-ink-mute">
           <p>© {new Date().getFullYear()} Vrooma Automobiles Pvt. Ltd. All rights reserved.</p>
-          <div className="flex items-center gap-4">
-            <span className="text-[11px] text-ink-soft">Language:</span>
-            <LocaleSwitcher />
-          </div>
         </div>
       </Container>
 

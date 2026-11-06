@@ -36,7 +36,7 @@ function mapRowToProfile(row: any): Profile {
     pincode: row.pincode || null,
     city_id: row.city_id || null,
     role: row.role as Role,
-    locale: (row.locale as "en" | "hi") || "en",
+    locale: "en",
     is_active: row.is_active ?? true,
     created_at: row.created_at,
     updated_at: row.updated_at,
@@ -120,7 +120,6 @@ export async function updateUser(id: string, updates: Partial<Profile>): Promise
   if (updates.address !== undefined) updatePayload.address = updates.address;
   if (updates.pincode !== undefined) updatePayload.pincode = updates.pincode;
   if (updates.city_id !== undefined) updatePayload.city_id = updates.city_id;
-  if (updates.locale !== undefined) updatePayload.locale = updates.locale;
   if (updates.is_active !== undefined) updatePayload.is_active = updates.is_active;
 
   const { data, error } = await supabase

@@ -19,7 +19,6 @@ const profileUpdateSchema = z.object({
   address: z.string().max(250).optional().nullable(),
   pincode: z.string().regex(/^[1-9][0-9]{5}$/, "Valid 6-digit Indian PIN code required").optional().nullable(),
   cityId: z.string().uuid().optional().nullable(),
-  locale: z.enum(["en", "hi"]).optional(),
   marketingConsent: z.boolean().optional(),
   expectedUpdatedAt: z.string().optional(),
 });
@@ -60,7 +59,6 @@ export async function updateBuyerProfileAction(
         address: parsed.data.address || null,
         pincode: parsed.data.pincode || null,
         city_id: parsed.data.cityId || profile.city_id,
-        locale: parsed.data.locale || profile.locale,
         updated_at: nowISO,
       })
       .eq("id", user.id)
@@ -81,14 +79,6 @@ export async function updateBuyerProfileAction(
       });
     }
 
-    // 4. Update Next.js locale cookie if changed
-    if (parsed.data.locale && parsed.data.locale !== profile.locale) {
-      const cookieStore = await cookies();
-      cookieStore.set("NEXT_LOCALE", parsed.data.locale, {
-        path: "/",
-        maxAge: 365 * 24 * 60 * 60,
-      });
-    }
 
     return successResponse(updated as Profile);
   } catch (err: any) {

@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useState } from "react";
-import { Link, usePathname } from "@/i18n/navigation";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Menu, Car, Award, Tag, MapPin, Calculator, PhoneCall } from "lucide-react";
-import { LocaleSwitcher } from "./LocaleSwitcher";
 
 export function MobileNav() {
   const [open, setOpen] = useState(false);
@@ -23,7 +23,6 @@ export function MobileNav() {
 
   return (
     <div className="md:hidden flex items-center gap-2">
-      <LocaleSwitcher />
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger asChild>
           <Button variant="ghost" size="icon" aria-label="Open Navigation Menu">

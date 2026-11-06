@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import { useLocale } from "next-intl";
 import { getBuyerEnquiryStatus } from "@/lib/enquiry-status";
 import { cn } from "@/lib/utils";
 
@@ -11,9 +10,8 @@ export interface BuyerStatusPillProps {
 }
 
 export function BuyerStatusPill({ status, className }: BuyerStatusPillProps) {
-  const locale = useLocale();
   const config = getBuyerEnquiryStatus(status);
-  const label = locale === "hi" ? config.labelHi : config.labelEn;
+  const label = config.labelEn;
 
   return (
     <span

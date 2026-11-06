@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useTranslations } from "next-intl";
-import { useRouter } from "@/i18n/navigation";
+import { useRouter } from "next/navigation";
 import { PageShell } from "@/components/layout/PageShell";
 import { AuthGate } from "@/components/auth/AuthGate";
 import { Input } from "@/components/ui/input";
@@ -39,7 +39,6 @@ export function ProfileView() {
   const [whatsapp, setWhatsapp] = useState("");
   const [address, setAddress] = useState("");
   const [pincode, setPincode] = useState("");
-  const [locale, setLocale] = useState<"en" | "hi">("en");
   const [marketingConsent, setMarketingConsent] = useState(true);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -62,7 +61,6 @@ export function ProfileView() {
       setWhatsapp((user.whatsapp || user.phone || "").replace(/^\+91\s?/, "").replace(/\D/g, "").slice(0, 10));
       setAddress(user.address || "");
       setPincode((user.pincode || "").replace(/\D/g, "").slice(0, 6));
-      setLocale(user.locale || "en");
     }
   }, [user]);
 
@@ -112,7 +110,6 @@ export function ProfileView() {
         whatsapp: formattedPhone,
         address: address.trim() || null,
         pincode: pincode.trim() || null,
-        locale,
         marketingConsent,
         expectedUpdatedAt: user?.updated_at,
       });
@@ -289,24 +286,6 @@ export function ProfileView() {
 
               {/* 4. Language Preference & City */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-ink-soft uppercase tracking-wider block">
-                    Preferred Language
-                  </label>
-                  <Select
-                    value={locale}
-                    onValueChange={(val) => setLocale(val as "en" | "hi")}
-                    disabled={isSubmitting}
-                  >
-                    <SelectTrigger className="h-11 bg-white text-sm">
-                      <SelectValue placeholder="Select language" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="en">English (Default)</SelectItem>
-                      <SelectItem value="hi">हिंदी (Hindi)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
 
                 <FormField
                   label={t("pincode")}

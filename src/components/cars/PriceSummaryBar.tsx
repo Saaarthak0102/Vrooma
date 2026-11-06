@@ -3,9 +3,9 @@
 import React, { useState } from "react";
 import { formatINR } from "@/lib/money";
 import { Button } from "@/components/ui/button";
-import { Link } from "@/i18n/navigation";
+import Link from "next/link";
 import { useRequireAuth } from "@/components/auth/useRequireAuth";
-import { useRouter } from "@/i18n/navigation";
+import { useRouter } from "next/navigation";
 import { Bookmark, Sparkles, Calendar, Check } from "lucide-react";
 import { toast } from "sonner";
 

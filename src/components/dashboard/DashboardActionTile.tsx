@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Link } from "@/i18n/navigation";
+import Link from "next/link";
 import { ArrowUpRight, LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 

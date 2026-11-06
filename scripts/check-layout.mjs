@@ -31,17 +31,17 @@ const targetSceneArg = args.find((a) => a.startsWith("--scene="))?.split("=")[1]
 
 async function isServerRunning(url) {
   try {
-    const res = await fetch(`${url}/en`, { method: "GET" });
+    const res = await fetch(`${url}`, { method: "GET" });
     if (res.status >= 200 && res.status < 500) return true;
   } catch {}
   if (url.includes("127.0.0.1")) {
     try {
-      const res = await fetch(`http://localhost:3000/en`, { method: "GET" });
+      const res = await fetch(`http://localhost:3000`, { method: "GET" });
       if (res.status >= 200 && res.status < 500) return true;
     } catch {}
   } else if (url.includes("localhost")) {
     try {
-      const res = await fetch(`http://127.0.0.1:3000/en`, { method: "GET" });
+      const res = await fetch(`http://127.0.0.1:3000`, { method: "GET" });
       if (res.status >= 200 && res.status < 500) return true;
     } catch {}
   }
@@ -79,8 +79,8 @@ async function startDevServer() {
     if (child.pid) spawn("taskkill", ["/pid", child.pid.toString(), "/f", "/t"]);
     throw new Error("Next.js server failed to start within timeout.");
   }
-  console.log(`Next.js dev server is ready! Warming up ${urlArg}/en...`);
-  await fetch(`${urlArg}/en`);
+  console.log(`Next.js dev server is ready! Warming up ${urlArg}...`);
+  await fetch(`${urlArg}`);
   console.log("Warmup complete.");
   return child;
 }
@@ -123,7 +123,7 @@ async function runAudit() {
         deviceScaleFactor: 1,
       });
       const page = await context.newPage();
-      await page.goto(`${urlArg}/en`, { waitUntil: "networkidle" });
+      await page.goto(`${urlArg}`, { waitUntil: "networkidle" });
       await page.waitForTimeout(2000); // Allow GSAP + fonts initialization
 
       // Read safe zone tokens from page

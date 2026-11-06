@@ -40,7 +40,6 @@ const config: Config = {
       fontFamily: {
         sans: ["var(--font-urbanist)", "sans-serif"],
         serif: ["var(--font-instrument)", "serif"],
-        devanagari: ["var(--font-noto-serif-devanagari)", "serif"],
       },
     },
   },

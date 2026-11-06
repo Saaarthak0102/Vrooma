@@ -39,7 +39,6 @@ export async function saveModelAction(payload: {
   slug: string;
   name: string;
   tagline: string;
-  tagline_hi?: string;
   body_type: string;
   hero_image: string;
   gallery?: string[];
@@ -72,7 +71,6 @@ export async function saveModelAction(payload: {
         slug: payload.slug,
         name: payload.name,
         tagline: payload.tagline,
-        tagline_hi: payload.tagline_hi || null,
         body_type: payload.body_type as BodyType,
         hero_image: payload.hero_image,
         gallery: payload.gallery || [],
@@ -101,7 +99,6 @@ export async function saveModelAction(payload: {
           slug: payload.slug,
           name: payload.name,
           tagline: payload.tagline,
-          tagline_hi: payload.tagline_hi || null,
           body_type: payload.body_type as BodyType,
           hero_image: payload.hero_image,
           gallery: payload.gallery || [],
@@ -387,9 +384,7 @@ export async function updateUsedCarStatusAction(
 export async function saveOfferAction(payload: {
   id?: string;
   title: string;
-  title_hi?: string | null;
   body: string;
-  body_hi?: string | null;
   badge?: string | null;
   model_id?: string | null;
   valid_from?: string;
@@ -402,9 +397,7 @@ export async function saveOfferAction(payload: {
 
     const offerData: Database["public"]["Tables"]["offers"]["Insert"] = {
       title: payload.title,
-      title_hi: payload.title_hi || null,
       body: payload.body,
-      body_hi: payload.body_hi || null,
       badge: payload.badge || null,
       model_id: payload.model_id || null,
       valid_from: payload.valid_from || new Date().toISOString().slice(0, 10),
@@ -470,7 +463,6 @@ export async function deleteOfferAction(id: string): Promise<ActionResponse<bool
 export async function saveBannerAction(payload: {
   id?: string;
   title: string;
-  title_hi?: string | null;
   image_url: string;
   href: string;
   sort?: number;
@@ -482,7 +474,6 @@ export async function saveBannerAction(payload: {
 
     const bannerData: Database["public"]["Tables"]["banners"]["Insert"] = {
       title: payload.title,
-      title_hi: payload.title_hi || null,
       image_url: payload.image_url,
       href: payload.href || null,
       sort: payload.sort ?? 1,

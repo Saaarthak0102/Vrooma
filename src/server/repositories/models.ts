@@ -62,7 +62,7 @@ async function fetchVariantsForModels(modelIds: string[]): Promise<Variant[]> {
   }));
 }
 
-const MODEL_COLUMNS = "id, slug, name, tagline, tagline_hi, body_type, hero_image, gallery, is_active, is_featured, created_at, updated_at";
+const MODEL_COLUMNS = "id, slug, name, tagline, body_type, hero_image, gallery, is_active, is_featured, created_at, updated_at";
 
 /**
  * Raw database query to list active models with deterministic ordering.

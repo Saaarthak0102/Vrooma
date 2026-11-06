@@ -1,11 +1,11 @@
 "use client";
 
 import React from "react";
-import { Link } from "@/i18n/navigation";
-import { useTranslations, useLocale } from "next-intl";
+import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Offer } from "@/types/domain";
 import { format, parseISO } from "date-fns";
-import { hi, enUS } from "date-fns/locale";
+import { enUS } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ListingFlipCard } from "@/components/listing/ListingFlipCard";
@@ -36,7 +36,6 @@ const MODEL_NAMES: Record<string, string> = {
 
 export function OfferListingCard({ offer, className }: OfferListingCardProps) {
   const t = useTranslations("listing");
-  const locale = useLocale();
   const { openSignInSheet } = useAuth();
   const flipGroup = useFlipGroup();
 
@@ -52,12 +51,12 @@ export function OfferListingCard({ offer, className }: OfferListingCardProps) {
     try {
       const parsed = parseISO(offer.valid_until);
       return format(parsed, "d MMM yyyy", {
-        locale: locale === "hi" ? hi : enUS,
+        locale: enUS,
       });
     } catch {
       return offer.valid_until;
     }
-  }, [offer.valid_until, locale]);
+  }, [offer.valid_until]);
 
   const targetModelName = offer.model_id
     ? MODEL_NAMES[offer.model_id] || offer.model_id

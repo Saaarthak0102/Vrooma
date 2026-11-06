@@ -8,7 +8,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 const ROOT = process.cwd();
-const APP = path.join(ROOT, "src/app/[locale]");
+const APP = path.join(ROOT, "src/app");
 
 function walk(dir: string, out: string[] = []): string[] {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -19,7 +19,7 @@ function walk(dir: string, out: string[] = []): string[] {
   return out;
 }
 
-/** Page routes under /[locale], with route groups removed and [param] kept as a wildcard. */
+/** Page routes under src/app, with route groups removed and [param] kept as a wildcard. */
 function pageRoutes(): RegExp[] {
   return walk(APP)
     .filter((f) => /[\\/]page\.tsx$/.test(f))
@@ -29,7 +29,7 @@ function pageRoutes(): RegExp[] {
       const pattern = segments.map((s) => (/^\[.+\]$/.test(s) ? "[^/]+" : s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))).join("/");
       return new RegExp(`^/${pattern}$`);
     })
-    .concat(/^\/$/); // the locale home page
+    .concat(/^\/$/); // the home page
 }
 
 
@@ -56,7 +56,7 @@ describe("internal links", () => {
   });
 
   it("the CSV import buttons use the real path", () => {
-    for (const f of ["src/app/[locale]/(staff)/staff/leads/StaffLeadsClient.tsx", "src/app/[locale]/(staff)/staff/StaffOverviewClient.tsx"]) {
+    for (const f of ["src/app/(staff)/staff/leads/StaffLeadsClient.tsx", "src/app/(staff)/staff/StaffOverviewClient.tsx"]) {
       const src = fs.readFileSync(path.join(ROOT, f), "utf8");
       expect(src).not.toContain('href="/staff/import"');
       expect(src).toContain('href="/staff/leads/import"');

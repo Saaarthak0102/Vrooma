@@ -39,7 +39,7 @@ vi.mock("@/lib/supabase/server", () => ({
 import { requestSignupLink, confirmEmailLink, getSignupHint } from "@/server/auth/signup-link";
 import { GET as confirmGet } from "@/app/auth/confirm/route";
 
-const valid = { email: "Buyer@Example.com", fullName: "Aditya Mishra", phone: "98765 43210", cityId: "city-lucknow", locale: "en" as const };
+const valid = { email: "Buyer@Example.com", fullName: "Aditya Mishra", phone: "98765 43210", cityId: "city-lucknow" };
 
 beforeEach(() => {
   state.user = { id: "u1", user_metadata: {} };
@@ -58,13 +58,13 @@ describe("requestSignupLink", () => {
     expect(sent.options.shouldCreateUser).toBe(true);
     expect(sent.options.emailRedirectTo).toContain("/auth/confirm?next=");
     expect(decodeURIComponent(sent.options.emailRedirectTo)).toContain("/cars/model-h");
-    expect(sent.options.data).toEqual({ full_name: "Aditya Mishra", phone: "+919876543210", city_id: "city-lucknow", locale: "en" });
+    expect(sent.options.data).toEqual({ full_name: "Aditya Mishra", phone: "+919876543210", city_id: "city-lucknow" });
   });
 
   it("never puts consent flags, role or anything else in the metadata", async () => {
     await requestSignupLink({ ...valid, role: "admin", termsConsent: true } as any);
     const keys = Object.keys(state.calls.signInWithOtp[0].options.data).sort();
-    expect(keys).toEqual(["city_id", "full_name", "locale", "phone"]);
+    expect(keys).toEqual(["city_id", "full_name", "phone"]);
   });
 
   it("neutralises an open-redirect next parameter", async () => {
@@ -88,37 +88,37 @@ describe("requestSignupLink", () => {
 });
 
 describe("confirmEmailLink: where the user lands after the link is verified", () => {
-  const link = { tokenHash: "abcdefghij1234567890", type: "signup" as const, locale: "en" as const };
+  const link = { tokenHash: "abcdefghij1234567890", type: "signup" as const };
 
   it("a brand-new account (onboarding not completed) goes to onboarding, keeping next", async () => {
     state.profile = { onboarding_completed_at: null, is_active: true, role: "buyer" };
     const res = await confirmEmailLink({ ...link, next: "/cars/model-h" });
-    expect(res).toEqual({ ok: true, data: { destination: "/en/onboarding?next=%2Fcars%2Fmodel-h" } });
+    expect(res).toEqual({ ok: true, data: { destination: "/onboarding?next=%2Fcars%2Fmodel-h" } });
   });
 
   it("a user with no profile row yet also goes to onboarding", async () => {
     state.profile = null;
     const res = await confirmEmailLink(link);
-    expect(res.ok && res.data.destination).toMatch(/^\/en\/onboarding\?next=/);
+    expect(res.ok && res.data.destination).toMatch(/^\/onboarding\?next=/);
   });
 
   it("a completed buyer goes to the dashboard", async () => {
     state.profile = { onboarding_completed_at: "2026-01-01", is_active: true, role: "buyer" };
     const res = await confirmEmailLink(link);
-    expect(res).toEqual({ ok: true, data: { destination: "/en/dashboard" } });
+    expect(res).toEqual({ ok: true, data: { destination: "/dashboard" } });
   });
 
   it("staff and admin go to their consoles on the default target", async () => {
     state.profile = { onboarding_completed_at: "2026-01-01", is_active: true, role: "consultant" };
-    expect((await confirmEmailLink(link)).ok && (await confirmEmailLink(link))).toMatchObject({ data: { destination: "/en/staff" } });
+    expect((await confirmEmailLink(link)).ok && (await confirmEmailLink(link))).toMatchObject({ data: { destination: "/staff" } });
     state.profile = { onboarding_completed_at: "2026-01-01", is_active: true, role: "admin" };
-    expect(await confirmEmailLink(link)).toMatchObject({ data: { destination: "/en/admin" } });
+    expect(await confirmEmailLink(link)).toMatchObject({ data: { destination: "/admin" } });
   });
 
   it("a deactivated account is signed out and sent to sign-in with an error", async () => {
     state.profile = { onboarding_completed_at: "2026-01-01", is_active: false, role: "buyer" };
     const res = await confirmEmailLink(link);
-    expect(res).toEqual({ ok: true, data: { destination: "/en/sign-in?error=account_disabled" } });
+    expect(res).toEqual({ ok: true, data: { destination: "/sign-in?error=account_disabled" } });
     expect(state.calls.signOut).toBe(1);
   });
 
@@ -135,11 +135,6 @@ describe("confirmEmailLink: where the user lands after the link is verified", ()
     expect(state.calls.verifyOtp).toBe(0);
   });
 
-  it("hindi locale destinations carry the /hi prefix", async () => {
-    state.profile = { onboarding_completed_at: null, is_active: true, role: "buyer" };
-    const res = await confirmEmailLink({ ...link, locale: "hi", next: "/hi/dashboard" });
-    expect(res.ok && res.data.destination).toMatch(/^\/hi\/onboarding\?next=/);
-  });
 });
 
 describe("GET /auth/confirm", () => {
@@ -150,7 +145,7 @@ describe("GET /auth/confirm", () => {
     expect(state.calls.verifyOtp).toBe(0);
     expect(state.calls.createClient).toBe(0);
     const location = new URL(res.headers.get("location")!);
-    expect(location.pathname).toBe("/en/verify-email");
+    expect(location.pathname).toBe("/verify-email");
     expect(location.searchParams.get("token_hash")).toBe("abcdefghij1234567890");
     expect(location.searchParams.get("type")).toBe("signup");
     expect(location.searchParams.get("next")).toBe("/dashboard");
@@ -158,22 +153,18 @@ describe("GET /auth/confirm", () => {
 
   it("a link with missing parameters goes to sign-in with invalid_link", async () => {
     const res = await confirmGet(req("type=signup"));
-    expect(res.headers.get("location")).toContain("/en/sign-in?error=invalid_link");
+    expect(res.headers.get("location")).toContain("/sign-in?error=invalid_link");
   });
 
-  it("keeps the hindi locale from next", async () => {
-    const res = await confirmGet(req("token_hash=abcdefghij1234567890&type=signup&next=%2Fhi%2Fdashboard"));
-    expect(new URL(res.headers.get("location")!).pathname).toBe("/hi/verify-email");
-  });
 });
 
 describe("getSignupHint", () => {
   it("returns only validated prefill fields", async () => {
     state.user = {
       id: "u1",
-      user_metadata: { full_name: "  Aditya Mishra ", phone: "+919876543210", city_id: "city-kanpur", locale: "hi", role: "admin", terms: true },
+      user_metadata: { full_name: "  Aditya Mishra ", phone: "+919876543210", city_id: "city-kanpur", role: "admin", terms: true },
     };
-    expect(await getSignupHint()).toEqual({ fullName: "Aditya Mishra", phoneDigits: "9876543210", cityId: "city-kanpur", locale: "hi" });
+    expect(await getSignupHint()).toEqual({ fullName: "Aditya Mishra", phoneDigits: "9876543210", cityId: "city-kanpur" });
   });
 
   it("drops garbage and returns null when signed out", async () => {
@@ -194,18 +185,18 @@ describe("link-only guarantees in the source", () => {
   });
 
   it("the sign-up page no longer asks for or verifies a code", () => {
-    const page = read("src/app/[locale]/(auth)/sign-up/page.tsx");
+    const page = read("src/app/(auth)/sign-up/page.tsx");
     expect(page).not.toMatch(/verifyOtp|requestOtp|completeProfile|otpCode|6-Digit/);
     expect(page).toContain("requestSignupLink");
   });
 
   it("sign-in keeps its code flow", () => {
-    const signIn = read("src/app/[locale]/(auth)/sign-in/page.tsx");
+    const signIn = read("src/app/(auth)/sign-in/page.tsx");
     expect(signIn).toContain("verifyOtp");
   });
 
   it("onboarding does not restore consent flags from the sign-up draft", () => {
-    const onboarding = read("src/app/[locale]/(auth)/onboarding/page.tsx");
+    const onboarding = read("src/app/(auth)/onboarding/page.tsx");
     expect(onboarding).not.toMatch(/setTermsConsent\(parsed|setServiceConsent\(parsed|setMarketingConsent\(parsed/);
   });
 });

@@ -1,5 +1,5 @@
 import React from "react";
-import { Link } from "@/i18n/navigation";
+import Link from "next/link";
 import { Model } from "@/types/domain";
 import { formatINR, formatLakh } from "@/lib/money";
 import { newCarTag, hasAccentDot } from "@/lib/listing-tags";

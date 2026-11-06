@@ -8,7 +8,6 @@ export interface GenerateSeoProps {
   description?: string;
   path?: string;
   image?: string;
-  locale?: string;
   noIndex?: boolean;
 }
 
@@ -17,12 +16,11 @@ export function constructMetadata({
   description = "Discover new and certified used cars in Lucknow with transparent on-road prices, instant EMI calculation, and 5-minute lead response.",
   path = "",
   image = DEFAULT_VEHICLE_ASSET,
-  locale = "en",
   noIndex = false,
 }: GenerateSeoProps = {}): Metadata {
   const fullTitle = title ? `${title} | ${BRAND_NAME}` : `${BRAND_NAME} - ${BRAND_TAGLINE}`;
   const siteUrl = env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "");
-  const canonicalUrl = `${siteUrl}/${locale}${path ? (path.startsWith("/") ? path : `/${path}`) : ""}`;
+  const canonicalUrl = `${siteUrl}${path ? (path.startsWith("/") ? path : `/${path}`) : ""}`;
 
   return {
     title: fullTitle,
@@ -30,10 +28,6 @@ export function constructMetadata({
     metadataBase: new URL(siteUrl),
     alternates: {
       canonical: canonicalUrl,
-      languages: {
-        en: `${siteUrl}/en${path}`,
-        hi: `${siteUrl}/hi${path}`,
-      },
     },
     openGraph: {
       title: fullTitle,
@@ -48,7 +42,7 @@ export function constructMetadata({
           alt: fullTitle,
         },
       ],
-      locale: locale === "hi" ? "hi_IN" : "en_IN",
+      locale: "en_IN",
       type: "website",
     },
     twitter: {

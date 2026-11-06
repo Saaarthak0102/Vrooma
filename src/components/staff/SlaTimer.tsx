@@ -11,23 +11,40 @@ export interface SlaTimerProps {
 }
 
 export function SlaTimer({ dueAt, firstContactedAt, className }: SlaTimerProps) {
-  const [sla, setSla] = useState<SlaResult>(() =>
-    slaState(dueAt, firstContactedAt, new Date())
+  // The countdown depends on "now". Rendering it with new Date() on the server and again on the client makes the
+  // two texts differ by a few seconds, which React reports as a hydration mismatch (error #418). So the first
+  // render is time-independent (a neutral placeholder, or the final "met" state when already contacted) and the
+  // live value is filled in after mount.
+  const [sla, setSla] = useState<SlaResult | null>(() =>
+    firstContactedAt ? slaState(dueAt, firstContactedAt, new Date(firstContactedAt)) : null
   );
 
   useEffect(() => {
     // If already contacted, timer does not need to tick
     if (firstContactedAt) {
-      setSla(slaState(dueAt, firstContactedAt, new Date()));
+      setSla(slaState(dueAt, firstContactedAt, new Date(firstContactedAt)));
       return;
     }
 
+    setSla(slaState(dueAt, null, new Date()));
     const interval = setInterval(() => {
       setSla(slaState(dueAt, null, new Date()));
     }, 1000);
 
     return () => clearInterval(interval);
   }, [dueAt, firstContactedAt]);
+
+  if (!sla) {
+    return (
+      <span
+        className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-pill border text-xs font-mono font-medium select-none bg-emerald-50 text-emerald-700 border-emerald-200 ${className ?? ""}`}
+        aria-busy="true"
+      >
+        <Clock className="h-3 w-3" />
+        <span>--:--</span>
+      </span>
+    );
+  }
 
   const stateStyles = {
     met: "bg-accent/15 text-accent-ink border-accent/30",

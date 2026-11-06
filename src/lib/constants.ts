@@ -3,9 +3,6 @@ export const BRAND_TAGLINE = "Lucknow's Premier Car Destination";
 export const DEALER_NAME = "Vrooma Automobiles Pvt. Ltd.";
 export const DEALER_CITY = "Lucknow";
 
-export const DEFAULT_LOCALE = "en";
-export const SUPPORTED_LOCALES = ["en", "hi"] as const;
-export type Locale = (typeof SUPPORTED_LOCALES)[number];
 
 export const CITIES = [
   { id: "c0000001-0000-0000-0000-000000000001", name: "Lucknow", state: "Uttar Pradesh", slug: "lucknow" },

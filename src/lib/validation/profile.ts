@@ -29,7 +29,7 @@ export const profileBaseSchema = z.object({
       return norm;
     }),
   city_id: z.string().min(1, "Please select your city"),
-  locale: z.enum(["en", "hi"]).default("en"),
+  locale: z.literal("en").default("en"),
   // Optional profile fields
   address: z
     .string()

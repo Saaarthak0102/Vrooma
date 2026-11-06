@@ -4,8 +4,8 @@ import { BuyerStatusPill } from "./BuyerStatusPill";
 import { Calendar, User } from "lucide-react";
 import { formatEnquiryDate } from "@/lib/date";
 
-export function EnquiryRow({ lead, locale = "en" }: { lead: Lead; locale?: string }) {
-  const dateFormatted = formatEnquiryDate(lead.created_at, locale);
+export function EnquiryRow({ lead }: { lead: Lead }) {
+  const dateFormatted = formatEnquiryDate(lead.created_at);
 
   return (
     <div className="rounded-xl border border-border bg-white p-4 shadow-card flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">

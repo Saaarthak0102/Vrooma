@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { Booking } from "@/types/domain";
 import { Button } from "@/components/ui/button";
-import { Link } from "@/i18n/navigation";
+import Link from "next/link";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,13 +11,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { BookingDetailsDialog } from "./BookingDetailsDialog";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { bookingRef } from "@/lib/booking-ref";
 import { formatAppointmentDate } from "@/lib/date";
 import { MapPin, User, Calendar, Plus, Car, Wrench } from "lucide-react";
 import { cancelBookingAction } from "@/server/actions/booking";
 import { toast } from "sonner";
-import { useRouter } from "@/i18n/navigation";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 export interface NextAppointmentCardProps {
@@ -32,18 +32,16 @@ export interface NextAppointmentCardProps {
 
 interface AppointmentSubCardProps {
   booking: Booking;
-  locale: string;
   t: any;
   onViewBooking: (b: Booking) => void;
 }
 
 function AppointmentSubCard({
   booking,
-  locale,
   t,
   onViewBooking,
 }: AppointmentSubCardProps) {
-  const dateDetails = formatAppointmentDate(booking.starts_at, locale);
+  const dateDetails = formatAppointmentDate(booking.starts_at);
   const isTestDrive = booking.kind === "test_drive";
   const title = isTestDrive
     ? `${booking.vehicle_info.model_name} ${booking.vehicle_info.variant_name || ""}`.trim()
@@ -153,7 +151,6 @@ export function NextAppointmentCard({
   className,
   style,
 }: NextAppointmentCardProps) {
-  const locale = useLocale();
   const t = useTranslations("dashboard");
 
   // State to track which booking is currently opened in the detailed view dialog
@@ -208,7 +205,6 @@ export function NextAppointmentCard({
           <>
             <AppointmentSubCard
               booking={displayList[0]}
-              locale={locale}
               t={t}
               onViewBooking={setDetailedBooking}
             />
@@ -220,13 +216,11 @@ export function NextAppointmentCard({
           <>
             <AppointmentSubCard
               booking={displayList[0]}
-              locale={locale}
               t={t}
               onViewBooking={setDetailedBooking}
             />
             <AppointmentSubCard
               booking={displayList[1]}
-              locale={locale}
               t={t}
               onViewBooking={setDetailedBooking}
             />

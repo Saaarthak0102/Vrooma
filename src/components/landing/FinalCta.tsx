@@ -2,7 +2,7 @@
 
 import React from "react";
 import Image from "next/image";
-import { Link } from "@/i18n/navigation";
+import Link from "next/link";
 import { PinnedScene } from "@/components/motion/PinnedScene";
 import { Accent } from "@/components/ui/accent";
 import { PillButton } from "@/components/ui/PillButton";

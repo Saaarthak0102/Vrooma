@@ -2,8 +2,9 @@
 
 import React, { useState, useId } from "react";
 import Image from "next/image";
-import { Link, useRouter } from "@/i18n/navigation";
-import { useLocale, useTranslations } from "next-intl";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Booking, Lead, Model, UsedCar, SavedVehicleRecord } from "@/types/domain";
 import { bookingRef } from "@/lib/booking-ref";
 import { formatAppointmentDate, formatEnquiryDate } from "@/lib/date";
@@ -48,7 +49,6 @@ export function DashboardPanelContent({
   isSheet = false,
 }: DashboardPanelContentProps) {
   const router = useRouter();
-  const locale = useLocale();
   const t = useTranslations("dashboard");
   const tablistId = useId();
 
@@ -207,7 +207,7 @@ export function DashboardPanelContent({
                 )}
               >
                 {cappedBookings.map((b) => {
-                  const dateDetails = formatAppointmentDate(b.starts_at, locale);
+                  const dateDetails = formatAppointmentDate(b.starts_at);
                   const isTestDrive = b.kind === "test_drive";
                   const isUpcoming = bookingSubTab === "upcoming";
 
@@ -543,7 +543,7 @@ export function DashboardPanelContent({
                 )}
               >
                 {cappedEnquiries.map((lead) => {
-                  const dateStr = formatEnquiryDate(lead.created_at, locale);
+                  const dateStr = formatEnquiryDate(lead.created_at);
                   const specialistName = lead.assigned_consultant_name || "Assigned under 5 min";
                   const vehicleHref = lead.used_car_id
                     ? `/used-cars/${lead.used_car_id}`

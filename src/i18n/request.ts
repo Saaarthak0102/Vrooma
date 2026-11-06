@@ -1,16 +1,7 @@
 import { getRequestConfig } from "next-intl/server";
-import { routing } from "./routing";
 
-export default getRequestConfig(async ({ requestLocale }) => {
-  let locale = await requestLocale;
-
-  if (!locale || !routing.locales.includes(locale as any)) {
-    locale = routing.defaultLocale;
-  }
-
-  return {
-    locale,
-    messages: (await import(`../../messages/${locale}.json`)).default,
-  };
-});
-
+// English only. next-intl is kept purely as the text catalogue (messages/en.json); there is no locale routing.
+export default getRequestConfig(async () => ({
+  locale: "en",
+  messages: (await import("../../messages/en.json")).default,
+}));

@@ -4,7 +4,7 @@ import React from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useTranslations } from "next-intl";
 import { ShieldCheck } from "lucide-react";
-import { Link } from "@/i18n/navigation";
+import Link from "next/link";
 
 export interface ConsentCheckboxProps {
   id?: string;

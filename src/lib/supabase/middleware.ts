@@ -9,13 +9,13 @@ import { safeNext } from "@/server/auth/safe-next";
  * to ensure ISR caching is never broken by reading or setting cookies.
  */
 const PROTECTED_PATH_PATTERNS = [
-  /^\/(en|hi)?\/?dashboard(\/|$)/,
-  /^\/(en|hi)?\/?profile(\/|$)/,
-  /^\/(en|hi)?\/?staff(\/|$)/,
-  /^\/(en|hi)?\/?admin(\/|$)/,
-  /^\/(en|hi)?\/?onboarding(\/|$)/,
-  /^\/(en|hi)?\/?sign-in(\/|$)/,
-  /^\/(en|hi)?\/?sign-up(\/|$)/,
+  /^\/dashboard(\/|$)/,
+  /^\/profile(\/|$)/,
+  /^\/staff(\/|$)/,
+  /^\/admin(\/|$)/,
+  /^\/onboarding(\/|$)/,
+  /^\/sign-in(\/|$)/,
+  /^\/sign-up(\/|$)/,
 ];
 
 export function isSessionRequiredPath(pathname: string): boolean {
@@ -63,9 +63,6 @@ export async function updateSession(request: NextRequest, initialResponse?: Next
 
   const pathname = request.nextUrl.pathname;
 
-  // Extract locale from pathname (default 'en')
-  const localeMatch = pathname.match(/^\/(en|hi)(\/|$)/);
-  const locale = localeMatch ? localeMatch[1] : "en";
 
   // Check auth for protected paths
   if (isSessionRequiredPath(pathname)) {
@@ -81,40 +78,40 @@ export async function updateSession(request: NextRequest, initialResponse?: Next
 
       if (profile?.is_active === false) {
         await supabase.auth.signOut({ scope: "local" });
-        return NextResponse.redirect(new URL(`/${locale}/sign-in?error=account_disabled`, request.url));
+        return NextResponse.redirect(new URL(`/sign-in?error=account_disabled`, request.url));
       }
 
       // If user is already on sign-in or sign-up, redirect them away
-      const isAuthPage = /^\/(en|hi)?\/?sign-(in|up)(\/|$)/.test(pathname);
+      const isAuthPage = /^\/sign-(in|up)(\/|$)/.test(pathname);
       if (isAuthPage) {
         if (!profile?.onboarding_completed_at) {
-          return NextResponse.redirect(new URL(`/${locale}/onboarding`, request.url));
+          return NextResponse.redirect(new URL(`/onboarding`, request.url));
         }
         if (profile.role === "admin") {
-          return NextResponse.redirect(new URL(`/${locale}/admin`, request.url));
+          return NextResponse.redirect(new URL(`/admin`, request.url));
         }
         if (profile.role === "consultant" || profile.role === "manager") {
-          return NextResponse.redirect(new URL(`/${locale}/staff`, request.url));
+          return NextResponse.redirect(new URL(`/staff`, request.url));
         }
-        return NextResponse.redirect(new URL(`/${locale}/dashboard`, request.url));
+        return NextResponse.redirect(new URL(`/dashboard`, request.url));
       }
 
       // Onboarding page check
-      const isOnboardingPage = /^\/(en|hi)?\/?onboarding(\/|$)/.test(pathname);
+      const isOnboardingPage = /^\/onboarding(\/|$)/.test(pathname);
       if (isOnboardingPage && profile?.onboarding_completed_at) {
-        return NextResponse.redirect(new URL(`/${locale}/dashboard`, request.url));
+        return NextResponse.redirect(new URL(`/dashboard`, request.url));
       }
 
       // If accessing dashboard or profile with incomplete profile -> onboarding
-      const isDashboardOrProfile = /^\/(en|hi)?\/?(dashboard|profile)(\/|$)/.test(pathname);
+      const isDashboardOrProfile = /^\/(dashboard|profile)(\/|$)/.test(pathname);
       if (isDashboardOrProfile && !profile?.onboarding_completed_at) {
         return NextResponse.redirect(
-          new URL(`/${locale}/onboarding?next=${encodeURIComponent(safeNext(pathname, locale))}`, request.url)
+          new URL(`/onboarding?next=${encodeURIComponent(safeNext(pathname))}`, request.url)
         );
       }
 
       // Staff route guard: requires consultant, manager, or admin
-      const isStaffRoute = /^\/(en|hi)?\/?staff(\/|$)/.test(pathname);
+      const isStaffRoute = /^\/staff(\/|$)/.test(pathname);
       if (isStaffRoute) {
         if (!["consultant", "manager", "admin"].includes(profile?.role || "")) {
           // Return 403 Forbidden
@@ -123,7 +120,7 @@ export async function updateSession(request: NextRequest, initialResponse?: Next
       }
 
       // Admin route guard: requires admin
-      const isAdminRoute = /^\/(en|hi)?\/?admin(\/|$)/.test(pathname);
+      const isAdminRoute = /^\/admin(\/|$)/.test(pathname);
       if (isAdminRoute) {
         if (profile?.role !== "admin") {
           return new NextResponse("403 Forbidden: Admin Access Required", { status: 403 });
@@ -131,10 +128,10 @@ export async function updateSession(request: NextRequest, initialResponse?: Next
       }
     } else {
       // Unauthenticated visitor trying to access dashboard, profile, staff, admin, onboarding
-      const requiresAuth = /^\/(en|hi)?\/?(dashboard|profile|staff|admin|onboarding)(\/|$)/.test(pathname);
+      const requiresAuth = /^\/(dashboard|profile|staff|admin|onboarding)(\/|$)/.test(pathname);
       if (requiresAuth) {
         return NextResponse.redirect(
-          new URL(`/${locale}/sign-in?next=${encodeURIComponent(safeNext(pathname, locale))}`, request.url)
+          new URL(`/sign-in?next=${encodeURIComponent(safeNext(pathname))}`, request.url)
         );
       }
     }

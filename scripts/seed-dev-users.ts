@@ -40,7 +40,7 @@ export interface DevUser {
   full_name: string;
   phone: string;
   role: "buyer" | "consultant" | "manager" | "admin";
-  locale: "en" | "hi";
+  locale: "en";
   showroom_id?: string;
   notes?: string;
 }
@@ -119,7 +119,7 @@ export const DEV_TEST_USERS: DevUser[] = [
     full_name: "Deepak Tripathi (Dev Consultant)",
     phone: "+919876500014",
     role: "consultant",
-    locale: "hi",
+    locale: "en",
     showroom_id: "a0000001-0000-0000-0000-000000000002",
     notes: "Hindi specialist consultant (Gomti Nagar Experience Center)",
   },

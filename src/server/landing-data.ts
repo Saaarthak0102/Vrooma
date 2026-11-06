@@ -168,7 +168,7 @@ export function getFallbackLandingData(): LandingData {
   };
 }
 
-export async function getLandingData(locale: string = "en"): Promise<LandingData> {
+export async function getLandingData(): Promise<LandingData> {
   try {
     // 1. Fetch repositories concurrently
     const [allModels, allUsedCars, showrooms, workshops, allSlots] = await Promise.all([

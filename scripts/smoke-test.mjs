@@ -1,24 +1,22 @@
 #!/usr/bin/env node
 /**
  * Vrooma Production Smoke Test Runner
- * Hits all critical public endpoints and APIs across English and Hindi locales.
+ * Hits all critical public endpoints and APIs .
  */
 
 const baseUrl = process.env.TEST_URL || "http://localhost:3000";
 
 const endpoints = [
   { path: "/api/health", method: "GET", expectedStatus: 200, checkBody: (t) => t.includes("healthy") },
-  { path: "/en", method: "GET", expectedStatus: 200, checkBody: (t) => t.includes("Vrooma") },
-  { path: "/hi", method: "GET", expectedStatus: 200, checkBody: (t) => t.length > 500 },
-  { path: "/en/cars", method: "GET", expectedStatus: 200, checkBody: (t) => t.includes("Model") },
-  { path: "/hi/cars", method: "GET", expectedStatus: 200, checkBody: (t) => t.length > 500 },
-  { path: "/en/used-cars", method: "GET", expectedStatus: 200, checkBody: (t) => t.includes("Certified") },
-  { path: "/en/cars/model-h", method: "GET", expectedStatus: 200, checkBody: (t) => t.includes("Model H") },
-  { path: "/en/used-cars/UC-1182", method: "GET", expectedStatus: 200, checkBody: (t) => t.includes("UC-1182") },
-  { path: "/en/trade-in", method: "GET", expectedStatus: 200, checkBody: (t) => t.includes("Trade-In") },
-  { path: "/en/emi-calculator", method: "GET", expectedStatus: 200, checkBody: (t) => t.includes("EMI") },
-  { path: "/en/legal/data-rights", method: "GET", expectedStatus: 200, checkBody: (t) => t.includes("DPDP") },
-  { path: "/en/legal/privacy", method: "GET", expectedStatus: 200, checkBody: (t) => t.includes("Privacy") },
+  { path: "/", method: "GET", expectedStatus: 200, checkBody: (t) => t.includes("Vrooma") },
+  { path: "/cars", method: "GET", expectedStatus: 200, checkBody: (t) => t.includes("Model") },
+  { path: "/used-cars", method: "GET", expectedStatus: 200, checkBody: (t) => t.includes("Certified") },
+  { path: "/cars/model-h", method: "GET", expectedStatus: 200, checkBody: (t) => t.includes("Model H") },
+  { path: "/used-cars/UC-1182", method: "GET", expectedStatus: 200, checkBody: (t) => t.includes("UC-1182") },
+  { path: "/trade-in", method: "GET", expectedStatus: 200, checkBody: (t) => t.includes("Trade-In") },
+  { path: "/emi-calculator", method: "GET", expectedStatus: 200, checkBody: (t) => t.includes("EMI") },
+  { path: "/legal/data-rights", method: "GET", expectedStatus: 200, checkBody: (t) => t.includes("DPDP") },
+  { path: "/legal/privacy", method: "GET", expectedStatus: 200, checkBody: (t) => t.includes("Privacy") },
   { path: "/robots.txt", method: "GET", expectedStatus: 200, checkBody: (t) => /user-agent/i.test(t) },
   { path: "/sitemap.xml", method: "GET", expectedStatus: 200, checkBody: (t) => t.includes("urlset") },
   {

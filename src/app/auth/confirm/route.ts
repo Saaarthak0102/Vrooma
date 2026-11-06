@@ -13,14 +13,11 @@ export async function GET(request: NextRequest) {
   const type = requestUrl.searchParams.get("type");
   const nextParam = requestUrl.searchParams.get("next") || "/dashboard";
 
-  const localeMatch = nextParam.match(/^\/(en|hi)(\/|$)/);
-  const locale = localeMatch ? localeMatch[1] : "en";
-
   if (!tokenHash || !type) {
-    return NextResponse.redirect(new URL(`/${locale}/sign-in?error=invalid_link`, env.NEXT_PUBLIC_SITE_URL));
+    return NextResponse.redirect(new URL("/sign-in?error=invalid_link", env.NEXT_PUBLIC_SITE_URL));
   }
 
-  const target = new URL(`/${locale}/verify-email`, env.NEXT_PUBLIC_SITE_URL);
+  const target = new URL("/verify-email", env.NEXT_PUBLIC_SITE_URL);
   target.searchParams.set("token_hash", tokenHash);
   target.searchParams.set("type", type);
   target.searchParams.set("next", nextParam);

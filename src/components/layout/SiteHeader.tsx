@@ -1,11 +1,11 @@
 "use client";
 
 import React, { useEffect, useState, useRef } from "react";
-import { Link, usePathname } from "@/i18n/navigation";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Container } from "@/components/ui/container";
 import { UserMenu } from "@/components/auth/UserMenu";
-import { LocaleSwitcher } from "./LocaleSwitcher";
 import { PillButton } from "@/components/ui/PillButton";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
@@ -116,14 +116,10 @@ export function SiteHeader() {
               })}
             </nav>
 
-            {/* Right: Locale toggle, UserMenu, Dark Pill CTA */}
+            {/* Right: UserMenu, Dark Pill CTA */}
             <div
               className={`flex items-center h-[42px] gap-2 px-2 ${GLASS_BASE} ${isScrolled ? GLASS_SCROLLED : GLASS_TOP}`}
             >
-              <div className="hidden sm:flex items-center">
-                <LocaleSwitcher />
-              </div>
-
               <div className="flex items-center">
                 <UserMenu />
               </div>
@@ -209,13 +205,6 @@ export function SiteHeader() {
           </nav>
 
           <div className="pt-6 border-t border-border flex flex-col gap-4">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-ink-mute uppercase tracking-wider">
-                Language
-              </span>
-              <LocaleSwitcher />
-            </div>
-
             <PillButton asChild variant="primary" showArrow className="w-full justify-between h-12">
               <Link
                 href="/book/test-drive"

@@ -248,7 +248,7 @@ export interface Profile {
   pincode?: string | null;
   city_id?: string | null;
   role: Role;
-  locale: "en" | "hi";
+  locale: "en";
   is_active?: boolean;
   onboarding_completed_at?: string | null;
   created_at?: string;

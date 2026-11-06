@@ -50,6 +50,14 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  // The site used to serve /en/... and /hi/... URLs. It is English only now; keep old links, bookmarks,
+  // emails and search results working by sending them to the unprefixed page.
+  async redirects() {
+    return [
+      { source: "/:locale(en|hi)", destination: "/", permanent: true },
+      { source: "/:locale(en|hi)/:path*", destination: "/:path*", permanent: true },
+    ];
+  },
   async headers() {
     return [
       {

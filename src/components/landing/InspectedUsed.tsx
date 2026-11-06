@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Link } from "@/i18n/navigation";
+import Link from "next/link";
 import { ShrinkScene } from "./ShrinkScene";
 import { Accent } from "@/components/ui/accent";
 import { GlassCard } from "@/components/ui/GlassCard";

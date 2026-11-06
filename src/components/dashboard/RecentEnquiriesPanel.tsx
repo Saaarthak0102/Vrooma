@@ -3,8 +3,8 @@
 import React from "react";
 import { Lead } from "@/types/domain";
 import { Button } from "@/components/ui/button";
-import { Link } from "@/i18n/navigation";
-import { useLocale, useTranslations } from "next-intl";
+import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { BuyerStatusPill } from "./BuyerStatusPill";
 import { formatEnquiryDate } from "@/lib/date";
 import { MessageSquare } from "lucide-react";
@@ -23,7 +23,6 @@ export function RecentEnquiriesPanel({
   className,
   style,
 }: RecentEnquiriesPanelProps) {
-  const locale = useLocale();
   const t = useTranslations("dashboard");
   const displayItems = enquiries.slice(0, 2);
 
@@ -68,7 +67,7 @@ export function RecentEnquiriesPanel({
       ) : (
         <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-border pt-1">
           {displayItems.map((lead, idx) => {
-            const dateStr = formatEnquiryDate(lead.created_at, locale);
+            const dateStr = formatEnquiryDate(lead.created_at);
             const specialistName = lead.assigned_consultant_name || "Assigned under 5 min";
 
             return (

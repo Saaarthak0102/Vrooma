@@ -31,12 +31,11 @@ function normalizeEmail(rawEmail: string): string {
  */
 export async function requestOtp(
   rawEmail: string,
-  locale = "en",
   next = "/dashboard"
 ): Promise<ActionResponse<{ email: string; message: string }>> {
   try {
     const email = normalizeEmail(rawEmail);
-    const sanitizedNext = safeNext(next, locale);
+    const sanitizedNext = safeNext(next);
 
     const supabase = await createClient();
     if (!supabase) {
@@ -121,11 +120,10 @@ export async function verifyOtp(
  * Generates OAuth URL for Google sign-in.
  */
 export async function startGoogle(
-  next = "/dashboard",
-  locale = "en"
+  next = "/dashboard"
 ): Promise<ActionResponse<{ url: string }>> {
   try {
-    const sanitizedNext = safeNext(next, locale);
+    const sanitizedNext = safeNext(next);
     const callbackUrl = `${env.NEXT_PUBLIC_SITE_URL}/auth/callback?next=${encodeURIComponent(sanitizedNext)}`;
 
     const supabase = await createClient();
@@ -204,7 +202,7 @@ export async function completeProfile(
         p_phone: phoneNormalized,
         p_whatsapp: whatsappNormalized,
         p_city_id: cityId,
-        p_locale: data.locale || "en",
+        p_locale: "en", // English only; the column stays for the database but is never user-chosen
         p_address: data.address || null,
         p_pincode: data.pincode || null,
         p_marketing_consent: Boolean(data.marketing_consent),

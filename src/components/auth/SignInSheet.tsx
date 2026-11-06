@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "./AuthProvider";
-import { Link, useRouter } from "@/i18n/navigation";
-import { useLocale } from "next-intl";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Sheet,
   SheetContent,
@@ -19,7 +19,6 @@ import { ShieldCheck, Mail, ArrowRight, CheckCircle2, RefreshCw, User, Briefcase
 import { toast } from "sonner";
 
 export function SignInSheet() {
-  const locale = useLocale();
   const router = useRouter();
   const { isSignInSheetOpen, closeSignInSheet, switchRole } = useAuth();
 
@@ -69,7 +68,7 @@ export function SignInSheet() {
 
     setLoading(true);
     try {
-      const res = await requestOtp(email, locale);
+      const res = await requestOtp(email);
       if (!res.ok) {
         toast.error(res.error.message);
         return;
@@ -124,7 +123,7 @@ export function SignInSheet() {
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
     try {
-      const res = await startGoogle("/dashboard", locale);
+      const res = await startGoogle("/dashboard");
       if (res.ok && res.data.url) {
         window.location.href = res.data.url;
       } else if (!res.ok) {

@@ -84,8 +84,8 @@ describe("source-level guarantees", () => {
   });
 
   it("the model page and its client view carry no price rule and no mock price data", () => {
-    const view = read("src/app/[locale]/(public)/cars/[modelSlug]/ModelDetailView.tsx");
-    const page = read("src/app/[locale]/(public)/cars/[modelSlug]/page.tsx");
+    const view = read("src/app/(public)/cars/[modelSlug]/ModelDetailView.tsx");
+    const page = read("src/app/(public)/cars/[modelSlug]/page.tsx");
     expect(view).not.toMatch(/mock\/price-rules|mockPriceRules/);
     expect(view).not.toMatch(/initialPriceRule/);
     expect(page).not.toMatch(/initialPriceRule/);

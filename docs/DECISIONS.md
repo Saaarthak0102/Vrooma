@@ -88,3 +88,11 @@
   4. **Stable Layout Grid Stacking:** `.btn__content` uses a single CSS grid cell to crossfade label, loading spinner, and success check layers, preventing any button width jumps.
   5. **Origin-Aware Transitions:** Dropdown menus, selects, popovers, and tooltips read the primitive's exposed `--radix-*-content-transform-origin` and animate dynamically from the calculated `data-side` (top, bottom, left, right).
 - **Consequences:** Eliminates layout jank, maintains strict zero JS bundle increase on the homepage and catalog routes, preserves full DPDP compliance and accessibility, and delivers ultra-smooth 60fps micro-interactions across touch and pointer devices.
+
+## ADR: English only (no Hindi, no locale concept)
+
+- **Date:** 2026-11-06
+- **Decision:** The app is English only. Removed: `/[locale]` routing, the language switcher, `messages/hi.json`, the Devanagari font, hreflang/Hindi open-graph SEO, per-user language preference, and the `useLocale`/`@/i18n/navigation` plumbing.
+- **Supersedes:** the client brief and `context.md` rule 3 ("Hindi and English"). That requirement was dropped on the owner's instruction; do not reintroduce it by following the old brief.
+- **Kept:** `messages/en.json` as the one text catalogue (read through `next-intl` with a fixed `en`); the Hindi words in `src/lib/validation/discount.ts` (a staff-safety filter); the `profiles.locale` and `*_hi` database columns (never read or written by the app, no migration).
+- **Compatibility:** `/en/...` and `/hi/...` permanently redirect to the unprefixed URL (`next.config.ts`); `safeNext` strips a legacy prefix.

@@ -7,7 +7,6 @@ export const revalidate = 3600;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = (env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000").replace(/\/$/, "");
-  const locales = ["en", "hi"];
 
   const staticRoutes = [
     "",
@@ -25,15 +24,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const entries: MetadataRoute.Sitemap = [];
 
-  for (const locale of locales) {
-    for (const route of staticRoutes) {
-      entries.push({
-        url: `${baseUrl}/${locale}${route}`,
-        lastModified: new Date(),
-        changeFrequency: "daily",
-        priority: route === "" ? 1.0 : 0.8,
-      });
-    }
+  for (const route of staticRoutes) {
+    entries.push({
+      url: `${baseUrl}${route}`,
+      lastModified: new Date(),
+      changeFrequency: "daily",
+      priority: route === "" ? 1.0 : 0.8,
+    });
   }
 
   // Resiliently fetch models and used cars, falling back to static routes on any failure
@@ -43,27 +40,25 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       listUsedCars().catch(() => []),
     ]);
 
-    for (const locale of locales) {
-      for (const model of models) {
-        if (model?.slug) {
-          entries.push({
-            url: `${baseUrl}/${locale}/cars/${model.slug}`,
-            lastModified: new Date(),
-            changeFrequency: "daily",
-            priority: 0.9,
-          });
-        }
+    for (const model of models) {
+      if (model?.slug) {
+        entries.push({
+          url: `${baseUrl}/cars/${model.slug}`,
+          lastModified: new Date(),
+          changeFrequency: "daily",
+          priority: 0.9,
+        });
       }
+    }
 
-      for (const car of usedCars) {
-        if (car?.stock_id && car.status !== "sold") {
-          entries.push({
-            url: `${baseUrl}/${locale}/used-cars/${car.stock_id}`,
-            lastModified: new Date(),
-            changeFrequency: "daily",
-            priority: 0.8,
-          });
-        }
+    for (const car of usedCars) {
+      if (car?.stock_id && car.status !== "sold") {
+        entries.push({
+          url: `${baseUrl}/used-cars/${car.stock_id}`,
+          lastModified: new Date(),
+          changeFrequency: "daily",
+          priority: 0.8,
+        });
       }
     }
   } catch (error) {

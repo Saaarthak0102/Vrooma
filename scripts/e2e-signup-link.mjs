@@ -21,7 +21,7 @@ const check = (name, ok, detail = "") => { results.push({ name, ok }); console.l
 const { data: gen, error: genErr } = await admin.auth.admin.generateLink({
   type: "magiclink",
   email,
-  options: { data: { full_name: "E2E Link Tester", phone: "+919812345678", city_id: "city-kanpur", locale: "en" } },
+  options: { data: { full_name: "E2E Link Tester", phone: "+919812345678", city_id: "city-kanpur" } },
 });
 if (genErr) throw genErr;
 const tokenHash = gen.properties.hashed_token;

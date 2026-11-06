@@ -47,7 +47,7 @@ export const mockUsers: Profile[] = [
     phone: "9876500014",
     city_id: "city-lucknow",
     role: "consultant",
-    locale: "hi",
+    locale: "en",
   },
   {
     id: "usr-consultant-5",
@@ -65,7 +65,7 @@ export const mockUsers: Profile[] = [
     phone: "9876500016",
     city_id: "city-lucknow",
     role: "consultant",
-    locale: "hi",
+    locale: "en",
   },
   {
     id: "usr-manager-1",

@@ -8,7 +8,7 @@ import React, {
   useCallback,
   useMemo,
 } from "react";
-import { useRouter } from "@/i18n/navigation";
+import { useRouter } from "next/navigation";
 import { Profile, Role } from "@/types/domain";
 import { createClient } from "@/lib/supabase/client";
 import { signOut as serverSignOut } from "@/server/auth/actions";

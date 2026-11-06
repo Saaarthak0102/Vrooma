@@ -1,5 +1,5 @@
 import React from "react";
-import { Link } from "@/i18n/navigation";
+import Link from "next/link";
 import { Lead } from "@/types/domain";
 import { SlaTimer } from "./SlaTimer";
 import { StatusPill } from "./StatusPill";
@@ -13,6 +13,7 @@ export interface LeadRowProps {
 
 export function LeadRow({ lead }: LeadRowProps) {
   const timeFormatted = new Date(lead.created_at).toLocaleTimeString("en-IN", {
+    timeZone: "Asia/Kolkata",
     hour: "2-digit",
     minute: "2-digit",
     hour12: true,

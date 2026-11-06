@@ -5,7 +5,7 @@ import { calculateEmi } from "@/lib/emi";
 
 describe("Landing Data Engine (Phase 2)", () => {
   it("getLandingData returns no reg_no_private anywhere in used car payload", async () => {
-    const data = await getLandingData("en");
+    const data = await getLandingData();
 
     // 1. Check usedSample
     expect(data.usedSample).toBeDefined();
@@ -52,7 +52,7 @@ describe("Landing Data Engine (Phase 2)", () => {
   });
 
   it("EMI defaults produce a positive instalment", async () => {
-    const data = await getLandingData("en");
+    const data = await getLandingData();
     expect(data.emiDefaults.monthlyEmi).toBeGreaterThan(0);
     expect(data.emiDefaults.principal).toBeGreaterThan(0);
     expect(data.emiDefaults.label).toBe("indicative");
@@ -67,7 +67,7 @@ describe("Landing Data Engine (Phase 2)", () => {
   });
 
   it("returns authentic showrooms, workshops, and certified used yard in locations", async () => {
-    const data = await getLandingData("en");
+    const data = await getLandingData();
     expect(data.locations.length).toBeGreaterThanOrEqual(6);
     expect(data.locations.some((l) => l.type === "showroom")).toBe(true);
     expect(data.locations.some((l) => l.type === "workshop")).toBe(true);
@@ -75,7 +75,7 @@ describe("Landing Data Engine (Phase 2)", () => {
   });
 
   it("returns valid bookNowPreview for final CTA phone screen without hardcoded hours", async () => {
-    const data = await getLandingData("en");
+    const data = await getLandingData();
     expect(data.bookNowPreview).toBeDefined();
     expect(data.bookNowPreview.showrooms.length).toBe(2);
     expect(data.bookNowPreview.showrooms[0].name).toBeTruthy();

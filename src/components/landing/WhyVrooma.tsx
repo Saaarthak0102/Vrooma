@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef } from "react";
-import { Link } from "@/i18n/navigation";
+import Link from "next/link";
 import { PinnedScene } from "@/components/motion/PinnedScene";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { Accent } from "@/components/ui/accent";

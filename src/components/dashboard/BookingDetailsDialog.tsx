@@ -15,8 +15,8 @@ import { bookingRef } from "@/lib/booking-ref";
 import { formatAppointmentDate } from "@/lib/date";
 import { cancelBookingAction } from "@/server/actions/booking";
 import { toast } from "sonner";
-import { useRouter } from "@/i18n/navigation";
-import { useLocale, useTranslations } from "next-intl";
+import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import {
   Calendar,
   Clock,
@@ -40,7 +40,6 @@ export function BookingDetailsDialog({
   onOpenChange,
 }: BookingDetailsDialogProps) {
   const router = useRouter();
-  const locale = useLocale();
   const t = useTranslations("dashboard");
 
   if (!booking) return null;
@@ -71,7 +70,7 @@ export function BookingDetailsDialog({
     }
   };
 
-  const dateDetails = formatAppointmentDate(booking.starts_at, locale);
+  const dateDetails = formatAppointmentDate(booking.starts_at);
   const isTestDrive = booking.kind === "test_drive";
   const title = isTestDrive
     ? `${booking.vehicle_info.model_name} ${booking.vehicle_info.variant_name || ""}`.trim()
@@ -203,7 +202,7 @@ export function BookingDetailsDialog({
                 <span>DPDP Act 2023 Verified Session</span>
               </span>
               <span>
-                {t("bookedOn")}: {new Date(booking.created_at).toLocaleDateString(locale === "hi" ? "hi-IN" : "en-IN", { timeZone: "Asia/Kolkata" })}
+                {t("bookedOn")}: {new Date(booking.created_at).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" })}
               </span>
             </div>
           </div>

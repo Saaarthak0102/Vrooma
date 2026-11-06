@@ -7,7 +7,7 @@ Sign-up no longer asks for a 6-digit code. The user gets an email with a **Confi
 1. `/sign-up` collects name, email, phone, city and the DPDP consent boxes (consents are only a gate on this page, they are **not** stored or carried over).
 2. `requestSignupLink` (`src/server/auth/signup-link.ts`) asks Supabase for a confirmation email. Name, phone, city and locale ride along as auth user metadata, for prefill only.
 3. The page switches to **Check your email**. It moves on by itself when the session appears in this browser (another tab opened the link), and re-checks when the tab regains focus.
-4. The email link goes to `/auth/confirm?next=...&token_hash=...&type=signup`. That route **does not verify**: it forwards to `/[locale]/verify-email`. Mail scanners (Outlook SafeLinks, antivirus) open every link, and the token is single-use, so verifying on page load would burn it.
+4. The email link goes to `/auth/confirm?next=...&token_hash=...&type=signup`. That route **does not verify**: it forwards to `/verify-email`. Mail scanners (Outlook SafeLinks, antivirus) open every link, and the token is single-use, so verifying on page load would burn it.
 5. The user presses **Confirm my email**: `confirmEmailLink` verifies the token and returns the destination from `resolvePostVerifyDestination` (`post-verify.ts`): onboarding for a new account, dashboard / staff / admin for a completed one, sign-in with an error for a deactivated one.
 6. Onboarding opens prefilled via `getSignupHint`, with every consent box **unticked**. The user ticks them once, now that the address is verified, and `complete_profile` records them.
 

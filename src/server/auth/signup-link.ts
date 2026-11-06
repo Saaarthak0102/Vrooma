@@ -12,7 +12,7 @@ import { env } from "@/lib/env";
  * Link-only sign-up.
  *
  * 1. requestSignupLink  -> Supabase emails a confirmation LINK (no code is shown or accepted for sign-up).
- * 2. The link lands on /auth/confirm, which forwards to /[locale]/verify-email (a page with a button, so
+ * 2. The link lands on /auth/confirm, which forwards to /verify-email (a page with a button, so
  *    email scanners that auto-open links cannot burn the single-use token).
  * 3. confirmEmailLink   -> verifies the token and returns where to go: /onboarding for every new account.
  * 4. getSignupHint      -> prefill for onboarding. user_metadata is user-editable, so it is used ONLY to
@@ -31,7 +31,6 @@ const signupLinkSchema = z.object({
     return normalized;
   }),
   cityId: z.string().trim().max(40).optional(),
-  locale: z.enum(["en", "hi"]).default("en"),
 });
 
 export type SignupLinkInput = z.input<typeof signupLinkSchema>;
@@ -44,20 +43,20 @@ export async function requestSignupLink(
   if (!parsed.success) {
     return errorResponse("VALIDATION_FAILED", parsed.error.errors[0]?.message || "Please check your details.");
   }
-  const { email, fullName, phone, cityId, locale } = parsed.data;
+  const { email, fullName, phone, cityId } = parsed.data;
 
   try {
     const supabase = await createClient();
     if (!supabase) return errorResponse("INTERNAL_ERROR", "Auth service unavailable");
 
-    const sanitizedNext = safeNext(next, locale);
+    const sanitizedNext = safeNext(next);
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
         shouldCreateUser: true,
         // The email template appends token_hash and type to this URL ({{ .RedirectTo }}&token_hash=...).
         emailRedirectTo: `${env.NEXT_PUBLIC_SITE_URL}/auth/confirm?next=${encodeURIComponent(sanitizedNext)}`,
-        data: { full_name: fullName, phone, city_id: cityId ?? null, locale },
+        data: { full_name: fullName, phone, city_id: cityId ?? null },
       },
     });
 
@@ -76,7 +75,6 @@ const confirmSchema = z.object({
   tokenHash: z.string().trim().min(10).max(200),
   type: z.enum(["signup", "magiclink", "email"]),
   next: z.string().max(500).optional(),
-  locale: z.enum(["en", "hi"]).default("en"),
 });
 
 export type ConfirmEmailInput = z.input<typeof confirmSchema>;
@@ -88,7 +86,7 @@ export async function confirmEmailLink(
   if (!parsed.success) {
     return errorResponse("INVALID_CODE", "This verification link is invalid.");
   }
-  const { tokenHash, type, next, locale } = parsed.data;
+  const { tokenHash, type, next } = parsed.data;
 
   try {
     const supabase = await createClient();
@@ -100,7 +98,7 @@ export async function confirmEmailLink(
       return errorResponse("CODE_EXPIRED", "This verification link has expired or was already used.");
     }
 
-    const result = await resolvePostVerifyDestination(supabase, next || "/dashboard", locale);
+    const result = await resolvePostVerifyDestination(supabase, next || "/dashboard");
     return successResponse({ destination: result.destination });
   } catch (err) {
     const appErr = toAppError(err);
@@ -112,7 +110,6 @@ export interface SignupHint {
   fullName?: string;
   phoneDigits?: string;
   cityId?: string;
-  locale?: "en" | "hi";
 }
 
 export async function getSignupHint(): Promise<SignupHint | null> {
@@ -135,7 +132,6 @@ export async function getSignupHint(): Promise<SignupHint | null> {
     if (typeof meta.city_id === "string" && /^[a-z0-9-]{1,40}$/i.test(meta.city_id)) {
       hint.cityId = meta.city_id;
     }
-    if (meta.locale === "en" || meta.locale === "hi") hint.locale = meta.locale;
     return hint;
   } catch {
     return null;

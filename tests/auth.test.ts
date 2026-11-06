@@ -11,11 +11,18 @@ describe("Phase 1: safeNext Open Redirect Guard", () => {
     expect(safeNext("/trade-in")).toBe("/trade-in");
   });
 
-  it("prepends non-default locale if provided", () => {
-    expect(safeNext("/dashboard", "hi")).toBe("/hi/dashboard");
-    expect(safeNext("/cars", "hi")).toBe("/hi/cars");
-    expect(safeNext("/hi/dashboard", "hi")).toBe("/hi/dashboard");
-    expect(safeNext("/en/dashboard", "en")).toBe("/dashboard");
+  it("strips the retired /en and /hi language prefixes from old links", () => {
+    expect(safeNext("/en/dashboard")).toBe("/dashboard");
+    expect(safeNext("/hi/dashboard")).toBe("/dashboard");
+    expect(safeNext("/hi/cars/model-h?x=1")).toBe("/cars/model-h?x=1");
+    expect(safeNext("/en")).toBe("/");
+    expect(safeNext("/hi")).toBe("/");
+  });
+
+  it("never produces a language-prefixed path", () => {
+    for (const input of ["/dashboard", "/cars", "/en/cars", "/hi/cars", "/hi", "/en/"]) {
+      expect(safeNext(input)).not.toMatch(/^\/(en|hi)(\/|$)/);
+    }
   });
 
   it("blocks protocol-relative URLs (//evil.com)", () => {
