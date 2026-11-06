@@ -67,7 +67,7 @@ function AppointmentSubCard({
             {isTestDrive ? t("testDrive") : t("service")}
           </span>
           <span className="text-[11px] font-mono font-medium text-ink-soft shrink-0">
-            {bookingRef(booking.id)}
+            {booking.ref || bookingRef(booking.id)}
           </span>
         </div>
         <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-ink-soft shrink-0">

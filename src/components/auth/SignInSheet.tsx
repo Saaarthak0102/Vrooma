@@ -20,7 +20,7 @@ import { toast } from "sonner";
 
 export function SignInSheet() {
   const router = useRouter();
-  const { isSignInSheetOpen, closeSignInSheet, switchRole } = useAuth();
+  const { isSignInSheetOpen, closeSignInSheet, completeSignIn, switchRole } = useAuth();
 
   const [step, setStep] = useState<1 | 2>(1);
   const [email, setEmail] = useState("");
@@ -100,10 +100,14 @@ export function SignInSheet() {
       }
 
       toast.success("Signed in successfully!");
-      closeSignInSheet();
 
       if (!res.data.isComplete) {
+        // Profile not finished: go to onboarding and drop the action that needed sign-in.
+        await completeSignIn({ runPending: false });
         router.push("/onboarding");
+      } else {
+        // Reload the session, close the sheet and resume what the user was doing (e.g. Save, Confirm booking).
+        await completeSignIn();
       }
     } catch {
       toast.error("Verification failed. Please try again.");

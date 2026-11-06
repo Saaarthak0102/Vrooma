@@ -132,7 +132,7 @@ export async function getBuyerDashboardDataAction(): Promise<ActionResponse<Buye
     // 3. Fetch support-chat history (newest first), with a one-line preview of the latest message
     const { data: convRows, error: convErr } = await admin
       .from("chat_conversations")
-      .select("id, title, last_message_at, chat_messages(content, created_at)")
+      .select("id, title, last_message_at")
       .eq("user_id", user.id)
       .order("last_message_at", { ascending: false })
       .limit(50);
@@ -141,17 +141,30 @@ export async function getBuyerDashboardDataAction(): Promise<ActionResponse<Buye
       console.warn(`[dashboard] Failed to load chats: ${convErr.message}`);
     }
 
-    const chats: ChatConversationSummary[] = (convRows || []).map((c: any) => {
-      const msgs: Array<{ content: string; created_at: string }> = c.chat_messages || [];
-      const latest = [...msgs].sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
-      return {
-        id: c.id,
-        title: c.title,
-        snippet: latest?.content ?? "",
-        messageCount: msgs.length,
-        lastMessageAt: c.last_message_at,
-      };
-    });
+    // One bounded query for previews and counts (newest first), never every message of every chat.
+    const convIds = (convRows || []).map((c) => c.id);
+    const previews = new Map<string, { snippet: string; count: number }>();
+    if (convIds.length > 0) {
+      const { data: recentMsgs } = await admin
+        .from("chat_messages")
+        .select("conversation_id, content, created_at")
+        .in("conversation_id", convIds)
+        .order("created_at", { ascending: false })
+        .limit(500);
+      for (const m of recentMsgs || []) {
+        const entry = previews.get(m.conversation_id);
+        if (entry) entry.count += 1;
+        else previews.set(m.conversation_id, { snippet: m.content, count: 1 });
+      }
+    }
+
+    const chats: ChatConversationSummary[] = (convRows || []).map((c) => ({
+      id: c.id,
+      title: c.title,
+      snippet: previews.get(c.id)?.snippet ?? "",
+      messageCount: previews.get(c.id)?.count ?? 0,
+      lastMessageAt: c.last_message_at,
+    }));
 
     return successResponse({
       upcomingBookings,

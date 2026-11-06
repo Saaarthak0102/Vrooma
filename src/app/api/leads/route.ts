@@ -3,6 +3,7 @@ import { createLeadSchema } from "@/lib/validation/lead";
 import { createLead, listLeads } from "@/server/repositories/leads";
 import { getTrustedClientIp } from "@/lib/network";
 import { guardRole } from "@/server/auth/api-guard";
+import { recordConsent } from "@/server/privacy/consent";
 
 const leadRateLimitMap = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
@@ -94,7 +95,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 5. Create lead via RPC (handles deduplication and auto-assignment)
+    const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRe.test(parsed.data.showroom_id)) {
+      return NextResponse.json({ ok: false, error: "Please choose a valid showroom." }, { status: 400 });
+    }
+
+    // 5a. Record the explicit DPDP consent (immutable row) and link it to the lead
+    let consentId: string;
+    try {
+      consentId = await recordConsent({
+        email: parsed.data.email || null,
+        phone: parsed.data.phone,
+        purpose: "lead_contact",
+        granted: true,
+        source: "enquiry",
+        consentText: "I consent to Vrooma contacting me about my enquiry under the DPDP Act 2023.",
+        ipAddress: ip,
+      });
+    } catch {
+      return NextResponse.json({ ok: false, error: "We could not record your consent. Please try again." }, { status: 500 });
+    }
+
+    // 5b. Create lead via RPC (handles deduplication and auto-assignment)
     const lead = await createLead({
       name: parsed.data.name,
       phone: parsed.data.phone,
@@ -104,6 +126,7 @@ export async function POST(request: NextRequest) {
       used_car_id: parsed.data.used_car_id || null,
       message: parsed.data.message || null,
       source: parsed.data.source,
+      consent_id: consentId,
     });
 
     // Anonymous callers get a receipt only: never the stored row (phone, assignee id, AI fields, internal notes).
@@ -112,7 +135,8 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (err: any) {
-    return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
+    console.error("[api/leads] create failed:", err?.message);
+    return NextResponse.json({ ok: false, error: "We could not submit your enquiry. Please try again." }, { status: 500 });
   }
 }
 

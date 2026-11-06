@@ -1,6 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import { setBookingOutcomeAction } from "@/server/actions/booking";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,6 +14,27 @@ interface StaffBookingsClientProps {
 }
 
 export function StaffBookingsClient({ bookings }: StaffBookingsClientProps) {
+  const router = useRouter();
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  const markOutcome = async (id: string, outcome: "completed" | "no_show") => {
+    if (busyId) return;
+    setBusyId(id);
+    try {
+      const res = await setBookingOutcomeAction(id, outcome);
+      if (res.ok) {
+        toast.success(outcome === "completed" ? "Marked as attended." : "Marked as no-show.");
+        router.refresh();
+      } else {
+        toast.error(res.error.message || "Could not update the booking.");
+      }
+    } catch {
+      toast.error("Could not update the booking.");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-6xl">
       <div className="pb-4 border-b border-border">
@@ -37,11 +60,13 @@ export function StaffBookingsClient({ bookings }: StaffBookingsClientProps) {
           <TableBody>
             {bookings.map((b) => {
               const dateFormatted = new Date(b.starts_at).toLocaleDateString("en-IN", {
+                timeZone: "Asia/Kolkata",
                 weekday: "short",
                 day: "numeric",
                 month: "short",
               });
               const timeFormatted = new Date(b.starts_at).toLocaleTimeString("en-IN", {
+                timeZone: "Asia/Kolkata",
                 hour: "2-digit",
                 minute: "2-digit",
                 hour12: true,
@@ -76,14 +101,30 @@ export function StaffBookingsClient({ bookings }: StaffBookingsClientProps) {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-xs h-8"
-                      onClick={() => toast.success(`Booking ${b.id.slice(0, 8)} status updated to attended.`)}
-                    >
-                      Update
-                    </Button>
+                    {b.status === "confirmed" && new Date(b.starts_at).getTime() <= Date.now() ? (
+                      <div className="flex justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs h-8"
+                          disabled={busyId === b.id}
+                          onClick={() => markOutcome(b.id, "completed")}
+                        >
+                          Attended
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs h-8 text-danger"
+                          disabled={busyId === b.id}
+                          onClick={() => markOutcome(b.id, "no_show")}
+                        >
+                          No-show
+                        </Button>
+                      </div>
+                    ) : (
+                      <span className="text-[11px] text-ink-mute">{b.status === "confirmed" ? "Upcoming" : "-"}</span>
+                    )}
                   </TableCell>
                 </TableRow>
               );

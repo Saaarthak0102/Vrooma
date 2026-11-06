@@ -122,7 +122,10 @@ export async function updateSession(request: NextRequest, initialResponse?: Next
       // Admin route guard: requires admin
       const isAdminRoute = /^\/admin(\/|$)/.test(pathname);
       if (isAdminRoute) {
-        if (profile?.role !== "admin") {
+        // The used-car manager sets final prices, so they may open the used-stock editor; the rest is admin only.
+        const isUsedStockRoute = /^\/admin\/used-cars(\/|$)/.test(pathname);
+        const allowed = profile?.role === "admin" || (isUsedStockRoute && profile?.role === "manager");
+        if (!allowed) {
           return new NextResponse("403 Forbidden: Admin Access Required", { status: 403 });
         }
       }

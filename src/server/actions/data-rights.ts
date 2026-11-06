@@ -1,7 +1,7 @@
 "use server";
 
 import { createAdminClient } from "@/lib/supabase/admin";
-import { requireUser } from "@/server/auth/viewer";
+import { requireUser, getViewer } from "@/server/auth/viewer";
 import { ActionResponse, successResponse, errorResponse } from "@/lib/errors";
 
 export interface UserDataExport {
@@ -102,6 +102,19 @@ export async function submitPublicDataRequestAction(
       .maybeSingle();
 
     let reqRecordId: string | undefined;
+
+    // Erasure is destructive: never queue it from an unverified email address. The requester must be
+    // signed in as that exact account (the signed-in path is requestAccountDeletionAction).
+    if (kind === "delete") {
+      const viewer = await getViewer();
+      const signedInEmail = viewer.user?.email?.toLowerCase().trim();
+      if (!viewer.isAuthenticated || signedInEmail !== cleanEmail) {
+        return errorResponse(
+          "UNAUTHORIZED",
+          "To erase your account, please sign in with this email address first, then request erasure from your dashboard."
+        );
+      }
+    }
 
     if (profile) {
       const { data: reqRecord } = await admin

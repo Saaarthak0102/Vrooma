@@ -1,6 +1,7 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
+import { requestModelOfferAction } from "@/server/actions/enquiry";
 import { useSavedModel } from "@/components/cars/useSavedModel";
 import { formatINR } from "@/lib/money";
 import { Button } from "@/components/ui/button";
@@ -29,9 +30,28 @@ export function PriceSummaryBar({
   const { requireAuth } = useRequireAuth();
   const { saved, pending, toggle: handleSave } = useSavedModel(modelSlug);
 
+  const [offerPending, setOfferPending] = useState(false);
+
   const handleOffer = () => {
-    requireAuth(() => {
-      toast.success(`Enquiry submitted for ${modelName} ${variantName}. Our Hazratganj consultant will contact you with the best corporate and festive offers.`);
+    requireAuth(async () => {
+      if (offerPending) return;
+      setOfferPending(true);
+      try {
+        const res = await requestModelOfferAction(modelSlug, variantName);
+        if (res.ok) {
+          toast.success(
+            res.data.consultantName
+              ? `Request received. ${res.data.consultantName} will contact you shortly with the latest offers.`
+              : "Request received. A consultant will contact you shortly with the latest offers."
+          );
+        } else {
+          toast.error(res.error.message || "Could not submit your request.");
+        }
+      } catch {
+        toast.error("Could not submit your request.");
+      } finally {
+        setOfferPending(false);
+      }
     });
   };
 
@@ -73,6 +93,7 @@ export function PriceSummaryBar({
             variant="secondary"
             size="sm"
             onClick={handleOffer}
+            disabled={offerPending}
             className="text-xs gap-1 hidden sm:flex"
           >
             <Sparkles className="h-3.5 w-3.5 text-accent-ink" />

@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import React, { Suspense, useState, useEffect, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { PageShell } from "@/components/layout/PageShell";
 import { Stepper } from "@/components/ui/stepper";
 import { ShowroomPicker } from "@/components/booking/ShowroomPicker";
@@ -26,8 +26,15 @@ const STEPS = [
   { title: "Confirmed" },
 ];
 
-export default function BookTestDrivePage() {
+function BookTestDriveWizard() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  // Deep links from model / used-car pages: ?variant=<variantId>&model=<slug> or ?usedCar=<stockId>
+  const variantParam = searchParams.get("variant");
+  const modelParam = searchParams.get("model");
+  const usedCarStockId = searchParams.get("usedCar");
+  const [loadError, setLoadError] = useState(false);
+  const latestShowroomRef = useRef<string | null>(null);
   const { user, openSignInSheet } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
 
@@ -45,7 +52,7 @@ export default function BookTestDrivePage() {
   // Form details
   const [name, setName] = useState(user?.full_name || "");
   const [phone, setPhone] = useState(user?.phone || "");
-  const [consent, setConsent] = useState(true);
+  const [consent, setConsent] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [confirmedBooking, setConfirmedBooking] = useState<Booking | null>(null);
@@ -71,11 +78,25 @@ export default function BookTestDrivePage() {
         }
         setDemoCars(data.demoCars);
         if (data.demoCars.length > 0) {
-          setSelectedDemoCar(data.demoCars[0]);
+          const squash = (v: string) => v.toLowerCase().replace(/[^a-z0-9]/g, "");
+          const wanted = modelParam ? squash(modelParam) : "";
+          const preferred =
+            (variantParam && data.demoCars.find((c) => c.variant_id === variantParam)) ||
+            (wanted && data.demoCars.find((c) => squash(c.variant_name).includes(wanted))) ||
+            data.demoCars[0];
+          setSelectedDemoCar(preferred);
+          if (preferred.id !== data.demoCars[0].id) {
+            const forCar = await getTestDriveBookingDataAction(data.showrooms[0]?.id, preferred.id);
+            if (isMounted) setSlots(forCar.slots);
+          } else {
+            setSlots(data.slots);
+          }
+        } else {
+          setSlots(data.slots);
         }
-        setSlots(data.slots);
       } catch (err: any) {
         console.error("Failed to load booking data:", err);
+        if (isMounted) setLoadError(true);
       } finally {
         if (isMounted) setLoadingData(false);
       }
@@ -87,8 +108,10 @@ export default function BookTestDrivePage() {
   // When showroom changes, update demo cars and slots
   const handleShowroomChange = async (showroom: Showroom) => {
     setSelectedShowroom(showroom);
+    latestShowroomRef.current = showroom.id;
     try {
       const data = await getTestDriveBookingDataAction(showroom.id);
+      if (latestShowroomRef.current !== showroom.id) return; // a newer selection superseded this response
       setDemoCars(data.demoCars);
       const firstCar = data.demoCars[0] || null;
       setSelectedDemoCar(firstCar);
@@ -125,24 +148,8 @@ export default function BookTestDrivePage() {
     setCurrentStep((prev) => Math.max(0, prev - 1));
   };
 
-  const handleSubmitBooking = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name || phone.length < 10 || !selectedSlot || !selectedDemoCar || !selectedShowroom) {
-      toast.error("Please fill in your name, valid phone and appointment slot");
-      return;
-    }
-    if (!consent) {
-      toast.error("DPDP consent is required to confirm booking");
-      return;
-    }
-
-    if (!user) {
-      toast.info("Please sign in or create an account to confirm your guaranteed test drive.");
-      openSignInSheet(() => {
-        // Resume submission after login
-      });
-      return;
-    }
+  const submitBooking = async () => {
+    if (!selectedSlot || !selectedDemoCar || !selectedShowroom) return;
 
     setIsSubmitting(true);
     setSubmitStatus("loading");
@@ -154,6 +161,10 @@ export default function BookTestDrivePage() {
         vehicleInfo: {
           model_name: selectedDemoCar.variant_name,
         },
+        notes: usedCarStockId ? `Interested in used car ${usedCarStockId}` : null,
+        consent: true,
+        contactName: name,
+        contactPhone: phone,
       });
 
       if (!result.ok) {
@@ -161,7 +172,12 @@ export default function BookTestDrivePage() {
         setTimeout(() => setSubmitStatus("idle"), 600);
 
         if (result.error.code === "CONFLICT") {
-          toast.error("This slot was just taken by another user. Please choose another time.");
+          const alreadyBooked = (result.error.fields as any)?.reason === "already_booked";
+          toast.error(
+            alreadyBooked
+              ? result.error.message
+              : "This slot was just taken by another user. Please choose another time."
+          );
           // Refresh slots and return to slot picker
           const refreshed = await getTestDriveBookingDataAction(selectedShowroom.id, selectedDemoCar.id);
           setSlots(refreshed.slots);
@@ -178,7 +194,7 @@ export default function BookTestDrivePage() {
 
         if (result.error.code === "UNAUTHORIZED") {
           toast.info("Please sign in to confirm your booking.");
-          openSignInSheet();
+          openSignInSheet(() => void submitBooking());
           return;
         }
 
@@ -189,7 +205,8 @@ export default function BookTestDrivePage() {
       setSubmitStatus("success");
       setConfirmedBooking({
         id: result.data.bookingId,
-        user_id: user.id,
+        ref: result.data.ref,
+        user_id: user?.id ?? "",
         slot_id: selectedSlot.id,
         kind: "test_drive",
         status: "confirmed",
@@ -212,6 +229,27 @@ export default function BookTestDrivePage() {
     }
   };
 
+  const handleSubmitBooking = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name || phone.length < 10 || !selectedSlot || !selectedDemoCar || !selectedShowroom) {
+      toast.error("Please fill in your name, valid phone and appointment slot");
+      return;
+    }
+    if (!consent) {
+      toast.error("DPDP consent is required to confirm booking");
+      return;
+    }
+
+    if (!user) {
+      toast.info("Please sign in or create an account to confirm your guaranteed test drive.");
+      // After sign-in the booking is submitted automatically with the details already entered.
+      openSignInSheet(() => void submitBooking());
+      return;
+    }
+
+    await submitBooking();
+  };
+
   return (
     <PageShell
       title="Book a Guaranteed Test Drive"
@@ -228,6 +266,14 @@ export default function BookTestDrivePage() {
           </div>
         ) : (
           <>
+            {(loadError || showrooms.length === 0) && (
+              <div className="rounded-2xl border border-border bg-white p-8 text-center shadow-card space-y-3">
+                <p className="text-sm font-semibold text-ink">We couldn&apos;t load showroom availability.</p>
+                <p className="text-xs text-ink-soft">Please check your connection and try again.</p>
+                <Button variant="outline" onClick={() => window.location.reload()}>Try again</Button>
+              </div>
+            )}
+
             {/* Step 0: Showroom Picker */}
             {currentStep === 0 && selectedShowroom && (
               <div className="rounded-2xl border border-border bg-white p-6 sm:p-8 shadow-card space-y-6">
@@ -350,5 +396,14 @@ export default function BookTestDrivePage() {
         )}
       </div>
     </PageShell>
+  );
+}
+
+export default function BookTestDrivePage() {
+  // useSearchParams (deep links from model / used-car pages) needs a Suspense boundary.
+  return (
+    <Suspense fallback={null}>
+      <BookTestDriveWizard />
+    </Suspense>
   );
 }

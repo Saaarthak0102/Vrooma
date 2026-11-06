@@ -1,11 +1,22 @@
 import React from "react";
+import { redirect } from "next/navigation";
 import { StaffSidebar } from "@/components/layout/StaffSidebar";
+import { requireRole } from "@/server/auth/viewer";
 
-export default function StaffLayout({
+export const dynamic = "force-dynamic";
+
+export default async function StaffLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // Second layer behind middleware: never render the staff console without a staff session.
+  try {
+    await requireRole("consultant", "manager", "admin");
+  } catch {
+    redirect("/sign-in?next=/staff");
+  }
+
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-[#F8FAFC]">
       <StaffSidebar />
@@ -13,4 +24,3 @@ export default function StaffLayout({
     </div>
   );
 }
-

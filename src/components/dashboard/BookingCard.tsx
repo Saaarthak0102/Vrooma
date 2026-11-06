@@ -63,7 +63,7 @@ export function BookingCard({ booking }: { booking: Booking }) {
           <Badge variant="accent" className="capitalize text-xs">
             {isTestDrive ? "Test Drive" : "Workshop Service"}
           </Badge>
-          <span className="text-xs font-mono text-ink-mute font-medium">{bookingRef(booking.id)}</span>
+          <span className="text-xs font-mono text-ink-mute font-medium">{booking.ref || bookingRef(booking.id)}</span>
         </div>
         <Badge variant={booking.status === "confirmed" ? "ok" : "secondary"} className="text-[10px]">
           {booking.status.toUpperCase()}

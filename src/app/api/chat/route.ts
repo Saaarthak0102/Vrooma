@@ -18,6 +18,23 @@ function buildReply(message: string): string {
   return "Thank you for reaching out! Our Lucknow showroom consultant is available right now. Would you like to lock a test drive slot or view our full price breakup?";
 }
 
+// Best-effort throttle (per server instance): stops a single client from flooding the chat endpoint.
+const chatHits = new Map<string, { count: number; resetAt: number }>();
+const CHAT_WINDOW_MS = 60_000;
+const CHAT_MAX_PER_WINDOW = 20;
+const MAX_MESSAGES_PER_CONVERSATION = 200;
+
+function allowChat(key: string): boolean {
+  const now = Date.now();
+  const hit = chatHits.get(key);
+  if (!hit || now > hit.resetAt) {
+    chatHits.set(key, { count: 1, resetAt: now + CHAT_WINDOW_MS });
+    return true;
+  }
+  hit.count += 1;
+  return hit.count <= CHAT_MAX_PER_WINDOW;
+}
+
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function POST(request: NextRequest) {
@@ -28,11 +45,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, error: "Message is required." }, { status: 400 });
     }
 
+    const viewer = await getViewer();
+    const throttleKey = viewer.user?.id ?? `ip_${request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown"}`;
+    if (!allowChat(throttleKey)) {
+      return NextResponse.json(
+        { ok: false, error: "You are sending messages too quickly. Please wait a moment." },
+        { status: 429, headers: { "Retry-After": "60" } }
+      );
+    }
+
     const reply = buildReply(message);
     let conversationId: string | null = null;
 
     // Only signed-in buyers get their chats stored; guests still get a reply.
-    const viewer = await getViewer();
     if (viewer.isAuthenticated && viewer.user) {
       const admin = createAdminClient();
       const requestedId = typeof body?.conversationId === "string" && UUID_RE.test(body.conversationId) ? body.conversationId : null;
@@ -45,6 +70,15 @@ export async function POST(request: NextRequest) {
           .eq("user_id", viewer.user.id)
           .maybeSingle();
         conversationId = owned?.id ?? null;
+
+        // Cap the length of one conversation: past it, start a fresh one.
+        if (conversationId) {
+          const { count } = await admin
+            .from("chat_messages")
+            .select("id", { count: "exact", head: true })
+            .eq("conversation_id", conversationId);
+          if ((count ?? 0) >= MAX_MESSAGES_PER_CONVERSATION) conversationId = null;
+        }
       }
 
       if (!conversationId) {
@@ -77,6 +111,7 @@ export async function POST(request: NextRequest) {
       data: { reply, conversationId, mode: "mock_stub" },
     });
   } catch (err: any) {
-    return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
+    console.error("[api/chat] failed:", err?.message);
+    return NextResponse.json({ ok: false, error: "Chat is unavailable right now. Please try again." }, { status: 500 });
   }
 }

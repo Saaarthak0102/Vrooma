@@ -114,3 +114,22 @@ describe("discount filter: one function for UI and server", () => {
     expect(action).toContain("findForbiddenDiscountWord(");
   });
 });
+
+describe("discount filter: bypass regressions", () => {
+  it.each([
+    "Twenty thousand off, plus drop off at the workshop",
+    "We have discounted this model",
+    "The fee can be waived",
+    "A rebate is available",
+    "Special concession for you",
+    "Price drop this week",
+    "Dis​count available",
+  ])("blocks %s", (text) => {
+    expect(containsForbiddenDiscountWords(text)).toBe(true);
+  });
+
+  it("still allows ordinary service wording", () => {
+    expect(containsForbiddenDiscountWords("Free pick and drop is part of the service visit")).toBe(false);
+    expect(containsForbiddenDiscountWords("Please drop off the car at 10am")).toBe(false);
+  });
+});

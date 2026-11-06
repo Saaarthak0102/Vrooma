@@ -1,5 +1,6 @@
 "use client";
 
+import { setUsedCarFinalPriceAction } from "@/server/actions/admin-catalog";
 import React, { useState } from "react";
 import { formatINR } from "@/lib/money";
 import { calculateUsedCarPriceBand } from "@/server/services/price-suggestion";
@@ -10,6 +11,7 @@ import { Sparkles, ShieldAlert, Check } from "lucide-react";
 
 export interface PriceSuggestionCardProps {
   car: {
+    id: string;
     stock_id: string;
     model_name: string;
     year: number;
@@ -29,11 +31,16 @@ export function PriceSuggestionCard({
   const [finalPrice, setFinalPrice] = useState(car.price.toString());
   const [saved, setSaved] = useState(false);
 
-  const handleSaveFinalPrice = (e: React.FormEvent) => {
+  const handleSaveFinalPrice = async (e: React.FormEvent) => {
     e.preventDefault();
     const parsed = parseInt(finalPrice, 10);
     if (isNaN(parsed) || parsed <= 0) {
       toast.error("Invalid price amount");
+      return;
+    }
+    const res = await setUsedCarFinalPriceAction(car.id, parsed);
+    if (!res.ok) {
+      toast.error(res.error.message || "Could not save the final price.");
       return;
     }
     setSaved(true);

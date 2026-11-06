@@ -2,6 +2,7 @@
 
 import React, {
   createContext,
+  useRef,
   useContext,
   useState,
   useEffect,
@@ -30,6 +31,8 @@ interface AuthContextType {
   isSignInSheetOpen: boolean;
   openSignInSheet: (onSuccess?: () => void, intent?: Omit<PendingIntent, "createdAt">) => void;
   closeSignInSheet: () => void;
+  /** Call after a successful sign-in: reloads the session, closes the sheet and resumes the action that needed it. */
+  completeSignIn: (options?: { runPending?: boolean }) => Promise<void>;
   pendingIntent: PendingIntent | null;
   clearPendingIntent: () => void;
 }
@@ -44,7 +47,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<Profile | null>(null);
   const [status, setStatus] = useState<"loading" | "authenticated" | "unauthenticated">("loading");
   const [isSignInSheetOpen, setIsSignInSheetOpen] = useState(false);
-  const [pendingCallback, setPendingCallback] = useState<(() => void) | null>(null);
+  // The action that triggered the sign-in prompt; run once after a successful sign-in, then dropped.
+  const pendingCallbackRef = useRef<(() => void) | null>(null);
   const [pendingIntent, setPendingIntent] = useState<PendingIntent | null>(null);
 
   // Load pending intent from sessionStorage
@@ -62,6 +66,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch {}
   }, []);
 
+  const refreshAuth = useCallback(async () => {
+    const supabase = createClient();
+    if (!supabase) {
+      setStatus("unauthenticated");
+      return;
+    }
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        setUser(null);
+        setStatus("unauthenticated");
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", session.user.id)
+        .single();
+
+      if (profile) {
+        setUser(profile as Profile);
+        setStatus("authenticated");
+      } else {
+        // Minimal fallback until profile is created
+        setUser({
+          id: session.user.id,
+          email: session.user.email || "",
+          full_name: session.user.user_metadata?.full_name || session.user.email?.split("@")[0] || "User",
+          role: "buyer",
+          locale: "en",
+        });
+        setStatus("authenticated");
+      }
+    } catch {
+      setUser(null);
+      setStatus("unauthenticated");
+    }
+  }, []);
+
   // Primary Auth hydration via Supabase SSR client
   useEffect(() => {
     const supabase = createClient();
@@ -70,43 +114,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // 1. Check initial session
-    const fetchSessionAndProfile = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.user) {
-          setUser(null);
-          setStatus("unauthenticated");
-          return;
-        }
-
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", session.user.id)
-          .single();
-
-        if (profile) {
-          setUser(profile as Profile);
-          setStatus("authenticated");
-        } else {
-          // Minimal fallback until profile is created
-          setUser({
-            id: session.user.id,
-            email: session.user.email || "",
-            full_name: session.user.user_metadata?.full_name || session.user.email?.split("@")[0] || "User",
-            role: "buyer",
-            locale: "en",
-          });
-          setStatus("authenticated");
-        }
-      } catch {
-        setUser(null);
-        setStatus("unauthenticated");
-      }
-    };
-
-    fetchSessionAndProfile();
+    refreshAuth();
 
     // 2. Real-time auth state listener across tabs and OAuth redirects
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -153,7 +161,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const openSignInSheet = useCallback(
     (onSuccess?: () => void, intent?: Omit<PendingIntent, "createdAt">) => {
-      if (onSuccess) setPendingCallback(() => onSuccess);
+      // Always replace: a stale callback from an earlier, abandoned prompt must never fire later.
+      pendingCallbackRef.current = onSuccess ?? null;
       if (intent) {
         const fullIntent: PendingIntent = { ...intent, createdAt: Date.now() };
         setPendingIntent(fullIntent);
@@ -224,13 +233,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     router.refresh();
   }, [clearPendingIntent, router]);
 
-  const handleSignInSuccess = useCallback(() => {
-    closeSignInSheet();
-    if (pendingCallback) {
-      pendingCallback();
-      setPendingCallback(null);
-    }
-  }, [closeSignInSheet, pendingCallback]);
+  const completeSignIn = useCallback(
+    async (options?: { runPending?: boolean }) => {
+      await refreshAuth();
+      setIsSignInSheetOpen(false);
+      const pending = pendingCallbackRef.current;
+      pendingCallbackRef.current = null;
+      router.refresh();
+      if (pending && options?.runPending !== false) pending();
+    },
+    [refreshAuth, router]
+  );
 
   const value = useMemo(
     () => ({
@@ -243,6 +256,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isSignInSheetOpen,
       openSignInSheet,
       closeSignInSheet,
+      completeSignIn,
       pendingIntent,
       clearPendingIntent,
     }),
@@ -255,6 +269,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isSignInSheetOpen,
       openSignInSheet,
       closeSignInSheet,
+      completeSignIn,
       pendingIntent,
       clearPendingIntent,
     ]

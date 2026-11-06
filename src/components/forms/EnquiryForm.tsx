@@ -15,6 +15,8 @@ import { toast } from "sonner";
 import { Clock, ShieldCheck, CheckCircle } from "lucide-react";
 
 export interface EnquiryFormProps {
+  /** Active showrooms from the database (real UUIDs). */
+  showrooms: Array<{ id: string; name: string }>;
   modelId?: string;
   usedCarId?: string;
   defaultShowroomId?: string;
@@ -23,9 +25,10 @@ export interface EnquiryFormProps {
 }
 
 export function EnquiryForm({
+  showrooms,
   modelId,
   usedCarId,
-  defaultShowroomId = "sr-hazratganj",
+  defaultShowroomId,
   onSuccess,
   className,
 }: EnquiryFormProps) {
@@ -42,11 +45,11 @@ export function EnquiryForm({
   } = useForm<CreateLeadInput>({
     resolver: zodResolver(createLeadSchema),
     defaultValues: {
-      showroom_id: defaultShowroomId,
+      showroom_id: defaultShowroomId || showrooms[0]?.id || "",
       model_id: modelId,
       used_car_id: usedCarId,
       source: "web",
-      consent: true,
+      consent: false as unknown as true,
       phone: "",
       name: "",
       email: "",
@@ -79,17 +82,18 @@ export function EnquiryForm({
       });
 
       if (!res.ok) {
-        throw new Error("Failed to submit enquiry");
+        const json = await res.json().catch(() => null);
+        throw new Error(json?.error || "Failed to submit enquiry");
       }
 
       setStatus("success");
       setSubmitted(true);
       toast.success("Enquiry received! A dedicated consultant is assigned.");
       onSuccess?.();
-    } catch {
+    } catch (err: any) {
       setStatus("error");
       setTimeout(() => setStatus("idle"), 600);
-      toast.error("Failed to submit enquiry. Please try again.");
+      toast.error(err?.message || "Failed to submit enquiry. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -139,9 +143,11 @@ export function EnquiryForm({
             <SelectValue placeholder="Select Showroom" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="sr-hazratganj">Hazratganj Flagship (Lucknow)</SelectItem>
-            <SelectItem value="sr-gomtinagar">Gomti Nagar Experience Center (Lucknow)</SelectItem>
-            <SelectItem value="sr-kanpur-mall">Kanpur Mall Road</SelectItem>
+            {showrooms.map((sr) => (
+              <SelectItem key={sr.id} value={sr.id}>
+                {sr.name}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </FormField>
@@ -165,7 +171,7 @@ export function EnquiryForm({
         className="w-full h-11"
         disabled={loading}
         status={status}
-        loadingText="Subscribing..."
+        loadingText="Submitting..."
         successText="Enquiry Submitted!"
       >
         Submit Enquiry & Unlock Priority Slot

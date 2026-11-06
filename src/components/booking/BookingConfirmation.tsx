@@ -17,12 +17,14 @@ export function BookingConfirmation({
 }: BookingConfirmationProps) {
   const isTestDrive = booking.kind === "test_drive";
   const dateFormatted = new Date(booking.starts_at).toLocaleDateString("en-IN", {
+    timeZone: "Asia/Kolkata",
     weekday: "long",
     day: "numeric",
     month: "long",
     year: "numeric",
   });
   const timeFormatted = new Date(booking.starts_at).toLocaleTimeString("en-IN", {
+    timeZone: "Asia/Kolkata",
     hour: "2-digit",
     minute: "2-digit",
     hour12: true,
@@ -37,13 +39,15 @@ export function BookingConfirmation({
 
       <div>
         <span className="text-xs font-mono font-bold uppercase tracking-wider text-ink-mute">
-          Booking Reference #{booking.id.toUpperCase().slice(-8)}
+          Booking Reference {booking.ref || booking.id.toUpperCase().slice(-8)}
         </span>
         <h2 className="text-2xl font-black text-ink mt-1">
           {isTestDrive ? "Test Drive Locked!" : "Workshop Slot Confirmed!"}
         </h2>
         <p className="text-xs text-ink-soft mt-1">
-          We have reserved your dedicated demo slot at Vrooma Lucknow.
+          {isTestDrive
+            ? "We have reserved your dedicated demo slot at Vrooma Lucknow."
+            : "We have reserved your workshop bay at Vrooma Lucknow."}
         </p>
       </div>
 
@@ -69,9 +73,9 @@ export function BookingConfirmation({
           <User className="h-4 w-4 text-accent-ink shrink-0 mt-0.5" />
           <div>
             <span className="font-semibold text-ink block">
-              {booking.consultant_name || "Rohit Verma (Senior Product Specialist)"}
+              {booking.consultant_name || "A Vrooma specialist"}
             </span>
-            <span className="text-ink-mute">Assigned Relationship Manager</span>
+            <span className="text-ink-mute">{isTestDrive ? "Assigned Sales Specialist" : "Assigned Service Advisor"}</span>
           </div>
         </div>
       </div>
@@ -83,7 +87,9 @@ export function BookingConfirmation({
           <span>In-App WhatsApp Dispatch Preview</span>
         </div>
         <p className="text-xs text-ink leading-relaxed italic bg-white p-3 rounded-lg border border-border/80">
-          &ldquo;Namaste {customerName}, your {booking.vehicle_info.model_name} demo drive is confirmed for {dateFormatted} at {timeFormatted} at {booking.showroom_or_workshop_name}. Your consultant {booking.consultant_name || "Rohit Verma"} will welcome you with the sanitized demo vehicle.&rdquo;
+          {isTestDrive
+            ? <>&ldquo;Namaste {customerName}, your {booking.vehicle_info.model_name} test drive is confirmed for {dateFormatted} at {timeFormatted} at {booking.showroom_or_workshop_name}. {booking.consultant_name ? `${booking.consultant_name} will welcome you.` : "Your consultant will welcome you."}&rdquo;</>
+            : <>&ldquo;Namaste {customerName}, your service for {booking.vehicle_info.model_name} is confirmed for {dateFormatted} at {timeFormatted} at {booking.showroom_or_workshop_name}. {booking.consultant_name ? `${booking.consultant_name} will be your service advisor.` : "Your service advisor will be in touch."}&rdquo;</>}
         </p>
       </div>
 

@@ -9,6 +9,7 @@ import { BookingKind, Showroom, Workshop, DemoCar, Slot } from "@/types/domain";
 import { listShowrooms, listWorkshops } from "@/server/repositories/showrooms";
 import { listDemoCars, listSlots } from "@/server/repositories/slots";
 import { normalizeVehicleReg, maskVehicleReg } from "@/lib/validation/vehicle";
+import { recordConsent } from "@/server/privacy/consent";
 
 /**
  * Loads showrooms, demo cars, and available slots for the test drive booking wizard.
@@ -58,8 +59,11 @@ const bookSlotSchema = z.object({
   }),
   serviceTypeId: z.string().uuid().optional().nullable(),
   notes: z.string().max(1000).optional().nullable(),
-  consentId: z.string().uuid().optional().nullable(),
-  idempotencyKey: z.string().optional().nullable(),
+  /** DPDP consent: must be explicitly true; the server records the immutable consent row. */
+  consent: z.literal(true, { errorMap: () => ({ message: "DPDP consent is required to confirm a booking." }) }),
+  contactName: z.string().trim().min(1).max(120).optional().nullable(),
+  contactPhone: z.string().trim().max(20).optional().nullable(),
+  idempotencyKey: z.string().max(200).optional().nullable(),
 });
 
 export type BookSlotInput = z.infer<typeof bookSlotSchema>;
@@ -94,6 +98,22 @@ export async function bookSlotAction(
     const admin = createAdminClient();
     const userClient = await createClient();
 
+    // Record the explicit DPDP consent for this booking (immutable audit row).
+    let consentId: string | null = null;
+    try {
+      consentId = await recordConsent({
+        userId: user.id,
+        email: user.email,
+        phone: parsed.data.contactPhone || profile.phone || null,
+        purpose: parsed.data.kind === "service" ? "service_contact" : "lead_contact",
+        granted: true,
+        source: "booking",
+        consentText: "I consent to Vrooma contacting me about this appointment and processing my details under the DPDP Act 2023.",
+      });
+    } catch (consentErr: any) {
+      return errorResponse("INTERNAL_ERROR", "We could not record your consent. Please try again.");
+    }
+
     // If service booking, validate and normalize Indian registration number
     let vehicleInfo = { ...parsed.data.vehicleInfo };
     if (parsed.data.kind === "service") {
@@ -127,6 +147,7 @@ export async function bookSlotAction(
       .from("bookings")
       .select("id, ref, status, created_at, slots:slot_id(starts_at, ends_at)")
       .eq("idempotency_key", idemKey)
+      .eq("user_id", user.id)
       .maybeSingle();
 
     if (existingWithKey && existingWithKey.status !== "cancelled") {
@@ -164,7 +185,8 @@ export async function bookSlotAction(
           const appointmentType = parsed.data.kind === "test_drive" ? "test drive" : "service";
           return errorResponse(
             "CONFLICT",
-            `You already have a confirmed ${appointmentType} appointment (${ub.ref}) scheduled during this time window.`
+            `You already have a confirmed ${appointmentType} appointment (${ub.ref}) scheduled during this time window.`,
+            { reason: "already_booked" }
           );
         }
       }
@@ -177,7 +199,7 @@ export async function bookSlotAction(
       p_vehicle_info: vehicleInfo as any,
       p_service_type_id: parsed.data.serviceTypeId || null,
       p_notes: parsed.data.notes || null,
-      p_consent_id: parsed.data.consentId || null,
+      p_consent_id: consentId,
       p_idempotency_key: idemKey,
     });
 
@@ -191,6 +213,9 @@ export async function bookSlotAction(
       }
       if (bookErr.code === "VR007") {
         return errorResponse("NOT_FOUND", "Selected appointment slot was not found.");
+      }
+      if (bookErr.code === "23505") {
+        return errorResponse("CONFLICT", "You already have a booking for this slot.", { reason: "already_booked" });
       }
       return errorResponse("INTERNAL_ERROR", `Failed to confirm booking: ${msg}`);
     }
@@ -215,7 +240,9 @@ export async function bookSlotAction(
 
     // 6. Create / attach LEAD in the same flow so a named consultant is assigned
     let consultantDisplayName = "Senior Specialist";
-    if (showroomIdToAssign) {
+    const leadPhone = parsed.data.contactPhone || profile.phone || null;
+    // Never invent a phone number: a consultant would call it. Without one, skip the lead (booking still stands).
+    if (showroomIdToAssign && leadPhone) {
       try {
         const leadSource = "web";
         const leadMsg = parsed.data.kind === "test_drive"
@@ -223,14 +250,14 @@ export async function bookSlotAction(
           : `Online workshop service booking: ${vehicleInfo.model_name} (${maskVehicleReg(vehicleInfo.reg_no)})`;
 
         const { data: leadRow } = await admin.rpc("create_lead", {
-          p_name: profile.full_name,
-          p_phone: profile.phone || "+919876543210",
+          p_name: parsed.data.contactName || profile.full_name,
+          p_phone: leadPhone,
           p_email: user.email || null,
           p_showroom_id: showroomIdToAssign,
           p_message: leadMsg,
           p_source: leadSource,
           p_source_ref: bookingRow.ref,
-          p_consent_id: parsed.data.consentId || null,
+          p_consent_id: consentId,
           // Admin client has no JWT, so name the already-authenticated buyer explicitly.
           // The SQL function honours this only for the service role.
           p_user_id: user.id,
@@ -346,6 +373,56 @@ export async function cancelBookingAction(
     });
   } catch (err: any) {
     return errorResponse("INTERNAL_ERROR", err?.message || "Cancellation failed.");
+  }
+}
+
+/**
+ * Staff action: record the outcome of a confirmed appointment once its slot has started.
+ */
+export async function setBookingOutcomeAction(
+  bookingId: string,
+  outcome: "completed" | "no_show"
+): Promise<ActionResponse<{ bookingId: string; status: string }>> {
+  try {
+    await requireRole("consultant", "manager", "admin");
+    if (outcome !== "completed" && outcome !== "no_show") {
+      return errorResponse("VALIDATION_FAILED", "Unknown outcome.");
+    }
+
+    const admin = createAdminClient();
+    const { data: booking } = await admin
+      .from("bookings")
+      .select("id, status, slots:slot_id(starts_at)")
+      .eq("id", bookingId)
+      .maybeSingle();
+
+    if (!booking) return errorResponse("NOT_FOUND", "Booking not found.");
+    if (booking.status !== "confirmed") {
+      return errorResponse("CONFLICT", `This booking is already ${booking.status}.`);
+    }
+    const startsAt = (booking.slots as any)?.starts_at;
+    if (startsAt && new Date(startsAt).getTime() > Date.now()) {
+      return errorResponse("VALIDATION_FAILED", "This appointment has not started yet.");
+    }
+
+    // Guard on the current status so two staff members cannot both change it.
+    const { data: updated, error } = await admin
+      .from("bookings")
+      .update({ status: outcome, updated_at: new Date().toISOString() })
+      .eq("id", bookingId)
+      .eq("status", "confirmed")
+      .select("id, status")
+      .maybeSingle();
+
+    if (error) return errorResponse("INTERNAL_ERROR", error.message);
+    if (!updated) return errorResponse("CONFLICT", "This booking was just updated by someone else.");
+
+    return successResponse({ bookingId: updated.id, status: updated.status });
+  } catch (err: any) {
+    if (err?.code === "UNAUTHORIZED" || err?.code === "FORBIDDEN") {
+      return errorResponse(err.code, "You do not have permission to update bookings.");
+    }
+    return errorResponse("INTERNAL_ERROR", err?.message || "Could not update the booking.");
   }
 }
 

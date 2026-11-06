@@ -13,6 +13,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { UserCheck } from "lucide-react";
@@ -35,13 +36,18 @@ export function ReassignDialog({
     currentAssignedId || consultants[0]?.id || ""
   );
   const [loading, setLoading] = useState(false);
+  const [reason, setReason] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
 
   const handleReassign = async () => {
+    if (!reason.trim()) {
+      toast.error("Please give a short reason for reassigning this lead.");
+      return;
+    }
     setLoading(true);
     setStatus("loading");
     try {
-      const res = await reassignLeadAction(leadId, selectedConsultant, "Manager reassignment via staff console");
+      const res = await reassignLeadAction(leadId, selectedConsultant, reason.trim());
       if (!res.ok) {
         throw new Error(res.error?.message || "Failed to reassign lead");
       }
@@ -89,6 +95,16 @@ export function ReassignDialog({
               ))}
             </SelectContent>
           </Select>
+          <label className="text-xs font-semibold uppercase tracking-wider text-ink-soft block pt-2">
+            Reason (shown in the audit trail)
+          </label>
+          <Textarea
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder="e.g. Customer prefers Kanpur showroom"
+            maxLength={300}
+            className="min-h-[70px] text-xs"
+          />
         </div>
 
         <DialogFooter className="gap-2 sm:gap-0">

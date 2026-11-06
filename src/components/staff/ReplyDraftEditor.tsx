@@ -54,7 +54,11 @@ export function ReplyDraftEditor({
 
       setStatus("success");
       setSentSuccess(true);
-      toast.success("First reply sent via WhatsApp! SLA timer stopped.");
+      if (res.data.statusUpdated) {
+        toast.success("First reply sent via WhatsApp! SLA timer stopped.");
+      } else {
+        toast.warning("Reply queued, but the lead status could not be updated. Please mark it Contacted manually.");
+      }
       onSent?.();
     } catch (err: any) {
       setStatus("error");

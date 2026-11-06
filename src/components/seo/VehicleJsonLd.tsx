@@ -7,8 +7,10 @@ export interface VehicleJsonLdProps {
   name: string;
   image: string;
   description: string;
-  price: number;
+  /** Omit when the price is unknown: no Offer is emitted rather than a made-up number. */
+  price?: number | null;
   currency?: string;
+  availability?: "https://schema.org/InStock" | "https://schema.org/OutOfStock" | "https://schema.org/SoldOut";
   vin?: string;
   bodyType?: string;
   fuelType?: string;
@@ -21,6 +23,7 @@ export function VehicleJsonLd({
   description,
   price,
   currency = "INR",
+  availability = "https://schema.org/InStock",
   vin,
   bodyType,
   fuelType,
@@ -32,20 +35,24 @@ export function VehicleJsonLd({
     name,
     image,
     description,
-    vehicleIdentificationNumber: vin,
+    ...(vin ? { vehicleIdentificationNumber: vin } : {}),
     bodyType,
     fuelType,
-    offers: {
-      "@type": "Offer",
-      price,
-      priceCurrency: currency,
-      availability: "https://schema.org/InStock",
-      seller: {
-        "@type": "AutoDealer",
-        name: DEALER_NAME,
-      },
-      url,
-    },
+    ...(price
+      ? {
+          offers: {
+            "@type": "Offer",
+            price,
+            priceCurrency: currency,
+            availability,
+            seller: {
+              "@type": "AutoDealer",
+              name: DEALER_NAME,
+            },
+            url,
+          },
+        }
+      : {}),
   };
 
   return <JsonLd data={schema} />;

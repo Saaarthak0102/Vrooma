@@ -2,6 +2,7 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireRole } from "@/server/auth/viewer";
+import { createClient as createUserClient } from "@/lib/supabase/server";
 import { safeRevalidateTag, safeRevalidatePath } from "@/server/cache";
 import { ActionResponse, successResponse, errorResponse } from "@/lib/errors";
 import { Role, BodyType, FuelType, CarStatus } from "@/types/domain";
@@ -289,7 +290,32 @@ export async function saveUsedCarAction(payload: {
     const { profile } = await requireRole("admin", "manager");
     const supabase = createAdminClient();
 
-    const carData: Database["public"]["Tables"]["used_cars"]["Insert"] = {
+    // Server-side validation: never trust numbers coming from the form.
+    const isInt = (n: unknown, min: number, max: number) =>
+      typeof n === "number" && Number.isInteger(n) && n >= min && n <= max;
+    if (!payload.stock_id?.trim() || !payload.model_name?.trim() || !payload.variant_name?.trim()) {
+      return errorResponse("VALIDATION_FAILED", "Stock ID, model and variant are required.");
+    }
+    if (!isInt(payload.price, 1, 100_000_000)) {
+      return errorResponse("VALIDATION_FAILED", "Price must be a whole number of rupees between 1 and 10,00,00,000.");
+    }
+    if (!isInt(payload.km, 0, 2_000_000)) {
+      return errorResponse("VALIDATION_FAILED", "Odometer must be a whole number of kilometres.");
+    }
+    if (!isInt(payload.year, 1990, new Date().getFullYear() + 1)) {
+      return errorResponse("VALIDATION_FAILED", "Please enter a valid manufacturing year.");
+    }
+    if (!isInt(payload.owners, 1, 10)) {
+      return errorResponse("VALIDATION_FAILED", "Owners must be between 1 and 10.");
+    }
+
+    let showroomId = payload.showroom_id || null;
+    if (!showroomId && !payload.id) {
+      const { data: firstShowroom } = await supabase.from("showrooms").select("id").eq("is_active", true).limit(1).maybeSingle();
+      showroomId = firstShowroom?.id ?? null;
+    }
+
+    const carData: Omit<Database["public"]["Tables"]["used_cars"]["Insert"], "listed_at" | "showroom_id"> & { showroom_id?: string } = {
       stock_id: payload.stock_id,
       model_id: payload.model_id || null,
       model_name: payload.model_name,
@@ -301,12 +327,11 @@ export async function saveUsedCarAction(payload: {
       price: payload.price,
       status: (payload.status || "available") as CarStatus,
       reg_no_private: payload.reg_no_private,
-      showroom_id: payload.showroom_id || "s0000001-0000-0000-0000-000000000001",
+      ...(showroomId ? { showroom_id: showroomId } : {}),
       certified: payload.certified ?? true,
       inspection: payload.inspection || {},
       inspection_score: payload.inspection_score ?? null,
       images: payload.images || [],
-      listed_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
 
@@ -325,9 +350,10 @@ export async function saveUsedCarAction(payload: {
       safeRevalidatePath("/used-cars");
       return successResponse({ id: payload.id });
     } else {
+      if (!showroomId) return errorResponse("VALIDATION_FAILED", "Please choose the showroom or yard that holds this car.");
       const { data, error } = await supabase
         .from("used_cars")
-        .insert(carData)
+        .insert({ ...carData, showroom_id: showroomId, listed_at: new Date().toISOString() })
         .select()
         .single();
 
@@ -340,6 +366,31 @@ export async function saveUsedCarAction(payload: {
     }
   } catch (err: any) {
     return errorResponse("INTERNAL_ERROR", err?.message || "Failed to save used car");
+  }
+}
+
+/**
+ * The used-car manager sets the FINAL listing price (the AI band is only a suggestion).
+ */
+export async function setUsedCarFinalPriceAction(id: string, price: number): Promise<ActionResponse<boolean>> {
+  try {
+    const { profile } = await requireRole("admin", "manager");
+    if (!Number.isInteger(price) || price < 1 || price > 100_000_000) {
+      return errorResponse("VALIDATION_FAILED", "Price must be a whole number of rupees between 1 and 10,00,00,000.");
+    }
+    const supabase = createAdminClient();
+    const { error } = await supabase
+      .from("used_cars")
+      .update({ price, updated_at: new Date().toISOString() })
+      .eq("id", id);
+    if (error) return errorResponse("INTERNAL_ERROR", error.message);
+
+    await logAudit(profile.id, "used_cars", id, "SET_FINAL_PRICE", null, { price });
+    safeRevalidateTag("used");
+    safeRevalidatePath("/used-cars");
+    return successResponse(true);
+  } catch (err: any) {
+    return errorResponse("INTERNAL_ERROR", err?.message || "Failed to save final price");
   }
 }
 
@@ -523,7 +574,8 @@ export async function setStaffRoleAction(userId: string, newRole: Role): Promise
       return errorResponse("FORBIDDEN", "Cannot demote your own admin account.");
     }
 
-    const supabase = createAdminClient();
+    // admin_set_role authorises via auth.uid(), which the service-role client does not have.
+    const supabase = await createUserClient();
     const { error } = await supabase.rpc("admin_set_role", {
       p_user_id: userId,
       p_new_role: newRole,

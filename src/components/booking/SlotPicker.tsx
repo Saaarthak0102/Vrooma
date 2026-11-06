@@ -14,6 +14,12 @@ export interface SlotPickerProps {
   className?: string;
 }
 
+const IST = "Asia/Kolkata";
+/** YYYY-MM-DD of an instant in IST, so day grouping does not depend on the browser timezone. */
+const istDate = (iso: string) => new Date(iso).toLocaleDateString("en-CA", { timeZone: IST });
+const istTime = (iso: string) =>
+  new Date(iso).toLocaleTimeString("en-IN", { timeZone: IST, hour: "2-digit", minute: "2-digit", hour12: true });
+
 export function SlotPicker({
   slots,
   selectedSlotId,
@@ -22,12 +28,12 @@ export function SlotPicker({
 }: SlotPickerProps) {
   // Group slots by Date (YYYY-MM-DD)
   const days = Array.from(
-    new Set(slots.map((s) => s.starts_at.slice(0, 10)))
+    new Set(slots.map((s) => istDate(s.starts_at)))
   ).slice(0, 7);
 
   const [activeDate, setActiveDate] = useState(days[0] || "");
 
-  const daySlots = slots.filter((s) => s.starts_at.startsWith(activeDate));
+  const daySlots = slots.filter((s) => istDate(s.starts_at) === activeDate);
 
   const handleSlotClick = (slot: Slot) => {
     const isTaken = slot.booked_count >= slot.capacity;
@@ -46,10 +52,10 @@ export function SlotPicker({
         {/* Day Strip */}
         <div className="flex gap-2 overflow-x-auto pb-2">
           {days.map((dateStr) => {
-            const d = new Date(dateStr);
+            const d = new Date(`${dateStr}T12:00:00+05:30`);
             const isSelected = dateStr === activeDate;
-            const weekday = d.toLocaleDateString("en-IN", { weekday: "short" });
-            const dayNum = d.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+            const weekday = d.toLocaleDateString("en-IN", { timeZone: IST, weekday: "short" });
+            const dayNum = d.toLocaleDateString("en-IN", { timeZone: IST, day: "numeric", month: "short" });
 
             return (
               <Button
@@ -85,16 +91,8 @@ export function SlotPicker({
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
               {daySlots.map((slot) => {
-                const startTime = new Date(slot.starts_at).toLocaleTimeString("en-IN", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                  hour12: true,
-                });
-                const endTime = new Date(slot.ends_at).toLocaleTimeString("en-IN", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                  hour12: true,
-                });
+                const startTime = istTime(slot.starts_at);
+                const endTime = istTime(slot.ends_at);
 
                 const isTaken = slot.booked_count >= slot.capacity;
                 const isSelected = slot.id === selectedSlotId;

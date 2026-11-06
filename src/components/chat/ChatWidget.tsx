@@ -83,6 +83,8 @@ export function ChatWidget() {
         reply = json.data.reply;
         // Signed-in buyers get a conversation id back; later messages join the same chat.
         if (json.data.conversationId) setConversationId(json.data.conversationId);
+      } else if (typeof json?.error === "string") {
+        reply = json.error; // e.g. "sending too quickly"
       }
     } catch {
       // keep the fallback reply
@@ -123,7 +125,7 @@ export function ChatWidget() {
       {isOpen && (
         <div
           data-lenis-prevent
-          className="chat-panel chat-panel-animate-enter w-[360px] sm:w-[400px] h-[520px] rounded-2xl border border-border bg-white shadow-2xl flex flex-col overflow-hidden"
+          className="chat-panel chat-panel-animate-enter w-[calc(100vw-3rem)] max-w-[400px] h-[520px] max-h-[calc(100vh-6rem)] rounded-2xl border border-border bg-white shadow-2xl flex flex-col overflow-hidden"
         >
           {/* Header */}
           <div className="bg-dark text-white p-4 flex items-center justify-between">

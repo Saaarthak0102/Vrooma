@@ -116,6 +116,17 @@ export async function processLeadCsv(
   ]);
 
   const defaultShowroomId = showrooms?.[0]?.id || "a0000001-0000-0000-0000-000000000001";
+  const importStartedAt = Date.now();
+
+  // Resolve the CSV "showroom"/"city" cell to a real showroom: exact id, exact name, or a unique partial name.
+  const resolveShowroomId = (raw: string): string => {
+    const wanted = raw.trim().toLowerCase();
+    if (!wanted || !showrooms) return defaultShowroomId;
+    const exact = showrooms.find((sr) => sr.id.toLowerCase() === wanted || sr.name.toLowerCase() === wanted);
+    if (exact) return exact.id;
+    const partial = showrooms.filter((sr) => sr.name.toLowerCase().includes(wanted));
+    return partial.length === 1 ? partial[0].id : defaultShowroomId;
+  };
 
   return new Promise((resolve) => {
     Papa.parse<Record<string, string>>(cleanCsv, {
@@ -154,6 +165,7 @@ export async function processLeadCsv(
           const modelRaw = sanitizeCsvCell(rawRow.model);
           const notes = sanitizeCsvCell(rawRow.notes);
           const sourceRef = sanitizeCsvCell(rawRow.source_ref);
+          const showroomRaw = sanitizeCsvCell((rawRow as Record<string, string>).showroom);
 
           // Validation
           if (!name || name.length < 2) {
@@ -173,13 +185,15 @@ export async function processLeadCsv(
           let matchedModelId: string | null = null;
           if (modelRaw && models) {
             const mLower = modelRaw.toLowerCase();
-            const matched = models.find(
-              (m) =>
-                m.name.toLowerCase() === mLower ||
-                m.slug.toLowerCase() === mLower ||
-                m.name.toLowerCase().includes(mLower)
-            );
-            if (matched) matchedModelId = matched.id;
+            // Exact name/slug first. A partial match is used only when it is unambiguous and not a stray letter
+            // (otherwise "c" would match whichever model happens to contain a "c").
+            const exact = models.find((m) => m.name.toLowerCase() === mLower || m.slug.toLowerCase() === mLower);
+            if (exact) {
+              matchedModelId = exact.id;
+            } else if (mLower.length >= 3) {
+              const partial = models.filter((m) => m.name.toLowerCase().includes(mLower));
+              if (partial.length === 1) matchedModelId = partial[0].id;
+            }
           }
 
           // Deduplicate inside the current batch
@@ -195,7 +209,7 @@ export async function processLeadCsv(
             const { data: leadRow, error: leadErr } = await supabase.rpc("create_lead", {
               p_name: name,
               p_phone: normalizedPhone,
-              p_showroom_id: defaultShowroomId,
+              p_showroom_id: resolveShowroomId(showroomRaw),
               p_model_id: matchedModelId,
               p_email: email && email.includes("@") ? email : null,
               p_message: notes || `Imported via portal CSV batch`,
@@ -207,7 +221,15 @@ export async function processLeadCsv(
               errorList.push(`Row ${rowNum}: ${leadErr.message}`);
               skippedCount++;
             } else if (leadRow) {
-              createdCount++;
+              // create_lead returns the EXISTING lead for a duplicate (same phone + model within 24h).
+              // A lead that was created before this import started is a duplicate, not a new lead.
+              const createdAt = leadRow.created_at ? new Date(leadRow.created_at).getTime() : importStartedAt;
+              if (createdAt < importStartedAt - 1000) {
+                skippedCount++;
+                errorList.push(`Row ${rowNum}: Duplicate of existing lead ${leadRow.ref ?? ""}`.trim());
+              } else {
+                createdCount++;
+              }
             }
           } catch (err: any) {
             errorList.push(`Row ${rowNum}: ${err?.message || "Failed to create lead"}`);

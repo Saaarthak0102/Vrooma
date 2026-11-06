@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { processLeadCsv } from "@/server/services/csv-import";
-import { getViewer } from "@/server/auth/viewer";
+import { guardRole } from "@/server/auth/api-guard";
 
 export async function POST(request: NextRequest) {
   try {
-    const viewer = await getViewer();
+    const session = await guardRole("consultant", "manager", "admin");
+    if (!session.ok) return session.response;
     const contentType = request.headers.get("content-type") || "";
 
     let csvContent = "";
@@ -30,7 +31,7 @@ export async function POST(request: NextRequest) {
 
     const result = await processLeadCsv(csvContent, {
       filename,
-      importedBy: viewer.user?.id || null,
+      importedBy: session.user.id,
     });
 
     return NextResponse.json({ ok: true, data: result });

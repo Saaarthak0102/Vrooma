@@ -67,7 +67,7 @@ export default async function UsedCarPage({
         description={`Certified Used ${car.model_name} with ${car.km.toLocaleString()} km`}
         price={car.price}
         url={`${env.NEXT_PUBLIC_SITE_URL}/used-cars/${car.stock_id}`}
-        vin={car.reg_no_masked}
+        availability={car.status === "sold" ? "https://schema.org/SoldOut" : car.status === "booked" ? "https://schema.org/OutOfStock" : "https://schema.org/InStock"}
       />
       <BreadcrumbJsonLd
         items={[

@@ -93,6 +93,22 @@ export function validateRuntimeEnv() {
       "FATAL SECURITY ERROR: ALLOW_DEV_LOGIN must never be enabled in production environments (APP_ENV=production)."
     );
   }
+
+  // A production server with missing config would silently emit localhost canonical URLs, break auth and
+  // disable cron: fail at startup instead (this runs on server start, never during `next build`).
+  if (currentAppEnv === "production") {
+    const missing: string[] = [];
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || parsedData.NEXT_PUBLIC_SITE_URL;
+    if (!siteUrl || /localhost|127\.0\.0\.1/.test(siteUrl)) missing.push("NEXT_PUBLIC_SITE_URL (must not be localhost)");
+    if (!(process.env.NEXT_PUBLIC_SUPABASE_URL || parsedData.NEXT_PUBLIC_SUPABASE_URL)) missing.push("NEXT_PUBLIC_SUPABASE_URL");
+    if (!(process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || parsedData.SUPABASE_SECRET_KEY)) {
+      missing.push("SUPABASE_SECRET_KEY");
+    }
+    if (!(process.env.CRON_SECRET || parsedData.CRON_SECRET)) missing.push("CRON_SECRET");
+    if (missing.length > 0) {
+      throw new Error(`FATAL CONFIG ERROR: missing required production environment variables: ${missing.join(", ")}`);
+    }
+  }
 }
 
 export const env: Env = parsedData;

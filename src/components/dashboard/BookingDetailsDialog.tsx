@@ -91,7 +91,7 @@ export function BookingDetailsDialog({
                 <span>{isTestDrive ? t("testDrive") : t("service")}</span>
               </span>
               <span className="text-xs font-mono font-bold text-ink-soft bg-stone-100 px-2 py-0.5 rounded">
-                {bookingRef(booking.id)}
+                {booking.ref || bookingRef(booking.id)}
               </span>
             </div>
             <Badge variant="ok" className="text-[10px] uppercase font-bold tracking-wide">

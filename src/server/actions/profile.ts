@@ -142,7 +142,15 @@ export async function requestAccountDeletionAction(): Promise<ActionResponse<{ r
     const admin = createAdminClient();
     const userClient = await createClient();
 
-    // 1. Cancel any upcoming confirmed bookings so slots are immediately released to other buyers
+    // 1. Queue the erasure request FIRST. If this fails nothing else has been changed, so the user can simply retry.
+    const { data: reqId, error: rpcErr } = await (userClient || admin).rpc("request_account_deletion");
+
+    if (rpcErr) {
+      return errorResponse("INTERNAL_ERROR", `Failed to queue deletion request: ${rpcErr.message}`);
+    }
+
+    // 2. Cancel any upcoming confirmed bookings so slots are immediately released to other buyers.
+    //    cancel_booking authorises via auth.uid(), so it must run as the signed-in user, not the service role.
     const { data: upcomingBookings } = await admin
       .from("bookings")
       .select("id, ref, slots:slot_id(starts_at)")
@@ -153,18 +161,15 @@ export async function requestAccountDeletionAction(): Promise<ActionResponse<{ r
     for (const b of upcomingBookings || []) {
       const slotTime = (b.slots as any)?.starts_at;
       if (slotTime && new Date(slotTime).getTime() > now) {
-        try {
-          await admin.rpc("cancel_booking", {
-            p_booking_id: b.id,
-            p_reason: "Cancelled due to DPDP account erasure request",
-          });
-        } catch (cErr: any) {
-          console.warn(`[deletion] Slot release warning: ${cErr?.message}`);
-        }
+        const { error: cErr } = await (userClient || admin).rpc("cancel_booking", {
+          p_booking_id: b.id,
+          p_reason: "Cancelled due to DPDP account erasure request",
+        });
+        if (cErr) console.warn(`[deletion] Slot release warning for ${b.ref}: ${cErr.message}`);
       }
     }
 
-    // 2. Close open leads and notify assigned consultants
+    // 3. Close open leads and notify assigned consultants
     const { data: openLeads } = await admin
       .from("leads")
       .select("id, ref, assigned_to")
@@ -192,13 +197,6 @@ export async function requestAccountDeletionAction(): Promise<ActionResponse<{ r
           status: "pending",
         });
       }
-    }
-
-    // 3. Call database RPC request_account_deletion
-    const { data: reqId, error: rpcErr } = await (userClient || admin).rpc("request_account_deletion");
-
-    if (rpcErr) {
-      return errorResponse("INTERNAL_ERROR", `Failed to queue deletion request: ${rpcErr.message}`);
     }
 
     // 4. Sign user out

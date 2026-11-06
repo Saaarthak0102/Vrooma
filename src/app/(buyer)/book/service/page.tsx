@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { PageShell } from "@/components/layout/PageShell";
 import { Stepper } from "@/components/ui/stepper";
@@ -29,6 +29,7 @@ const STEPS = [
 
 export default function BookServicePage() {
   const router = useRouter();
+  const latestWorkshopRef = useRef<string | null>(null);
   const { user, openSignInSheet } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
 
@@ -36,6 +37,7 @@ export default function BookServicePage() {
   const [workshops, setWorkshops] = useState<Workshop[]>([]);
   const [slots, setSlots] = useState<Slot[]>([]);
   const [loadingData, setLoadingData] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   // Selections
   const [selectedWorkshop, setSelectedWorkshop] = useState<Workshop | null>(null);
@@ -43,11 +45,11 @@ export default function BookServicePage() {
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
 
   // Form details
-  const [modelName, setModelName] = useState("Model H");
-  const [regNo, setRegNo] = useState("UP32AB1234");
+  const [modelName, setModelName] = useState("");
+  const [regNo, setRegNo] = useState("");
   const [name, setName] = useState(user?.full_name || "");
   const [phone, setPhone] = useState(user?.phone || "");
-  const [consent, setConsent] = useState(true);
+  const [consent, setConsent] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [confirmedBooking, setConfirmedBooking] = useState<Booking | null>(null);
@@ -74,6 +76,7 @@ export default function BookServicePage() {
         setSlots(data.slots);
       } catch (err: any) {
         console.error("Failed to load workshop data:", err);
+        if (isMounted) setLoadError(true);
       } finally {
         if (isMounted) setLoadingData(false);
       }
@@ -85,8 +88,10 @@ export default function BookServicePage() {
   // When workshop changes, refresh slots
   const handleWorkshopChange = async (workshop: Workshop) => {
     setSelectedWorkshop(workshop);
+    latestWorkshopRef.current = workshop.id;
     try {
       const data = await getServiceBookingDataAction(workshop.id);
+      if (latestWorkshopRef.current !== workshop.id) return; // a newer selection superseded this response
       setSlots(data.slots);
       setSelectedSlot(null);
     } catch (err: any) {
@@ -106,29 +111,8 @@ export default function BookServicePage() {
     setCurrentStep((prev) => Math.max(0, prev - 1));
   };
 
-  const handleSubmitBooking = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name || phone.length < 10 || !selectedSlot || !selectedWorkshop) {
-      toast.error("Please fill in owner details and appointment slot");
-      return;
-    }
-
-    const cleanReg = normalizeVehicleReg(regNo);
-    if (!cleanReg) {
-      toast.error("Please enter a valid Indian vehicle registration number (e.g. UP32AB1234 or 22BH1234AA)");
-      return;
-    }
-
-    if (!consent) {
-      toast.error("DPDP consent is required to confirm booking");
-      return;
-    }
-
-    if (!user) {
-      toast.info("Please sign in or create an account to confirm your workshop service appointment.");
-      openSignInSheet();
-      return;
-    }
+  const submitBooking = async (cleanReg: string) => {
+    if (!selectedSlot || !selectedWorkshop) return;
 
     setIsSubmitting(true);
     setSubmitStatus("loading");
@@ -138,9 +122,13 @@ export default function BookServicePage() {
         slotId: selectedSlot.id,
         kind: "service",
         vehicleInfo: {
-          model_name: modelName,
+          model_name: modelName.trim(),
           reg_no: cleanReg,
         },
+        notes: `Service type: ${selectedService.name}`,
+        consent: true,
+        contactName: name,
+        contactPhone: phone,
       });
 
       if (!result.ok) {
@@ -148,7 +136,12 @@ export default function BookServicePage() {
         setTimeout(() => setSubmitStatus("idle"), 600);
 
         if (result.error.code === "CONFLICT") {
-          toast.error("This bay slot was just reserved by another customer. Please choose another time.");
+          const alreadyBooked = (result.error.fields as any)?.reason === "already_booked";
+          toast.error(
+            alreadyBooked
+              ? result.error.message
+              : "This bay slot was just reserved by another customer. Please choose another time."
+          );
           const refreshed = await getServiceBookingDataAction(selectedWorkshop.id);
           setSlots(refreshed.slots);
           setSelectedSlot(null);
@@ -164,7 +157,7 @@ export default function BookServicePage() {
 
         if (result.error.code === "UNAUTHORIZED") {
           toast.info("Please sign in to confirm your appointment.");
-          openSignInSheet();
+          openSignInSheet(() => void submitBooking(cleanReg));
           return;
         }
 
@@ -175,12 +168,13 @@ export default function BookServicePage() {
       setSubmitStatus("success");
       setConfirmedBooking({
         id: result.data.bookingId,
-        user_id: user.id,
+        ref: result.data.ref,
+        user_id: user?.id ?? "",
         slot_id: selectedSlot.id,
         kind: "service",
         status: "confirmed",
         vehicle_info: {
-          model_name: modelName,
+          model_name: modelName.trim(),
           reg_no: cleanReg,
         },
         showroom_or_workshop_name: result.data.showroomOrWorkshopName,
@@ -199,6 +193,38 @@ export default function BookServicePage() {
     }
   };
 
+  const handleSubmitBooking = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name || phone.length < 10 || !selectedSlot || !selectedWorkshop) {
+      toast.error("Please fill in owner details and appointment slot");
+      return;
+    }
+    if (!modelName.trim()) {
+      toast.error("Please enter your vehicle model");
+      return;
+    }
+
+    const cleanReg = normalizeVehicleReg(regNo);
+    if (!cleanReg) {
+      toast.error("Please enter a valid Indian vehicle registration number (e.g. UP32AB1234 or 22BH1234AA)");
+      return;
+    }
+
+    if (!consent) {
+      toast.error("DPDP consent is required to confirm booking");
+      return;
+    }
+
+    if (!user) {
+      toast.info("Please sign in or create an account to confirm your workshop service appointment.");
+      // After sign-in the booking is submitted automatically with the details already entered.
+      openSignInSheet(() => void submitBooking(cleanReg));
+      return;
+    }
+
+    await submitBooking(cleanReg);
+  };
+
   return (
     <PageShell
       title="Book Certified Workshop Service"
@@ -215,6 +241,14 @@ export default function BookServicePage() {
           </div>
         ) : (
           <>
+            {(loadError || workshops.length === 0) && (
+              <div className="rounded-2xl border border-border bg-white p-8 text-center shadow-card space-y-3">
+                <p className="text-sm font-semibold text-ink">We couldn&apos;t load workshop availability.</p>
+                <p className="text-xs text-ink-soft">Please check your connection and try again.</p>
+                <Button variant="outline" onClick={() => window.location.reload()}>Try again</Button>
+              </div>
+            )}
+
             {/* Step 0: Workshop Selection */}
             {currentStep === 0 && selectedWorkshop && (
               <div className="rounded-2xl border border-border bg-white p-6 sm:p-8 shadow-card space-y-6">

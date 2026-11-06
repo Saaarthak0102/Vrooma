@@ -3,6 +3,7 @@ import { PageShell } from "@/components/layout/PageShell";
 import { EnquiryForm } from "@/components/forms/EnquiryForm";
 import { MapPin, Phone, Mail, Clock } from "lucide-react";
 import { constructMetadata } from "@/lib/seo";
+import { listShowrooms } from "@/server/repositories/showrooms";
 
 export async function generateMetadata() {
   return constructMetadata({
@@ -12,7 +13,8 @@ export async function generateMetadata() {
   });
 }
 
-export default function ContactPage() {
+export default async function ContactPage() {
+  const showrooms = await listShowrooms();
   return (
     <PageShell
       title="Contact Our Showroom Team"
@@ -26,7 +28,7 @@ export default function ContactPage() {
           <p className="text-xs text-ink-soft mb-6">
             Inquiries are automatically assigned to an available consultant with a 5-minute response guarantee.
           </p>
-          <EnquiryForm />
+          <EnquiryForm showrooms={showrooms.map((s) => ({ id: s.id, name: s.name }))} />
         </div>
 
         {/* Showroom Contacts Info */}

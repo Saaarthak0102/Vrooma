@@ -100,4 +100,23 @@ describe("price engine", () => {
     expect(result.lines.find((l) => l.key === "road_tax")?.amount).toBe(121388);
     expect(result.lines.find((l) => l.key === "tcs")?.amount).toBe(9338);
   });
+  it("does not charge TCS on cars at or below Rs 10,00,000 ex-showroom", () => {
+    for (const exShowroom of [850000, 1000000]) {
+      const result = computeOnRoad({
+        variant: { ...sampleVariant, ex_showroom: exShowroom },
+        rule: sampleRule,
+        includeAccessories: false,
+      });
+      expect(result!.lines.find((l) => l.key === "tcs")).toBeUndefined();
+    }
+  });
+
+  it("charges TCS just above the Rs 10,00,000 threshold", () => {
+    const result = computeOnRoad({
+      variant: { ...sampleVariant, ex_showroom: 1000001 },
+      rule: sampleRule,
+      includeAccessories: false,
+    });
+    expect(result!.lines.find((l) => l.key === "tcs")?.amount).toBe(10000);
+  });
 });

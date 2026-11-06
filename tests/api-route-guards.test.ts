@@ -13,6 +13,7 @@ import { GET as profileGet, PUT as profilePut } from "@/app/api/me/profile/route
 import { POST as deletePost } from "@/app/api/me/delete/route";
 import { POST as outboxSend } from "@/app/api/outbox/send/route";
 import { POST as copilotPost } from "@/app/api/ai/lead-copilot/route";
+import { POST as leadsImportPost } from "@/app/api/leads/import/route";
 
 const url = (p: string) => `http://localhost:3000${p}`;
 const json = (p: string, method: string, body: unknown, headers: Record<string, string> = {}) =>
@@ -53,6 +54,11 @@ describe("unauthenticated callers are refused", () => {
     expect((await outboxSend(json("/api/outbox/send", "POST", body))).status).toBe(401);
     const wrong = await outboxSend(json("/api/outbox/send", "POST", body, { authorization: "Bearer not-the-secret" }));
     expect(wrong.status).toBe(401);
+  });
+
+  it("POST /api/leads/import refuses anonymous callers before parsing the CSV", async () => {
+    const res = await leadsImportPost(json("/api/leads/import", "POST", { csv: "name,phone,A,9876543210" }));
+    expect(res.status).toBe(401);
   });
 
   it("POST /api/ai/lead-copilot", async () => {

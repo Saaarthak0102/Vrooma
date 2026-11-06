@@ -3,7 +3,6 @@ import { Urbanist, Instrument_Serif } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
 import { AuthProvider } from "@/components/auth/AuthProvider";
-import { SignInSheet } from "@/components/auth/SignInSheet";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { ChatWidget } from "@/components/chat/ChatWidget";
@@ -53,7 +52,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                   <main className="flex-1">{children}</main>
                   <SiteFooter />
                   <ChatWidget />
-                  <SignInSheet />
                   <Toaster position="top-right" richColors closeButton />
                 </ConfirmProvider>
               </SmoothScrollProvider>

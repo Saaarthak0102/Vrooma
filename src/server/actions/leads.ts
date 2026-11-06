@@ -81,7 +81,7 @@ export async function reassignLeadAction(
     // Verify target consultant exists and is active
     const { data: targetConsultant } = await admin
       .from("profiles")
-      .select("id, full_name, is_active, role")
+      .select("id, full_name, email, is_active, role")
       .eq("id", toConsultantId)
       .maybeSingle();
 
@@ -104,11 +104,13 @@ export async function reassignLeadAction(
     try {
       await admin.from("messages_outbox").insert({
         channel: "email",
-        to_address: "staff@vrooma.in",
+        // Tell the consultant who now owns the lead; fall back to the shared desk only if they have no email.
+        to_address: targetConsultant.email || "staff@vrooma.in",
         template: "lead_reassigned",
-        body: `Lead ${lead.ref} has been reassigned to ${targetConsultant.full_name} by ${profile.full_name}. Reason: ${reason}`,
+        body: `Lead ${lead.ref} has been reassigned to you (${targetConsultant.full_name}) by ${profile.full_name}. Reason: ${reason}`,
         lead_id: leadId,
-        idempotency_key: `outbox_reassign_${leadId}_${Date.now()}`,
+        // Stable per lead + target: a double click cannot send two emails.
+        idempotency_key: `outbox_reassign_${leadId}_${toConsultantId}`,
         status: "pending",
       });
     } catch (outboxErr: any) {
@@ -132,7 +134,7 @@ export async function sendLeadReplyAction(
   leadId: string,
   message: string,
   channel: "whatsapp" | "email" | "sms" = "whatsapp"
-): Promise<ActionResponse<{ messageId: string }>> {
+): Promise<ActionResponse<{ messageId: string; statusUpdated: boolean }>> {
   try {
     const { profile } = await requireRole("consultant", "manager", "admin");
     const admin = createAdminClient();
@@ -196,6 +198,7 @@ export async function sendLeadReplyAction(
     // IMPORTANT: call as the signed-in consultant. The RPC checks private.is_staff() and lead ownership
     // from auth.uid(); through the admin (service-role) client auth.uid() is NULL, the call is refused, and
     // the lead would stay 'new' with the SLA timer running after the buyer was already answered.
+    let statusUpdated = true;
     if (lead.status === "new") {
       const userClient = await createClient();
       const { error: statusErr } = await (userClient ?? admin).rpc("set_lead_status", {
@@ -204,10 +207,11 @@ export async function sendLeadReplyAction(
       });
       if (statusErr) {
         console.warn(`[leads] Reply sent but status update failed: ${statusErr.message}`);
+        statusUpdated = false;
       }
     }
 
-    return successResponse({ messageId: msgId });
+    return successResponse({ messageId: msgId, statusUpdated });
   } catch (err: any) {
     return errorResponse("INTERNAL_ERROR", err?.message || "Failed to send reply.");
   }

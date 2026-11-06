@@ -92,7 +92,7 @@ export default async function ModelPage({
         name={`${model.name} Official Showroom`}
         image={model.hero_image}
         description={model.tagline}
-        price={model.min_price ?? 1095000}
+        price={model.min_price}
         url={`${env.NEXT_PUBLIC_SITE_URL}/cars/${model.slug}`}
         bodyType={model.body_type}
       />
