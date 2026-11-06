@@ -96,3 +96,10 @@
 - **Supersedes:** the client brief and `context.md` rule 3 ("Hindi and English"). That requirement was dropped on the owner's instruction; do not reintroduce it by following the old brief.
 - **Kept:** `messages/en.json` as the one text catalogue (read through `next-intl` with a fixed `en`); the Hindi words in `src/lib/validation/discount.ts` (a staff-safety filter); the `profiles.locale` and `*_hi` database columns (never read or written by the app, no migration).
 - **Compatibility:** `/en/...` and `/hi/...` permanently redirect to the unprefixed URL (`next.config.ts`); `safeNext` strips a legacy prefix.
+
+## ADR: Email code only (no Google) and no profile address
+
+- **Date:** 2026-11-07
+- **Decision:** Sign-in is the emailed one-time code only. Google OAuth is removed: no button, no `startGoogle` action, no `/auth/callback` route. `/auth/confirm` (email link) stays.
+- **Address:** The customer's address and PIN code are no longer kept on the profile. They are asked only in the home test drive and vehicle pickup parts of the booking forms and stored on that booking (`bookings.address`, `bookings.pincode`, migration `0027`). `profiles.address` and `profiles.pincode` were dropped. Erasure also wipes booking addresses.
+- **Owner steps:** turn the Google provider off in Supabase Authentication (DEV, later PROD).

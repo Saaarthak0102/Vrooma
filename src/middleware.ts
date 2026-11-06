@@ -8,7 +8,7 @@ export default async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // Everything except API routes, the /auth/* route handlers (email-link confirm + OAuth callback),
+  // Everything except API routes, the /auth/* route handler (email-link confirm),
   // internal Next.js assets, public images and files.
   matcher: ["/", "/((?!api|auth|_next|_vercel|.*\\..*).*)"],
 };

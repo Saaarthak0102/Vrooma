@@ -16,8 +16,6 @@ const profileUpdateSchema = z.object({
     message: "Valid 10-digit Indian mobile number required",
   }),
   whatsapp: z.string().optional().nullable(),
-  address: z.string().max(250).optional().nullable(),
-  pincode: z.string().regex(/^[1-9][0-9]{5}$/, "Valid 6-digit Indian PIN code required").optional().nullable(),
   cityId: z.string().uuid().optional().nullable(),
   marketingConsent: z.boolean().optional(),
   expectedUpdatedAt: z.string().optional(),
@@ -56,8 +54,6 @@ export async function updateBuyerProfileAction(
         full_name: parsed.data.fullName,
         phone: parsed.data.phone,
         whatsapp: cleanWhatsapp || parsed.data.phone,
-        address: parsed.data.address || null,
-        pincode: parsed.data.pincode || null,
         city_id: parsed.data.cityId || profile.city_id,
         updated_at: nowISO,
       })

@@ -123,6 +123,11 @@ export function BookingDetailsDialog({
                   Reg: {booking.vehicle_info.reg_no}
                 </p>
               )}
+              {booking.address && (
+                <p className="text-[11px] text-ink-soft mt-1">
+                  At your address: {booking.address}, {booking.pincode}
+                </p>
+              )}
             </div>
           </div>
 

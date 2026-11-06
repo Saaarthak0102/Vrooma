@@ -209,6 +209,9 @@ export interface Booking {
   starts_at: string;
   ends_at: string;
   notes?: string;
+  /** Where the car comes to the customer (home test drive / vehicle pickup). Absent for showroom or workshop visits. */
+  address?: string | null;
+  pincode?: string | null;
   consultant_name?: string;
   created_at: string;
 }
@@ -244,8 +247,6 @@ export interface Profile {
   full_name: string;
   phone?: string | null;
   whatsapp?: string | null;
-  address?: string | null;
-  pincode?: string | null;
   city_id?: string | null;
   role: Role;
   locale: "en";

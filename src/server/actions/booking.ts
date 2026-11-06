@@ -64,6 +64,19 @@ const bookSlotSchema = z.object({
   contactName: z.string().trim().min(1).max(120).optional().nullable(),
   contactPhone: z.string().trim().max(20).optional().nullable(),
   idempotencyKey: z.string().max(200).optional().nullable(),
+  /** Home test drive / vehicle pickup: the customer's address is asked here, not on the profile. */
+  homeVisit: z.boolean().optional(),
+  address: z.string().trim().max(255).optional().nullable(),
+  pincode: z.string().trim().optional().nullable(),
+}).superRefine((val, ctx) => {
+  if (!val.homeVisit) return;
+  const address = (val.address ?? "").trim();
+  if (address.length < 5) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["address"], message: "Please enter the full address (at least 5 characters)." });
+  }
+  if (!/^[1-9][0-9]{5}$/.test((val.pincode ?? "").trim())) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["pincode"], message: "Please enter a valid 6-digit PIN code." });
+  }
 });
 
 export type BookSlotInput = z.infer<typeof bookSlotSchema>;
@@ -201,6 +214,9 @@ export async function bookSlotAction(
       p_notes: parsed.data.notes || null,
       p_consent_id: consentId,
       p_idempotency_key: idemKey,
+      // Only a home visit stores an address; showroom and workshop visits never do.
+      p_address: parsed.data.homeVisit ? parsed.data.address!.trim() : null,
+      p_pincode: parsed.data.homeVisit ? parsed.data.pincode!.trim() : null,
     });
 
     if (bookErr) {
@@ -302,7 +318,9 @@ export async function bookSlotAction(
         channel,
         to_address: dest,
         template: "booking_confirmation",
-        body: `Namaste ${profile.full_name}! Your Vrooma ${appointmentKindLabel} appointment is confirmed (${bookingRow.ref}) on ${dateFormatted} at ${facilityName}. Assigned Specialist: ${consultantDisplayName}.`,
+        body: parsed.data.homeVisit
+          ? `Namaste ${profile.full_name}! Your Vrooma ${appointmentKindLabel} appointment is confirmed (${bookingRow.ref}) on ${dateFormatted}. We will come to your address (${parsed.data.address!.trim()}, ${parsed.data.pincode!.trim()}). Assigned Specialist: ${consultantDisplayName}.`
+          : `Namaste ${profile.full_name}! Your Vrooma ${appointmentKindLabel} appointment is confirmed (${bookingRow.ref}) on ${dateFormatted} at ${facilityName}. Assigned Specialist: ${consultantDisplayName}.`,
         idempotency_key: `outbox_booking_${bookingRow.id}`,
         status: "pending",
       });

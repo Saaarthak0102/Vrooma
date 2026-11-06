@@ -11,6 +11,8 @@ const BOOKING_QUERY = `
   status,
   vehicle_info,
   notes,
+  address,
+  pincode,
   created_at,
   slots:slot_id (
     starts_at,
@@ -54,6 +56,8 @@ function mapRowToBooking(row: any): Booking {
       reg_no: vInfo.reg_no || vInfo.reg_number,
     },
     showroom_or_workshop_name: showroomName,
+    address: row.address ?? null,
+    pincode: row.pincode ?? null,
     starts_at: row.slots?.starts_at || row.created_at,
     ends_at: row.slots?.ends_at || row.created_at,
     notes: row.notes || undefined,

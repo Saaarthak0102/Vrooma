@@ -118,44 +118,6 @@ export async function verifyOtp(
 }
 
 /**
- * Generates OAuth URL for Google sign-in.
- */
-export async function startGoogle(
-  next = "/dashboard"
-): Promise<ActionResponse<{ url: string }>> {
-  try {
-    const sanitizedNext = safeNext(next);
-    const callbackUrl = `${env.NEXT_PUBLIC_SITE_URL}/auth/callback?next=${encodeURIComponent(sanitizedNext)}`;
-
-    const supabase = await createClient();
-    if (!supabase) {
-      return errorResponse("INTERNAL_ERROR", "Auth service unavailable");
-    }
-
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: callbackUrl,
-        queryParams: {
-          access_type: "offline",
-          prompt: "consent",
-        },
-      },
-    });
-
-    if (error || !data?.url) {
-      const appErr = toAppError(error);
-      return errorResponse(appErr.code, appErr.message);
-    }
-
-    return successResponse({ url: data.url });
-  } catch (err) {
-    const appErr = toAppError(err);
-    return errorResponse(appErr.code, appErr.message);
-  }
-}
-
-/**
  * Saves completed profile details and records DPDP Act 2023 consents.
  * Enforces atomic profile creation and timestamping via complete_profile RPC.
  */
@@ -204,8 +166,6 @@ export async function completeProfile(
         p_whatsapp: whatsappNormalized,
         p_city_id: cityId,
         p_locale: "en", // English only; the column stays for the database but is never user-chosen
-        p_address: data.address || null,
-        p_pincode: data.pincode || null,
         p_marketing_consent: Boolean(data.marketing_consent),
         p_policy_version: DPDP_POLICY_VERSION,
       }

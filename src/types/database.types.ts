@@ -227,6 +227,7 @@ export type Database = {
       }
       bookings: {
         Row: {
+          address: string | null
           cancel_reason: string | null
           cancelled_at: string | null
           consent_id: string | null
@@ -236,6 +237,7 @@ export type Database = {
           kind: Database["public"]["Enums"]["booking_kind_type"]
           lead_id: string | null
           notes: string | null
+          pincode: string | null
           ref: string
           rescheduled_from: string | null
           service_type_id: string | null
@@ -246,6 +248,7 @@ export type Database = {
           vehicle_info: Json
         }
         Insert: {
+          address?: string | null
           cancel_reason?: string | null
           cancelled_at?: string | null
           consent_id?: string | null
@@ -255,6 +258,7 @@ export type Database = {
           kind: Database["public"]["Enums"]["booking_kind_type"]
           lead_id?: string | null
           notes?: string | null
+          pincode?: string | null
           ref: string
           rescheduled_from?: string | null
           service_type_id?: string | null
@@ -265,6 +269,7 @@ export type Database = {
           vehicle_info?: Json
         }
         Update: {
+          address?: string | null
           cancel_reason?: string | null
           cancelled_at?: string | null
           consent_id?: string | null
@@ -274,6 +279,7 @@ export type Database = {
           kind?: Database["public"]["Enums"]["booking_kind_type"]
           lead_id?: string | null
           notes?: string | null
+          pincode?: string | null
           ref?: string
           rescheduled_from?: string | null
           service_type_id?: string | null
@@ -1143,7 +1149,6 @@ export type Database = {
       }
       profiles: {
         Row: {
-          address: string | null
           anonymised_at: string | null
           city_id: string | null
           created_at: string
@@ -1156,14 +1161,12 @@ export type Database = {
           onboarding_completed_at: string | null
           phone: string | null
           phone_verified_at: string | null
-          pincode: string | null
           preferred_showroom_id: string | null
           role: Database["public"]["Enums"]["role_type"]
           updated_at: string
           whatsapp: string | null
         }
         Insert: {
-          address?: string | null
           anonymised_at?: string | null
           city_id?: string | null
           created_at?: string
@@ -1176,14 +1179,12 @@ export type Database = {
           onboarding_completed_at?: string | null
           phone?: string | null
           phone_verified_at?: string | null
-          pincode?: string | null
           preferred_showroom_id?: string | null
           role?: Database["public"]["Enums"]["role_type"]
           updated_at?: string
           whatsapp?: string | null
         }
         Update: {
-          address?: string | null
           anonymised_at?: string | null
           city_id?: string | null
           created_at?: string
@@ -1196,7 +1197,6 @@ export type Database = {
           onboarding_completed_at?: string | null
           phone?: string | null
           phone_verified_at?: string | null
-          pincode?: string | null
           preferred_showroom_id?: string | null
           role?: Database["public"]["Enums"]["role_type"]
           updated_at?: string
@@ -1949,15 +1949,18 @@ export type Database = {
       }
       book_slot: {
         Args: {
+          p_address?: string
           p_consent_id?: string
           p_idempotency_key?: string
           p_kind: Database["public"]["Enums"]["booking_kind_type"]
           p_notes?: string
+          p_pincode?: string
           p_service_type_id?: string
           p_slot_id: string
           p_vehicle_info?: Json
         }
         Returns: {
+          address: string | null
           cancel_reason: string | null
           cancelled_at: string | null
           consent_id: string | null
@@ -1967,6 +1970,7 @@ export type Database = {
           kind: Database["public"]["Enums"]["booking_kind_type"]
           lead_id: string | null
           notes: string | null
+          pincode: string | null
           ref: string
           rescheduled_from: string | null
           service_type_id: string | null
@@ -1986,6 +1990,7 @@ export type Database = {
       cancel_booking: {
         Args: { p_booking_id: string; p_reason?: string }
         Returns: {
+          address: string | null
           cancel_reason: string | null
           cancelled_at: string | null
           consent_id: string | null
@@ -1995,6 +2000,7 @@ export type Database = {
           kind: Database["public"]["Enums"]["booking_kind_type"]
           lead_id: string | null
           notes: string | null
+          pincode: string | null
           ref: string
           rescheduled_from: string | null
           service_type_id: string | null
@@ -2013,18 +2019,15 @@ export type Database = {
       }
       complete_profile: {
         Args: {
-          p_address?: string
           p_city_id: string
           p_full_name: string
           p_locale: string
           p_marketing_consent?: boolean
           p_phone: string
-          p_pincode?: string
           p_policy_version?: string
           p_whatsapp: string
         }
         Returns: {
-          address: string | null
           anonymised_at: string | null
           city_id: string | null
           created_at: string
@@ -2037,7 +2040,6 @@ export type Database = {
           onboarding_completed_at: string | null
           phone: string | null
           phone_verified_at: string | null
-          pincode: string | null
           preferred_showroom_id: string | null
           role: Database["public"]["Enums"]["role_type"]
           updated_at: string

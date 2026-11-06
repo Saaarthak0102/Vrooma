@@ -93,7 +93,6 @@ When restoring a database from backup or spinning up a warm standby, follow this
 | **AWS Region** | `ap-south-1` (Mumbai) | `ap-south-1` (Mumbai) |
 | **Site URL** | `http://localhost:3000` / Preview URLs | `https://vrooma.in` (Strict - no wildcards) |
 | **SMTP Delivery** | Resend Test API Key / Sandbox domain | Resend Verified Domain (`mailer.vrooma.in`) with DKIM/SPF/DMARC |
-| **Google OAuth Client** | Web App (Redirect: `http://localhost:3000/auth/callback`) | Production Client ID with Published Verified Consent Screen |
 | **CRON_SECRET** | Random local string | 64-character high-entropy secret in Vercel & Supabase Vault |
 | **Dev Bypass Login** | Allowed (`ALLOW_DEV_LOGIN=true`, `APP_ENV=development`) | **Strictly Forbidden** (`APP_ENV=production` forces 404 & build guard) |
 

@@ -45,6 +45,8 @@ export async function getBuyerDashboardDataAction(): Promise<ActionResponse<Buye
         status,
         vehicle_info,
         notes,
+        address,
+        pincode,
         created_at,
         slots:slot_id (
           starts_at,
@@ -107,6 +109,8 @@ export async function getBuyerDashboardDataAction(): Promise<ActionResponse<Buye
         starts_at: row.slots?.starts_at || row.created_at,
         ends_at: row.slots?.ends_at || row.created_at,
         notes: row.notes || undefined,
+        address: row.address ?? null,
+        pincode: row.pincode ?? null,
         // Undefined until a consultant is actually assigned: the UI then hides the line instead of faking a name.
         consultant_name: consultantByRef.get(row.ref) ?? undefined,
         created_at: row.created_at,

@@ -9,6 +9,8 @@ import { SlotPicker } from "@/components/booking/SlotPicker";
 import { BookingConfirmation } from "@/components/booking/BookingConfirmation";
 import { FormField, PhoneField } from "@/components/forms/PhoneField";
 import { ConsentCheckbox } from "@/components/forms/ConsentCheckbox";
+import { HomeVisitFields } from "@/components/booking/HomeVisitFields";
+import { validateHomeVisit, HomeVisitErrors } from "@/lib/validation/home-visit";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -50,6 +52,10 @@ export default function BookServicePage() {
   const [name, setName] = useState(user?.full_name || "");
   const [phone, setPhone] = useState(user?.phone || "");
   const [consent, setConsent] = useState(false);
+  const [homeVisit, setHomeVisit] = useState(false);
+  const [address, setAddress] = useState("");
+  const [pincode, setPincode] = useState("");
+  const [homeErrors, setHomeErrors] = useState<HomeVisitErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [confirmedBooking, setConfirmedBooking] = useState<Booking | null>(null);
@@ -129,6 +135,9 @@ export default function BookServicePage() {
         consent: true,
         contactName: name,
         contactPhone: phone,
+        homeVisit,
+        address: homeVisit ? address.trim() : null,
+        pincode: homeVisit ? pincode.trim() : null,
       });
 
       if (!result.ok) {
@@ -181,6 +190,8 @@ export default function BookServicePage() {
         starts_at: result.data.startsAt,
         ends_at: result.data.endsAt,
         consultant_name: result.data.consultantDisplayName,
+        address: homeVisit ? address.trim() : null,
+        pincode: homeVisit ? pincode.trim() : null,
         created_at: new Date().toISOString(),
       });
       setCurrentStep(4);
@@ -208,6 +219,17 @@ export default function BookServicePage() {
     if (!cleanReg) {
       toast.error("Please enter a valid Indian vehicle registration number (e.g. UP32AB1234 or 22BH1234AA)");
       return;
+    }
+
+    if (homeVisit) {
+      const homeErrs = validateHomeVisit(address, pincode);
+      setHomeErrors(homeErrs);
+      if (Object.keys(homeErrs).length > 0) {
+        toast.error("Please enter your address and PIN code for the home visit.");
+        return;
+      }
+    } else {
+      setHomeErrors({});
     }
 
     if (!consent) {
@@ -390,6 +412,18 @@ export default function BookServicePage() {
                     required
                   />
                 </div>
+
+                <HomeVisitFields
+                  enabled={homeVisit}
+                  onEnabledChange={setHomeVisit}
+                  address={address}
+                  onAddressChange={setAddress}
+                  pincode={pincode}
+                  onPincodeChange={setPincode}
+                  errors={homeErrors}
+                  label="Pick up and drop my vehicle from my address"
+                  description="Leave this off to bring the vehicle to the workshop yourself."
+                />
 
                 <ConsentCheckbox checked={consent} onCheckedChange={setConsent} />
 

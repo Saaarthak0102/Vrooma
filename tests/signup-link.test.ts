@@ -202,11 +202,11 @@ describe("link-only guarantees in the source", () => {
 });
 
 describe("middleware does not swallow the /auth/* route handlers", () => {
-  it("excludes /auth/confirm and /auth/callback from next-intl routing (they 404 otherwise)", async () => {
+  it("excludes /auth/confirm from next-intl routing (they 404 otherwise)", async () => {
     const { config } = await import("@/middleware");
     const catchAll = config.matcher.find((m: string) => m.startsWith("/((?!"))!;
     const re = new RegExp("^" + catchAll.replace(/^\/\(/, "/(") + "$");
-    for (const p of ["/auth/confirm", "/auth/callback"]) expect(re.test(p), p).toBe(false);
+    for (const p of ["/auth/confirm"]) expect(re.test(p), p).toBe(false);
     for (const p of ["/sign-up", "/verify-email", "/onboarding", "/cars/model-h"]) expect(re.test(p), p).toBe(true);
     expect(re.test("/api/health")).toBe(false);
   });

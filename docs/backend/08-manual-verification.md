@@ -2,7 +2,7 @@
 
 How to use: run a production build (`npm run build && npm start`) so you test what you would ship. Use a normal window, an incognito window (a second person) and, if you can, your phone on the same Wi-Fi. Keep the browser console open (F12) all the time: any red error is a failure. Write PASS or FAIL and a note in the last column. Send me every FAIL with a screenshot.
 
-Test accounts you need: email 1 (a new buyer), email 2 (a second buyer), a Google account, your admin email, one extra email to invite as a consultant.
+Test accounts you need: email 1 (a new buyer), email 2 (a second buyer), your admin email, one extra email to invite as a consultant.
 
 ## S. Setup sanity (5 min)
 | # | Step | Expected | Result |
@@ -25,9 +25,6 @@ Test accounts you need: email 1 (a new buyer), email 2 (a second buyer), a Googl
 | A6 | Press "Resend code" repeatedly | Button disabled for about 60 s, friendly message, no crash | |
 | A7 | Request a code, wait over 10 minutes, use it | "Expired" message, resend works | |
 | A8 | Request a code on your laptop, open the email on your phone and use the code or link there | Works from the other device | |
-| A9 | Google sign-in with a new Google account | Sent to `/onboarding`, can't skip, finishing it opens the dashboard | |
-| A10 | Cancel on the Google screen | Back on sign-in with a friendly message | |
-| A11 | Sign in with Google using the same email as email 1 | One user in Authentication, one row in `profiles` (no duplicate) | |
 | A12 | Signed out, open `/book/test-drive` | Sign-in sheet, then after login you return and the booking continues | |
 | A13 | Signed out, open `/dashboard` | Redirect to `/sign-in?next=/dashboard` | |
 | A14 | Open `/sign-in?next=//evil.com` and sign in | You end on your dashboard, never on another site | |
@@ -120,7 +117,6 @@ Test accounts you need: email 1 (a new buyer), email 2 (a second buyer), a Googl
 | G1 | DevTools, Sources / Network: search all loaded files for `sb_secret` | Not found anywhere | |
 | G2 | Response headers on any page | CSP, HSTS, X-Frame-Options, nosniff present | |
 | G3 | Run the API probe script from `09-audit-flags` | No table or function open that should be closed | |
-| G4 | Sign in with Google and use the sign-in sheet with the CSP active | No CSP errors in the console | |
 
 ## H. Performance and devices
 | # | Step | Expected | Result |

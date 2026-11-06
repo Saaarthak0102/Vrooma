@@ -7,8 +7,6 @@ export const mockUsers: Profile[] = [
     full_name: "Aditya Mishra",
     phone: "9876500001",
     whatsapp: "9876500001",
-    address: "14/A, MG Marg, Hazratganj, Lucknow",
-    pincode: "226001",
     city_id: "city-lucknow",
     role: "buyer",
     locale: "en",

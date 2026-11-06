@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation";
 import { PageShell } from "@/components/layout/PageShell";
 import { AuthGate } from "@/components/auth/AuthGate";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -37,8 +36,6 @@ export function ProfileView() {
   const [email, setEmail] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
-  const [address, setAddress] = useState("");
-  const [pincode, setPincode] = useState("");
   const [marketingConsent, setMarketingConsent] = useState(true);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -59,8 +56,6 @@ export function ProfileView() {
       setFullName(user.full_name || "");
       setEmail(user.email || "");
       setWhatsapp((user.whatsapp || user.phone || "").replace(/^\+91\s?/, "").replace(/\D/g, "").slice(0, 10));
-      setAddress(user.address || "");
-      setPincode((user.pincode || "").replace(/\D/g, "").slice(0, 6));
     }
   }, [user]);
 
@@ -74,14 +69,6 @@ export function ProfileView() {
     const cleanPhone = whatsapp.replace(/\D/g, "");
     if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
       newErrors.whatsapp = t("whatsappInvalid");
-    }
-
-    if (address.trim() && address.trim().length < 5) {
-      newErrors.address = t("addressRequired");
-    }
-
-    if (pincode.trim() && !/^[1-9][0-9]{5}$/.test(pincode.trim())) {
-      newErrors.pincode = t("pincodeInvalid");
     }
 
     setErrors(newErrors);
@@ -108,8 +95,6 @@ export function ProfileView() {
         fullName: fullName.trim(),
         phone: formattedPhone,
         whatsapp: formattedPhone,
-        address: address.trim() || null,
-        pincode: pincode.trim() || null,
         marketingConsent,
         expectedUpdatedAt: user?.updated_at,
       });
@@ -283,49 +268,7 @@ export function ProfileView() {
                 )}
               </div>
 
-              {/* 4. Language Preference & City */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-
-                <FormField
-                  label={t("pincode")}
-                  error={errors.pincode}
-                >
-                  <Input
-                    type="text"
-                    inputMode="numeric"
-                    value={pincode}
-                    onChange={(e) => {
-                      const digits = e.target.value.replace(/\D/g, "").slice(0, 6);
-                      setPincode(digits);
-                      if (errors.pincode) setErrors((prev) => ({ ...prev, pincode: "" }));
-                    }}
-                    placeholder={t("pincodePlaceholder")}
-                    disabled={isSubmitting}
-                    maxLength={6}
-                    className="h-11 bg-white font-mono text-sm"
-                  />
-                </FormField>
-              </div>
-
-              {/* 5. Address */}
-              <FormField
-                label={t("address")}
-                error={errors.address}
-              >
-                <Textarea
-                  value={address}
-                  onChange={(e) => {
-                    setAddress(e.target.value);
-                    if (errors.address) setErrors((prev) => ({ ...prev, address: "" }));
-                  }}
-                  placeholder={t("addressPlaceholder")}
-                  disabled={isSubmitting}
-                  rows={2}
-                  className="bg-white text-sm resize-y"
-                />
-              </FormField>
-
-              {/* 6. DPDP Statutory Marketing Toggle */}
+              {/* DPDP Statutory Marketing Toggle */}
               <div className="rounded-xl border border-border p-4 bg-stone-50/70 flex items-center justify-between gap-4">
                 <div className="space-y-0.5">
                   <div className="flex items-center gap-1.5 text-xs font-bold text-ink">

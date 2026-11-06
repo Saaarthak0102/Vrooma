@@ -32,6 +32,7 @@ export default function PrivacyPage() {
             <li>Contact details: Name, 10-digit mobile number, email address.</li>
             <li>Vehicle preferences: Preferred Brand X model, variant, fuel type, and city of registration.</li>
             <li>Booking records: Appointment date, slot, and preferred showroom facility.</li>
+            <li>Home visit address and PIN code: only if you ask for a home test drive or a vehicle pickup, stored with that booking alone.</li>
           </ul>
         </section>
 

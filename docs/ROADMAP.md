@@ -59,7 +59,7 @@
 ---
 
 ## Day 4: Buyer Authentication & Booking Fulfillment
-- [ ] Configure Supabase Auth (Email OTP and Google OAuth).
+- [ ] Configure Supabase Auth (Email OTP only; Google was removed).
 - [ ] Wire customer dashboard mutations (retiring Day 4 `notWired()` placeholders):
   - [ ] Test drive cancellation and rescheduling.
   - [ ] Saved cars wishlist toggling.

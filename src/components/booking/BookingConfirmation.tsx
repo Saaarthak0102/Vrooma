@@ -87,7 +87,9 @@ export function BookingConfirmation({
           <span>In-App WhatsApp Dispatch Preview</span>
         </div>
         <p className="text-xs text-ink leading-relaxed italic bg-white p-3 rounded-lg border border-border/80">
-          {isTestDrive
+          {booking.address
+            ? <>&ldquo;Namaste {customerName}, your {booking.vehicle_info.model_name} {isTestDrive ? "home test drive" : "service pickup"} is confirmed for {dateFormatted} at {timeFormatted}. We will come to {booking.address}, {booking.pincode}. {booking.consultant_name ? `${booking.consultant_name} is your contact.` : "Your contact will call you before arriving."}&rdquo;</>
+            : isTestDrive
             ? <>&ldquo;Namaste {customerName}, your {booking.vehicle_info.model_name} test drive is confirmed for {dateFormatted} at {timeFormatted} at {booking.showroom_or_workshop_name}. {booking.consultant_name ? `${booking.consultant_name} will welcome you.` : "Your consultant will welcome you."}&rdquo;</>
             : <>&ldquo;Namaste {customerName}, your service for {booking.vehicle_info.model_name} is confirmed for {dateFormatted} at {timeFormatted} at {booking.showroom_or_workshop_name}. {booking.consultant_name ? `${booking.consultant_name} will be your service advisor.` : "Your service advisor will be in touch."}&rdquo;</>}
         </p>

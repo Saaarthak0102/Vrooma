@@ -34,8 +34,7 @@
 
 - [ ] **SMTP / Resend Production Domain (OPEN — Awaiting Owner Action):**  
   *Status:* OPEN. Owner must create Resend account, add sending domain `notifications.vrooma.in`, and configure SPF, DKIM, and DMARC TXT records in domain DNS. Outbox worker is guarded and fails closed with retry backoff when `RESEND_API_KEY` is missing in production.
-- [ ] **Google OAuth Client (OPEN — Awaiting Owner Action):**  
-  *Status:* OPEN. Owner must publish Google Cloud Console OAuth consent screen to Public status and register production redirect URI `https://vrooma.in/api/auth/callback`.
+- [x] **Google OAuth:** removed (email code sign-in only). Owner: turn the Google provider off in Supabase Authentication.
 - [x] **Initial Administrator Bootstrap:**  
   *Evidence:* Dealer Principal admin account bootstrap procedure guarded via `scripts/seed-prod-admin.mjs` requiring `--i-am-targeting-production` and explicit reference confirmation.
 - [x] **Dev Login & Bypass Disabled:**  

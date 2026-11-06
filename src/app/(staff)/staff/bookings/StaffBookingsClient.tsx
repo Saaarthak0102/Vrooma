@@ -84,6 +84,11 @@ export function StaffBookingsClient({ bookings }: StaffBookingsClientProps) {
                   </TableCell>
                   <TableCell className="text-xs font-bold text-ink">
                     {b.vehicle_info.model_name}
+                    {b.address && (
+                      <span className="block text-[10px] font-medium text-ink-soft mt-0.5">
+                        At customer address: {b.address}, {b.pincode}
+                      </span>
+                    )}
                   </TableCell>
                   <TableCell className="text-xs">
                     <span className="font-semibold block">{dateFormatted}</span>

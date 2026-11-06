@@ -339,6 +339,9 @@ export interface Database {
           cancel_reason: string | null;
           rescheduled_from: string | null;
           idempotency_key: string | null;
+          /** Customer address, only for home test drives and vehicle pickups. */
+          address: string | null;
+          pincode: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -376,8 +379,6 @@ export interface Database {
           locale: "en" | "hi";
           role: Role;
           is_active: boolean;
-          address: string | null;
-          pincode: string | null;
           onboarding_completed_at: string | null;
           deleted_at: string | null;
           anonymised_at: string | null;
@@ -813,8 +814,6 @@ export interface Database {
           p_whatsapp?: string | null;
           p_city_id: string;
           p_locale: string;
-          p_address?: string | null;
-          p_pincode?: string | null;
           p_marketing_consent?: boolean;
           p_policy_version?: string;
         };
@@ -887,6 +886,8 @@ export interface Database {
           p_notes?: string | null;
           p_consent_id?: string | null;
           p_idempotency_key?: string | null;
+          p_address?: string | null;
+          p_pincode?: string | null;
         };
         Returns: Database["public"]["Tables"]["bookings"]["Row"];
       };

@@ -10,6 +10,8 @@ import { SlotPicker } from "@/components/booking/SlotPicker";
 import { BookingConfirmation } from "@/components/booking/BookingConfirmation";
 import { FormField, PhoneField } from "@/components/forms/PhoneField";
 import { ConsentCheckbox } from "@/components/forms/ConsentCheckbox";
+import { HomeVisitFields } from "@/components/booking/HomeVisitFields";
+import { validateHomeVisit, HomeVisitErrors } from "@/lib/validation/home-visit";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -53,6 +55,10 @@ function BookTestDriveWizard() {
   const [name, setName] = useState(user?.full_name || "");
   const [phone, setPhone] = useState(user?.phone || "");
   const [consent, setConsent] = useState(false);
+  const [homeVisit, setHomeVisit] = useState(false);
+  const [address, setAddress] = useState("");
+  const [pincode, setPincode] = useState("");
+  const [homeErrors, setHomeErrors] = useState<HomeVisitErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [confirmedBooking, setConfirmedBooking] = useState<Booking | null>(null);
@@ -165,6 +171,9 @@ function BookTestDriveWizard() {
         consent: true,
         contactName: name,
         contactPhone: phone,
+        homeVisit,
+        address: homeVisit ? address.trim() : null,
+        pincode: homeVisit ? pincode.trim() : null,
       });
 
       if (!result.ok) {
@@ -217,6 +226,8 @@ function BookTestDriveWizard() {
         starts_at: result.data.startsAt,
         ends_at: result.data.endsAt,
         consultant_name: result.data.consultantDisplayName,
+        address: homeVisit ? address.trim() : null,
+        pincode: homeVisit ? pincode.trim() : null,
         created_at: new Date().toISOString(),
       });
       setCurrentStep(4);
@@ -235,6 +246,17 @@ function BookTestDriveWizard() {
       toast.error("Please fill in your name, valid phone and appointment slot");
       return;
     }
+    if (homeVisit) {
+      const homeErrs = validateHomeVisit(address, pincode);
+      setHomeErrors(homeErrs);
+      if (Object.keys(homeErrs).length > 0) {
+        toast.error("Please enter your address and PIN code for the home visit.");
+        return;
+      }
+    } else {
+      setHomeErrors({});
+    }
+
     if (!consent) {
       toast.error("DPDP consent is required to confirm booking");
       return;
@@ -360,6 +382,18 @@ function BookTestDriveWizard() {
                   value={phone}
                   onChange={setPhone}
                   required
+                />
+
+                <HomeVisitFields
+                  enabled={homeVisit}
+                  onEnabledChange={setHomeVisit}
+                  address={address}
+                  onAddressChange={setAddress}
+                  pincode={pincode}
+                  onPincodeChange={setPincode}
+                  errors={homeErrors}
+                  label="Home test drive: bring the car to my address"
+                  description="Leave this off to drive at the showroom you picked."
                 />
 
                 <ConsentCheckbox checked={consent} onCheckedChange={setConsent} />

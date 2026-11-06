@@ -34,15 +34,13 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const { full_name, whatsapp, address, pincode } = parsed.data;
+    const { full_name, whatsapp } = parsed.data;
 
     // Only contact fields. Role, is_active and email are never writable here.
     const updated = await updateUser(session.user.id, {
       full_name,
       whatsapp,
       phone: whatsapp,
-      address,
-      pincode,
     });
 
     return NextResponse.json({ ok: true, data: updated });

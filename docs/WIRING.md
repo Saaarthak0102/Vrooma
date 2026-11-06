@@ -27,8 +27,6 @@ Current placeholder count: **21**
 | Regenerate Next 30 Days Slots | `src/app/[locale]/(admin)/admin/slots/page.tsx` | Day 3 | Slot generator cron / API endpoint `/api/slots/generate` |
 | Intake Used Car | `src/app/[locale]/(admin)/admin/used-cars/page.tsx` | Day 3 | Supabase `used_cars` insert mutation with 140-pt report |
 | Invite Staff User | `src/app/[locale]/(admin)/admin/users/page.tsx` | Day 3 | Supabase auth invite user admin API |
-| Google OAuth | `src/app/[locale]/(auth)/sign-in/page.tsx` | Day 4 | Supabase Auth Google OAuth provider redirect |
-| Google OAuth | `src/components/auth/SignInSheet.tsx` | Day 4 | Supabase Auth Google OAuth provider redirect |
 | Mark Booking Attended | `src/app/[locale]/(staff)/staff/bookings/page.tsx` | Day 4 | Supabase `bookings` status update to `completed` |
 | Get Best Offer Enquiry | `src/components/cars/PriceSummaryBar.tsx` | Day 4 | Lead submission modal dialog pre-filled with variant |
 | Reschedule Booking | `src/components/dashboard/BookingCard.tsx` | Day 4 | Booking rescheduling modal with slot picker |

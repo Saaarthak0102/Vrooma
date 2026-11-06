@@ -15,7 +15,7 @@
  * It also prints the active CSP mode and whether script-src allows 'unsafe-inline' (it should use a nonce
  * or hashes instead).
  *
- * NOT automatable: "Continue with Google" (needs a real Google account). See the MANUAL list printed at the end.
+ * NOT automatable: email code delivery to a real inbox. See the MANUAL list printed at the end.
  *
  * Usage:
  *   pnpm build && pnpm start -p 3009          # production build, as in VERIFY_REPORT
@@ -394,7 +394,6 @@ async function run() {
   console.log(`- Verdict: ${csp.verdict}`);
 
   console.log("\n### Manual steps (cannot be automated)");
-  console.log("- 'Continue with Google' sign-in: needs a real Google account and the OAuth consent screen. Check on DEV and again on PROD.");
   console.log("- Email OTP delivery to a real inbox (owner step).");
 
   const failed = all.filter((r) => r.verdict === "FAIL");

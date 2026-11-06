@@ -18,8 +18,6 @@ import {
   ShieldCheck,
   CheckCircle2,
   LogOut,
-  ChevronDown,
-  ChevronUp,
   RefreshCw,
   Sparkles,
 } from "lucide-react";
@@ -37,9 +35,6 @@ export default function OnboardingPage() {
   const [cityId, setCityId] = useState<string>(DEFAULT_CITY.id);
 
   // Optional fields
-  const [showOptional, setShowOptional] = useState(false);
-  const [address, setAddress] = useState("");
-  const [pincode, setPincode] = useState("");
 
   // DPDP Consents
   const [termsConsent, setTermsConsent] = useState(false);
@@ -59,8 +54,6 @@ export default function OnboardingPage() {
         setPhoneDigits(clean.startsWith("91") ? clean.slice(2) : clean);
       }
       if (user.city_id) setCityId(user.city_id);
-      if (user.address) setAddress(user.address);
-      if (user.pincode) setPincode(user.pincode);
     }
 
     // Check draft in sessionStorage if available
@@ -75,8 +68,6 @@ export default function OnboardingPage() {
           setPhoneDigits(clean.startsWith("91") ? clean.slice(2) : clean);
         }
         if (parsed.cityId) setCityId(parsed.cityId);
-        if (parsed.address) setAddress(parsed.address);
-        if (parsed.pincode) setPincode(parsed.pincode);
         // Consents are deliberately NOT restored: they start unticked and are given here, after the email
         // address has been verified (DPDP Act 2023).
       }
@@ -118,10 +109,6 @@ export default function OnboardingPage() {
       errs.serviceConsent = "Consent to receive booking and quotation communications is required.";
     }
 
-    if (pincode.trim() && !/^[1-9][0-9]{5}$/.test(pincode.trim())) {
-      errs.pincode = "Enter a valid 6-digit Indian PIN code.";
-    }
-
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -143,8 +130,6 @@ export default function OnboardingPage() {
         phone: `+91${phoneDigits.replace(/\D/g, "")}`,
         city_id: cityId,
         locale: "en",
-        address: address.trim() || undefined,
-        pincode: pincode.trim() || undefined,
         terms_consent: true,
         service_consent: true,
         marketing_consent: marketingConsent,
@@ -269,48 +254,6 @@ export default function OnboardingPage() {
               </Select>
             </div>
 
-          </div>
-
-          {/* Collapsible Optional Address */}
-          <div className="pt-1">
-            <button
-              type="button"
-              onClick={() => setShowOptional(!showOptional)}
-              className="flex items-center gap-1.5 text-xs text-accent font-semibold hover:underline"
-            >
-              {showOptional ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-              <span>{showOptional ? "Hide optional delivery details" : "Add home delivery address (optional)"}</span>
-            </button>
-
-            {showOptional && (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 animate-in fade-in">
-                <div className="sm:col-span-2 space-y-1">
-                  <label className="text-[11px] font-semibold text-ink-soft uppercase block">
-                    Street Address (Optional)
-                  </label>
-                  <Input
-                    type="text"
-                    placeholder="14/A, MG Marg, Hazratganj"
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[11px] font-semibold text-ink-soft uppercase block">
-                    PIN Code
-                  </label>
-                  <Input
-                    type="text"
-                    inputMode="numeric"
-                    placeholder="226001"
-                    value={pincode}
-                    onChange={(e) => setPincode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                    maxLength={6}
-                  />
-                  {errors.pincode && <p className="text-[10px] text-danger">{errors.pincode}</p>}
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Consents Group */}

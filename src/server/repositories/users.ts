@@ -9,7 +9,7 @@ type ProfileUpdate = Database["public"]["Tables"]["profiles"]["Update"];
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-const PROFILE_COLUMNS = "id, email, full_name, phone, whatsapp, address, pincode, city_id, role, locale, is_active, created_at, updated_at";
+const PROFILE_COLUMNS = "id, email, full_name, phone, whatsapp, city_id, role, locale, is_active, created_at, updated_at";
 
 const LEGACY_ID_MAP: Record<string, string> = {
   "usr-buyer-1": "00000000-0000-0000-0000-000000000001",
@@ -32,8 +32,6 @@ function mapRowToProfile(row: any): Profile {
     full_name: row.full_name || "",
     phone: row.phone || null,
     whatsapp: row.whatsapp || null,
-    address: row.address || null,
-    pincode: row.pincode || null,
     city_id: row.city_id || null,
     role: row.role as Role,
     locale: "en",
@@ -117,8 +115,6 @@ export async function updateUser(id: string, updates: Partial<Profile>): Promise
   if (updates.full_name !== undefined) updatePayload.full_name = updates.full_name;
   if (updates.phone !== undefined) updatePayload.phone = updates.phone;
   if (updates.whatsapp !== undefined) updatePayload.whatsapp = updates.whatsapp;
-  if (updates.address !== undefined) updatePayload.address = updates.address;
-  if (updates.pincode !== undefined) updatePayload.pincode = updates.pincode;
   if (updates.city_id !== undefined) updatePayload.city_id = updates.city_id;
   if (updates.is_active !== undefined) updatePayload.is_active = updates.is_active;
 
