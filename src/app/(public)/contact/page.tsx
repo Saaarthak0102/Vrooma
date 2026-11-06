@@ -5,6 +5,19 @@ import { MapPin, Phone, Mail, Clock } from "lucide-react";
 import { constructMetadata } from "@/lib/seo";
 import { listShowrooms } from "@/server/repositories/showrooms";
 
+// Re-check every 5 minutes, so a page built while the database was unreachable heals itself.
+export const revalidate = 300;
+
+/** A database hiccup at build time must not fail the whole deploy: show an empty list and refresh soon. */
+async function safely<T>(load: () => Promise<T[]>): Promise<T[]> {
+  try {
+    return await load();
+  } catch (err) {
+    console.warn("[build] could not load data, rendering empty and retrying on the next revalidation:", (err as Error)?.message);
+    return [];
+  }
+}
+
 export async function generateMetadata() {
   return constructMetadata({
     title: "Contact Vrooma Lucknow - Showroom Desks & Enquiries",
@@ -14,7 +27,7 @@ export async function generateMetadata() {
 }
 
 export default async function ContactPage() {
-  const showrooms = await listShowrooms();
+  const showrooms = await safely(() => listShowrooms());
   return (
     <PageShell
       title="Contact Our Showroom Team"

@@ -7,6 +7,18 @@ import Link from "next/link";
 import { MapPin, Phone, Clock, Navigation, Wrench, ShieldCheck } from "lucide-react";
 import { constructMetadata } from "@/lib/seo";
 
+export const revalidate = 300;
+
+/** A database hiccup at build time must not fail the whole deploy: show an empty list and refresh soon. */
+async function safely<T>(load: () => Promise<T[]>): Promise<T[]> {
+  try {
+    return await load();
+  } catch (err) {
+    console.warn("[build] could not load data, rendering empty and retrying on the next revalidation:", (err as Error)?.message);
+    return [];
+  }
+}
+
 export async function generateMetadata() {
   return constructMetadata({
     title: "Vrooma Showrooms & Service Workshops in Lucknow & Kanpur",
@@ -16,8 +28,7 @@ export async function generateMetadata() {
 }
 
 export default async function ShowroomsPage() {
-  const showrooms = await listShowrooms();
-  const workshops = await listWorkshops();
+  const [showrooms, workshops] = await Promise.all([safely(() => listShowrooms()), safely(() => listWorkshops())]);
 
   return (
     <PageShell

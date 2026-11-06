@@ -7,6 +7,18 @@ import Link from "next/link";
 import { Sparkles, Calendar, ArrowRight } from "lucide-react";
 import { constructMetadata } from "@/lib/seo";
 
+export const revalidate = 300;
+
+/** A database hiccup at build time must not fail the whole deploy: show no offers and refresh soon. */
+async function safeOffers() {
+  try {
+    return await listOffers();
+  } catch (err) {
+    console.warn("[build] could not load offers, rendering empty and retrying on the next revalidation:", (err as Error)?.message);
+    return [];
+  }
+}
+
 export async function generateMetadata() {
   return constructMetadata({
     title: "Official Showroom Offers & Benefits in Lucknow",
@@ -16,7 +28,7 @@ export async function generateMetadata() {
 }
 
 export default async function OffersPage() {
-  const offers = await listOffers();
+  const offers = await safeOffers();
 
   return (
     <PageShell
