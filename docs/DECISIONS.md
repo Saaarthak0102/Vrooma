@@ -103,3 +103,29 @@
 - **Decision:** Sign-in is the emailed one-time code only. Google OAuth is removed: no button, no `startGoogle` action, no `/auth/callback` route. `/auth/confirm` (email link) stays.
 - **Address:** The customer's address and PIN code are no longer kept on the profile. They are asked only in the home test drive and vehicle pickup parts of the booking forms and stored on that booking (`bookings.address`, `bookings.pincode`, migration `0027`). `profiles.address` and `profiles.pincode` were dropped. Erasure also wipes booking addresses.
 - **Owner steps:** turn the Google provider off in Supabase Authentication (DEV, later PROD).
+
+## ADR: Consolidated consoles, 2-3 screens per role
+
+- **Date:** 2026-11-07
+- **Decision:** Staff and admin use spreadsheet-style screens (`DataGrid`: sort, search, filters, CSV export) with side panels instead of detail pages. Consultant 2 screens, Used-Car Manager 3, Dealer Principal 3. One top bar (`ConsoleShell`) replaces both sidebars. Console routes render no public header, footer or chat, and use native scrolling (smooth-scroll hijacked the wheel inside panels).
+- **Roles:** unchanged (`buyer`, `consultant`, `manager` = Used-Car Manager, `admin` = Dealer Principal). No new role; the service-advisor view is Bookings.
+- **Access:** `/staff/stock` is manager and admin only; `/admin/*` is admin only (managers no longer reach it).
+- **Redirects:** every old console URL redirects to its new home (see `docs/ROUTES.md`).
+- **Buyer side:** deliberately unchanged.
+
+## ADR: Staff always land in their console after sign-in
+
+- **Date:** 2026-11-07
+- **Decision:** `postSignInPath(role, next)` in `src/lib/console-nav.ts` is the single rule used by the email-code page, the sign-in sheet, the email link and onboarding. Consultant and manager go to `/staff`, admin to `/admin`, even when `next` points at a public page; a `next` inside a console they may open is kept. Buyers keep `next`.
+- **Dev persona switch:** is a real sign-in through `/api/auth/dev-login`. It used to set a fake client-side profile, so the navbar looked signed in while `/dashboard` and `/profile` redirected to sign-in.
+
+## ADR: Price band from past sales, manager only
+
+- **Date:** 2026-11-07
+- **Decision:** The used-car price band is server-computed from `used_car_sales_history` (same model, within 2 years, adjusted for year and km) and returned only to manager and admin. It replaces the earlier client-side flat ±6%. No comparable sales means no band. The manager still sets every final price.
+
+## ADR: Types must match the schema
+
+- **Date:** 2026-11-07
+- **Context:** `src/types/db.ts` (hand-written) let code write columns that do not exist: trade-in `fuel`/`transmission`, offers `updated_at`, CSV import `row_count`. Each failed at runtime only.
+- **Decision:** `tests/types-match-schema.test.ts` compares both type files table by table. Trade-in submissions no longer write or invent fuel/transmission (the form never asks for them). Banners store `/` when no link is given; price rules require a model or variant (the database already did).

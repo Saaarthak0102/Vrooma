@@ -128,19 +128,23 @@ Supabase cannot call `localhost`, so the HTTP cron jobs (outbox, retention, dele
 
 ### 💼 Role 2: Sales Consultant (Staff Lead Desk)
 1. **Sign in** as `dev-consultant@vrooma.in`.
-2. **Lead Desk & 5-Minute SLA:** `/staff/leads` shows color-coded SLA countdowns. Breaches are flagged every minute by the `eval_lead_sla_breaches` job.
-3. **AI Buyer Briefing & Guarded First Reply:** Open a lead for the 3-bullet AI summary and drafted reply. Forbidden discount words (`discount`, `छूट`) are blocked in the editor and on the server ([`DISCOUNT_RULES.md`](./docs/backend/DISCOUNT_RULES.md)).
-4. **CSV Lead Importer:** `/staff/leads/import` with `scripts/seed-csv-sample.csv` for column mapping and duplicate-phone detection.
+2. **Lead Desk & 5-Minute SLA:** `/staff` shows color-coded SLA countdowns. Breaches are flagged every minute by the `eval_lead_sla_breaches` job.
+3. **AI Buyer Briefing & Guarded First Reply:** Click a lead (it opens in a side panel) for the 3-bullet AI summary and drafted reply. Forbidden discount words (`discount`, `छूट`) are blocked in the editor and on the server ([`DISCOUNT_RULES.md`](./docs/backend/DISCOUNT_RULES.md)).
+4. **CSV Lead Importer:** the **Import CSV** button on the Lead Desk, with `scripts/seed-csv-sample.csv`, de-duplicates by phone number.
+5. **Bookings:** `/staff/bookings` for test drives, service, attended / no-show and workshop bay load.
 
 ### 🔍 Role 3: Used-Car Manager
 1. **Sign in** as `dev-manager@vrooma.in`.
-2. **Valuation Engine:** `/admin/used-cars` shows the AI-suggested market valuation band, visible **only** to the manager.
+2. **Used Stock:** `/staff/stock` shows the price band built from past sales of the same model (visible **only** to the manager and admin), the inspection scorecard, the audited plate reveal, vehicle intake, and the Trade-ins tab.
 
 ### 🏢 Role 4: Dealer Principal (Admin Executive)
 1. **Sign in** as `dev-admin@vrooma.in`.
 2. **₹2.11 Crore Revenue Leakage Monitor:** `/admin` shows live leakage analytics (₹1.62 Cr from slow lead response, ₹48.6 Lakh from dropped service calls).
-3. **Live Price Rules CMS:** `/admin/prices` adjusts Lucknow or Kanpur RTO percentages with a live simulator.
-4. **System health:** `/admin/system` shows cron job status.
+3. **Live Price Rules CMS:** `/admin/catalog?tab=prices` edits Lucknow or Kanpur RTO rules with a live simulator.
+4. **Team & Network:** `/admin/team` for roles, staff invites, lead routing rules, bay capacity and the slot calendar.
+5. **System health and AI log:** tabs on `/admin`.
+
+Staff sign-ins always land in their console (no public header or footer there). `pnpm e2e:console` and `pnpm layout:console` verify every console feature and layout against the dev project.
 
 ---
 

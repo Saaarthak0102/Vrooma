@@ -30,26 +30,18 @@
   - [x] Facility locator (`/showrooms`), offers page (`/offers`), about & contact pages.
   - [x] DPDP compliance pages (`/legal/privacy`, `/legal/terms`, `/legal/data-rights`).
 - [x] Buyer account portal (`/dashboard/*`) for bookings, saved cars, and personal data erasure.
-- [x] Staff sales console:
-  - [x] Lead desk with real-time color-coded 5-minute SLA countdown clocks (`/staff/leads`).
-  - [x] Lead dossier with AI buyer briefing card, discount-blocked reply editor, and reassignment modal (`/staff/leads/[id]`).
-  - [x] CSV bulk lead importer with column mapping and deduplication (`/staff/leads/import`).
-  - [x] Scheduled test drives and workshop bay calendar (`/staff/bookings`).
-- [x] Admin executive console:
-  - [x] Dealer Principal ₹2.11 cr revenue leakage monitor (`/admin`).
-  - [x] Model and variant CMS (`/admin/models`).
-  - [x] City RTO and insurance price rule matrix editor with live simulator (`/admin/prices`).
-  - [x] Certified pre-owned inventory manager with AI pricing view (`/admin/used-cars`).
-  - [x] Showroom and workshop bay manager (`/admin/showrooms`).
-  - [x] Auto-assignment rules and user role management (`/admin/assignment`, `/admin/users`).
-  - [x] AI draft compliance audit log (`/admin/ai-logs`).
+- [x] Staff and admin consoles, consolidated to 2-3 spreadsheet-style screens per role (see `docs/ROUTES.md`):
+  - [x] Consultant: Lead Desk (`/staff`: SLA timers, inline stage, AI summary and guarded reply, reassign, activity, CSV import) and Bookings (`/staff/bookings`: attended / no-show, bay load).
+  - [x] Used-Car Manager: Used Stock (`/staff/stock`: manager-only price band from past sales, scorecard, audited plate reveal, vehicle intake, trade-ins with photos).
+  - [x] Dealer Principal: Overview (`/admin`: live metrics, leakage monitor, AI reply log, system health), Catalog (`/admin/catalog`: models, variants, price rules, offers, banners), Team (`/admin/team`: roles, invite, bays, routing rules, slot calendar).
+  - [x] Every action verified against Supabase by `scripts/console-e2e.mjs`; layout verified by `scripts/console-layout.mjs`.
 
 ---
 
 ## Day 3: Supabase Backend Integration & Admin Wiring
 - [ ] Connect live Supabase project and execute database migrations `0001` through `0007`.
 - [ ] Implement Supabase client repository queries in `src/server/repositories/*`.
-- [ ] Wire admin mutations (retiring Day 3 `notWired()` placeholders):
+- [x] Wire admin mutations (done; 0 `notWired()` placeholders remain):
   - [ ] Model & variant creation/editing.
   - [ ] City price rule updates.
   - [ ] Used car stock intake with 140-point inspection JSON.

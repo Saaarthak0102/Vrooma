@@ -10,16 +10,18 @@
 
 ## 2. Enums
 
+> Corrected to match the real migrations (`0001_extensions_schemas_enums.sql`). The authoritative schema is `supabase/migrations/`; `src/types/database.types.ts` is generated from it and `tests/types-match-schema.test.ts` keeps the hand-written `src/types/db.ts` in line.
+
 ```sql
-CREATE TYPE user_role AS ENUM ('buyer', 'sales_consultant', 'used_car_manager', 'admin');
-CREATE TYPE fuel_type AS ENUM ('petrol', 'diesel', 'cng', 'electric', 'hybrid');
-CREATE TYPE transmission_type AS ENUM ('manual', 'automatic', 'amt', 'cvt', 'dct');
+CREATE TYPE role_type AS ENUM ('buyer', 'consultant', 'manager', 'admin');  -- 'manager' is also the Used-Car Manager
+CREATE TYPE fuel_type AS ENUM ('petrol', 'diesel', 'cng', 'ev', 'hybrid');
+CREATE TYPE transmission_type AS ENUM ('manual', 'automatic');
 CREATE TYPE body_style AS ENUM ('hatchback', 'sedan', 'suv', 'mpv');
 CREATE TYPE vehicle_condition AS ENUM ('fair', 'good', 'excellent');
-CREATE TYPE lead_status AS ENUM ('new', 'assigned', 'contacted', 'test_drive_scheduled', 'negotiating', 'won', 'lost');
-CREATE TYPE lead_source AS ENUM ('web_form', 'on_road_gate', 'used_report_gate', 'car_portal_csv', 'whatsapp', 'walk_in');
+CREATE TYPE lead_status_type AS ENUM ('new', 'contacted', 'test_drive_booked', 'negotiating', 'won', 'lost');
+CREATE TYPE lead_source_type AS ENUM ('web', 'portal', 'social', 'walkin', 'chat', 'trade_in');
 CREATE TYPE booking_type AS ENUM ('test_drive', 'service');
-CREATE TYPE booking_status AS ENUM ('confirmed', 'in_progress', 'completed', 'cancelled', 'no_show');
+CREATE TYPE booking_status AS ENUM ('confirmed', 'cancelled', 'completed', 'no_show');
 CREATE TYPE used_car_status AS ENUM ('available', 'booked', 'sold');
 ```
 

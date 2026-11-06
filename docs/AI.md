@@ -27,8 +27,8 @@ const FORBIDDEN_WORDS = [
 If a consultant attempts to send a message containing any forbidden term, the submission is blocked with an alert: *"Dealership policy prohibits quoting unapproved discounts in initial replies."*
 
 ### B. Role Isolation for Used-Car Pricing
-- The AI price recommendation algorithm estimates market pricing based on historical Lucknow used car transactions.
-- **Rule:** This valuation band is rendered strictly in the `/admin/used-cars` and `/admin/used-cars/[id]` management consoles for the `used_car_manager` and `admin` roles.
+- The price recommendation is statistical, not a language model: a percentile band over adjusted past sales.
+- **Rule:** The band is computed on the server by `getPriceBandAction` (`requireRole("manager", "admin")`) from past sales of the same model, within 2 years, adjusted for year and kilometres (`src/lib/price-band.ts`, `used_car_sales_history`). It is shown only on `/staff/stock` (stock drawer and trade-in drawer). With no comparable sale there is no band, and the screen says so. The sample size and confidence are shown, never invented.
 - It is completely omitted from the public API payload (`/api/cars/search`) and public vehicle dossier.
 
 ---

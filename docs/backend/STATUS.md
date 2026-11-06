@@ -1,6 +1,6 @@
 # VROOMA BACKEND: IMPLEMENTATION STATUS & PROGRESSION
 
-**Last Updated:** 2026-11-05  
+**Last Updated:** 2026-11-07  
 **Current Phase:** Phase 6 Complete (Hardening, Security Review, Observability, Tests & Release Checklist)  
 **Branch / Worktree:** Main  
 
@@ -324,3 +324,13 @@ DEV project is `eobtzcwinjmimzisypca`; PRODUCTION is `ajumkjokagqfdikfguti`.
 - **Production Build:** `npm run build` compiled all 121 static and dynamic routes with exit code 0.
 - **Production Smoke Test:** `npm run smoke` passed 15/15 checks (100%).
 
+
+---
+
+## 10. Console consolidation and live verification (2026-11-07)
+
+- **Screens:** consultant 2, manager 3, admin 3 (`docs/ROUTES.md`). Shared `DataGrid`, `ConsoleShell`, side panels. Old URLs redirect.
+- **Wired and verified live:** lead status, timeline, AI summary/draft persistence, reply audit (`ai_logs`), CSV import with history, used-stock price/status/scorecard/intake, audited plate reveal, trade-ins with signed photos, models, variants, price rules, offers, banners, roles, invite, deactivate, routing rules, workshop bays (also resizes upcoming slots), slot calendar, live Overview metrics.
+- **Bugs fixed on the way:** offers saved a non-existent column; banners failed with an empty link; price rules accepted a scope the database rejects; CSV import history wrote the wrong column; trade-in submit wrote non-existent columns; `saveUsedCarAction` overwrote the private plate, photos and score; `saveModelAction` wiped gallery and featured flag; admin pages fell back to the first record for an unknown id.
+- **Known limits:** WhatsApp and SMS are simulated (outbox logs only); the AI summary and draft are templates, not a live model; phone calls are not tracked, so the unanswered-call rate cannot be measured (the Overview shows online service bookings); no admin create for showrooms, workshops or demo cars.
+- **Verification:** `pnpm e2e:console` 42/42, `pnpm layout:console` clean, 554 unit tests.

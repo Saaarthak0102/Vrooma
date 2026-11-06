@@ -28,10 +28,10 @@
 | `saveModelAction` | `admin-catalog.ts` | ❌ | ❌ | ❌ | ❌ | ✅ | `requireRole("admin")` | 403 Forbidden | `tests/rls-matrix.test.ts` |
 | `saveVariantAction` | `admin-catalog.ts` | ❌ | ❌ | ❌ | ❌ | ✅ | `requireRole("admin")` | 403 Forbidden | `tests/rls-matrix.test.ts` |
 | `savePriceRuleAction` | `admin-catalog.ts` | ❌ | ❌ | ❌ | ❌ | ✅ | `requireRole("admin")` | 403 Forbidden | `tests/rls-matrix.test.ts` |
-| `saveUsedCarAction` | `admin-catalog.ts` | ❌ | ❌ | ❌ | ✅ | ✅ | `requireRole("manager", "admin")` | 403 Forbidden | `tests/rls-matrix.test.ts` |
+| `saveUsedCarAction` (patch semantics on update) | `admin-catalog.ts` | ❌ | ❌ | ❌ | ✅ | ✅ | `requireRole("manager", "admin")` | 403 Forbidden | `tests/rls-matrix.test.ts` |
 | `saveShowroomAction` | `admin-catalog.ts` | ❌ | ❌ | ❌ | ❌ | ✅ | `requireRole("admin")` | 403 Forbidden | `tests/rls-matrix.test.ts` |
 | `saveWorkshopAction` | `admin-catalog.ts` | ❌ | ❌ | ❌ | ❌ | ✅ | `requireRole("admin")` | 403 Forbidden | `tests/rls-matrix.test.ts` |
-| `getLeakMetricsAction` | `admin-leak.ts` | ❌ | ❌ | ❌ | ✅ | ✅ | `requireRole("manager", "admin")` | 403 Forbidden | `tests/auth.test.ts` |
+| `getLeakMetricsAction` | `admin-leak.ts` | ❌ | ❌ | ❌ | ✅ | ✅ | `requireRole("admin", "manager")` | 403 Forbidden | `tests/auth.test.ts` |
 | `getTestDriveBookingDataAction` | `booking.ts` | ✅ | ✅ | ✅ | ✅ | ✅ | Public Catalog Helper | 200 OK | `tests/booking-engine.test.ts` |
 | `getServiceBookingDataAction` | `booking.ts` | ✅ | ✅ | ✅ | ✅ | ✅ | Public Catalog Helper | 200 OK | `tests/booking-engine.test.ts` |
 | `bookSlotAction` | `booking.ts` | ❌ | ✅ | ✅ | ✅ | ✅ | `requireCompleteProfile()` | 401 Redirect | `tests/booking-engine.test.ts` |
@@ -41,13 +41,29 @@
 | `getBuyerDashboardDataAction` | `buyer-dashboard.ts` | ❌ | ✅ | ✅ | ✅ | ✅ | `requireUser()` + user isolation | 401 Unauthorized | `tests/auth.test.ts` |
 | `generateUserDataExportAction` | `data-rights.ts` | ❌ | ✅ | ✅ | ✅ | ✅ | `requireUser()` (Section 11 DPDP) | 401 Unauthorized | `tests/privacy-dpdp.test.ts` |
 | `updateLeadStatusAction` | `leads.ts` | ❌ | ❌ | ✅ | ✅ | ✅ | `requireRole("consultant", "manager", "admin")` | 403 Forbidden | `tests/leads-lifecycle.test.ts` |
-| `reassignLeadAction` | `leads.ts` | ❌ | ❌ | ❌ | ✅ | ✅ | `requireRole("manager", "admin")` | 403 Forbidden | `tests/leads-lifecycle.test.ts` |
+| `reassignLeadAction` | `leads.ts` | ❌ | ❌ | ✅ (own leads) | ✅ | ✅ | `requireRole("consultant", "manager", "admin")` + `reassign_lead` RPC ownership check; a reason is required (the brief: consultants can re-assign leads) | 403 Forbidden | `tests/leads-lifecycle.test.ts` |
 | `recordLeadReplyAction` | `leads.ts` | ❌ | ❌ | ✅ | ✅ | ✅ | `requireRole` + discount guard | 403 / 422 | `tests/leads-lifecycle.test.ts` |
 | `updateBuyerProfileAction` | `profile.ts` | ❌ | ✅ | ✅ | ✅ | ✅ | `requireCompleteProfile()` | 401 Unauthorized | `tests/profile.test.ts` |
 | `requestAccountDeletionAction` | `profile.ts` | ❌ | ✅ | ❌ | ❌ | ❌ | `requireUser()` (staff blocked) | 400 Bad Request | `tests/privacy-dpdp.test.ts` |
 | `cancelAccountDeletionAction` | `profile.ts` | ❌ | ✅ | ❌ | ❌ | ❌ | `requireUser()` | 401 Unauthorized | `tests/privacy-dpdp.test.ts` |
 | `getTradeInUploadUrlsAction` | `trade-in.ts` | ✅ | ✅ | ✅ | ✅ | ✅ | Signed storage upload helper | 200 OK | `tests/rls-matrix.test.ts` |
 | `submitTradeInAction` | `trade-in.ts` | ✅ | ✅ | ✅ | ✅ | ✅ | Public lead generator + DPDP consent | 200 OK | `tests/leads-lifecycle.test.ts` |
+| `saveOfferAction`, `deleteOfferAction`, `saveBannerAction`, `deleteBannerAction` | `admin-catalog.ts` | ❌ | ❌ | ❌ | ❌ | ✅ | `requireRole("admin")` | 403 Forbidden | `scripts/console-e2e.mjs` |
+| `setUsedCarFinalPriceAction`, `updateUsedCarStatusAction` | `admin-catalog.ts` | ❌ | ❌ | ❌ | ✅ | ✅ | `requireRole("admin", "manager")` | 403 Forbidden | `scripts/console-e2e.mjs` |
+| `getPriceBandAction` (price band from past sales) | `stock.ts` | ❌ | ❌ | ❌ | ✅ | ✅ | `requireRole("manager", "admin")`, computed server-side only | 403 Forbidden | `tests/console-structure.test.ts`, `tests/price-band.test.ts` |
+| `getTradeInPhotosAction` | `stock.ts` | ❌ | ❌ | ✅ | ✅ | ✅ | `requireRole` + short-lived signed URLs on a private bucket | 403 Forbidden | `scripts/console-e2e.mjs` |
+| `getLeadDrawerAction` | `lead-drawer.ts` | ❌ | ❌ | ✅ (own leads) | ✅ | ✅ | `requireRole`; a consultant opening another's lead gets "not found" | 404 Not found | `scripts/console-e2e.mjs` |
+| `saveRoutingRuleAction`, `deleteRoutingRuleAction`, `updateWorkshopBaysAction`, `setUserActiveAction` | `admin-network.ts` | ❌ | ❌ | ❌ | ❌ | ✅ | `requireRole("admin")` | 403 Forbidden | `tests/console-structure.test.ts`, `scripts/console-e2e.mjs` |
+
+### 2.1 Console screens by role
+
+| Screen | Consultant | Manager | Admin | Enforced by |
+|---|:---:|:---:|:---:|---|
+| `/staff` Lead Desk, `/staff/bookings` | ✅ (own leads) | ✅ | ✅ | middleware + layout + RLS |
+| `/staff/stock` Used Stock | ❌ 403 | ✅ | ✅ | middleware + page `requireRole` |
+| `/admin`, `/admin/catalog`, `/admin/team` | ❌ 403 | ❌ 403 | ✅ | middleware + layout |
+
+Managers no longer open `/admin/*`; used stock moved to `/staff/stock`.
 
 ---
 

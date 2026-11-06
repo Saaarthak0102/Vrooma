@@ -1,6 +1,6 @@
 # VROOMA — APPLICATION ROUTE TABLE
 
-All routes support locale prefixing (`/en` or `/hi`). Default locale is `/en` (locale prefix `as-needed`).
+The app is English only. Old `/en/...` and `/hi/...` URLs permanently redirect to the unprefixed page.
 
 | Route Path | Group | Gating / Role | Page Description & Key Features |
 |---|---|---|---|
@@ -20,28 +20,27 @@ All routes support locale prefixing (`/en` or `/hi`). Default locale is `/en` (l
 | `/legal/privacy` | `(public)` | Anonymous / Public | DPDP Act 2023 compliant privacy disclosure and cookie declaration. |
 | `/legal/terms` | `(public)` | Anonymous / Public | Terms and conditions of test drives, vehicle booking tokens, and quotation validity. |
 | `/legal/data-rights` | `(public)` | Anonymous / Public | Data rights declaration with self-service personal data export and erasure request. |
-| `/sign-in` | `(auth)` | Anonymous / Public | Authentication portal with dev 1-click role switcher (Buyer, Staff, Manager, Admin). |
+| `/sign-in` | `(auth)` | Anonymous / Public | Email-code sign-in with a dev-only persona switcher (a real sign-in through `/api/auth/dev-login`). Staff always land in their console afterwards. |
 | `/dashboard` | `(buyer)` | Buyer (Role) | Customer overview with active test drives, service bookings, and saved cars. |
 | `/dashboard/bookings` | `(buyer)` | Buyer (Role) | Historical and upcoming test drive and workshop appointments. |
 | `/dashboard/saved` | `(buyer)` | Buyer (Role) | Saved models and shortlisted certified used cars. |
 | `/dashboard/enquiries` | `(buyer)` | Buyer (Role) | Open price quotation requests and assigned consultant contacts. |
 | `/dashboard/profile` | `(buyer)` | Buyer (Role) | Personal profile, driver license storage, and DPDP consent management. |
-| `/staff` | `(staff)` | Sales Staff / Manager | Sales console dashboard with SLA performance overview. |
-| `/staff/leads` | `(staff)` | Sales Staff / Manager | Lead desk with color-coded 5-minute SLA countdown clocks and filter by showroom. |
-| `/staff/leads/[id]` | `(staff)` | Sales Staff / Manager | Lead dossier with AI buyer briefing card, discount-blocked reply draft editor, reassign dialog. |
-| `/staff/leads/import` | `(staff)` | Sales Staff / Manager | CSV bulk lead importer with column mapping, deduplication, and showroom assignment. |
-| `/staff/bookings` | `(staff)` | Sales Staff / Manager | Calendar view of all booked showroom demo cars and workshop bays. |
-| `/admin` | `(admin)` | Dealer Principal / Admin | Executive ₹2.11 cr leakage audit, live conversion gauges, and dealership health. |
-| `/admin/models` | `(admin)` | Dealer Principal / Admin | Vehicle catalog CMS: add/edit models, variants, specifications, and photo URLs. |
-| `/admin/models/[id]` | `(admin)` | Dealer Principal / Admin | Detail editor for specific vehicle model specifications and variants. |
-| `/admin/prices` | `(admin)` | Dealer Principal / Admin | City RTO, insurance rules, handling fee, and accessories matrix editor with live simulator. |
-| `/admin/used-cars` | `(admin)` | Used-Car Manager / Admin | Used car stock inventory manager with inspection report editor and AI price recommendation. |
-| `/admin/used-cars/[id]` | `(admin)` | Used-Car Manager / Admin | Stock detail editor with full 140-point checklist toggle and pricing override. |
-| `/admin/showrooms` | `(admin)` | Dealer Principal / Admin | Facility manager for showrooms, workshops, bay capacities, and demo car fleet. |
-| `/admin/slots` | `(admin)` | Dealer Principal / Admin | Slot capacity manager: blackout dates, hourly limits, and emergency holds. |
-| `/admin/offers` | `(admin)` | Dealer Principal / Admin | Promotional banner and offer card manager with validity periods. |
-| `/admin/banners` | `(admin)` | Dealer Principal / Admin | Homepage and catalog announcement banner configuration. |
-| `/admin/assignment` | `(admin)` | Dealer Principal / Admin | Lead routing rules: round-robin, showroom auto-assignment, model affinity. |
-| `/admin/users` | `(admin)` | Dealer Principal / Admin | Staff permissions, role assignment (Buyer, Staff, Manager, Admin), and showroom linkage. |
-| `/admin/ai-logs` | `(admin)` | Dealer Principal / Admin | Compliance audit table logging AI draft generation, consultant modifications, and sent messages. |
+| `/staff` | `(staff)` | Consultant / Manager / Admin | **Lead Desk.** KPI strip, spreadsheet of leads with live SLA timers and inline stage, side panel (AI summary, discount-guarded reply, reassign, activity). CSV import dialog. Consultants see only their own leads. Deep links: `?lead=<id>`, `?import=1`. |
+| `/staff/bookings` | `(staff)` | Consultant / Manager / Admin | Test drives and service in one grid, attended / no-show, workshop bay load for the next 7 days. |
+| `/staff/stock` | `(staff)` | **Manager / Admin only** | **Used Stock.** Stock grid, final price, manager-only price band from past sales, inspection scorecard, audited registration reveal, vehicle intake. Trade-ins tab with signed-URL photos. |
+| `/admin` | `(admin)` | Admin only | **Overview.** Live success metrics and the ₹2.11 cr leakage monitor. Tabs: AI reply log, System health. |
+| `/admin/catalog` | `(admin)` | Admin only | Tabs `?tab=models` (with `&model=<id>` detail), `prices`, `offers`, `banners`. |
+| `/admin/team` | `(admin)` | Admin only | Tabs `?tab=users`, `network` (showrooms, workshops, bays, demo cars), `routing`, `slots`. |
 
+## Redirects from the old console URLs
+
+| Old | New |
+|---|---|
+| `/staff/leads`, `/staff/leads/[id]`, `/staff/leads/import` | `/staff`, `/staff?lead=<id>`, `/staff?import=1` |
+| `/admin/models`, `/admin/models/[id]`, `/admin/prices`, `/admin/offers`, `/admin/banners` | `/admin/catalog?tab=…` |
+| `/admin/users`, `/admin/showrooms`, `/admin/assignment`, `/admin/slots` | `/admin/team?tab=…` |
+| `/admin/ai-logs`, `/admin/system` | `/admin?tab=ai`, `/admin?tab=system` |
+| `/admin/used-cars`, `/admin/used-cars/[id]` | `/staff/stock` |
+
+Console routes render no public header, footer, chat widget or smooth-scroll; the console bar (`ConsoleShell`) is the only navigation.

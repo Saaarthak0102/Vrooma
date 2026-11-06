@@ -277,6 +277,10 @@ Interactive 3D flip cards are deployed exclusively on the three main catalog rou
   - Real Supabase auth, onboarding and role guards; production schema with RLS, RPCs, cron and storage (migrations `0001`–`0019`); mock store removed.
   - Slots, test-drive and service bookings, lead auto-assignment with SLA flagging, CSV import/export, outbox; profile, consent, data rights and newsletter; security hardening, CI and release checklist.
   - Status and deferrals: `docs/backend/STATUS.md`.
+- **Console consolidation (Complete):**
+  - Staff and admin use 2-3 spreadsheet-style screens per role with side panels (consultant 2, manager 3, admin 3); one top bar, no public header, footer or chat on console routes; native scrolling there.
+  - Staff always land in their console after any sign-in (`postSignInPath`); the dev persona switch is a real sign-in.
+  - Every console feature is verified against Supabase by `pnpm e2e:console` (42 checks) and every screen's layout by `pnpm layout:console`. See `docs/backend/STATUS.md` section 10 for fixed bugs and known limits.
 - **Still upcoming:**
   - Add the Vault secrets (`app_url`, `cron_secret`) so the HTTP cron jobs are scheduled (`select private.ensure_cron_jobs();`).
   - Live Resend email and real WhatsApp/SMS delivery (outbox currently mocks WhatsApp/SMS).
