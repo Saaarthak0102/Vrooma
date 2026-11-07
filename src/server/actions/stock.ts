@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requireRole } from "@/server/auth/viewer";
 import { ActionResponse, successResponse, errorResponse } from "@/lib/errors";
 import { computePriceBand, type PastSale, type PriceBand } from "@/lib/price-band";
+import { explainPriceBand } from "@/server/ai/price-band-note";
 
 /**
  * The AI price band. The brief makes it visible to the Used-Car Manager ONLY, so it is produced here on the
@@ -39,6 +40,41 @@ export async function getPriceBandAction(subject: {
   } catch (err: any) {
     const forbidden = err?.code === "FORBIDDEN" || err?.code === "UNAUTHORIZED";
     return errorResponse(forbidden ? "FORBIDDEN" : "INTERNAL_ERROR", forbidden ? "Manager access required." : err?.message || "Could not compute the price band.");
+  }
+}
+
+/**
+ * A two-sentence plain-English explanation of the price band, written by the model from the band's fixed numbers.
+ * Recomputes the band on the server (the client never supplies numbers), manager and admin only. `null` means no
+ * explanation is available (no band, AI off, over its cap or the text broke a guard): the screen simply omits it.
+ */
+export async function getPriceBandNoteAction(subject: {
+  model_name: string;
+  year: number;
+  km: number;
+  fuel?: string | null;
+}): Promise<ActionResponse<string | null>> {
+  try {
+    const { user } = await requireRole("manager", "admin");
+    if (!subject.model_name?.trim() || !Number.isFinite(subject.year) || !Number.isFinite(subject.km)) {
+      return errorResponse("VALIDATION_FAILED", "Model, year and kilometres are required.");
+    }
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from("used_car_sales_history")
+      .select("model_name, year, fuel, km, sold_price")
+      .ilike("model_name", subject.model_name.trim())
+      .gte("year", subject.year - 2)
+      .lte("year", subject.year + 2)
+      .limit(200);
+    if (error) return errorResponse("INTERNAL_ERROR", error.message);
+
+    const band = computePriceBand(subject, (data ?? []) as PastSale[]);
+    if (!band) return successResponse(null);
+    return successResponse(await explainPriceBand(subject, band, { userId: user.id }));
+  } catch (err: any) {
+    const forbidden = err?.code === "FORBIDDEN" || err?.code === "UNAUTHORIZED";
+    return errorResponse(forbidden ? "FORBIDDEN" : "INTERNAL_ERROR", forbidden ? "Manager access required." : err?.message || "Could not explain the price band.");
   }
 }
 

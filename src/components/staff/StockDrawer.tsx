@@ -17,7 +17,7 @@ import {
   type Scorecard,
 } from "@/lib/inspection-score";
 import type { PriceBand } from "@/lib/price-band";
-import { getPriceBandAction } from "@/server/actions/stock";
+import { getPriceBandAction, getPriceBandNoteAction } from "@/server/actions/stock";
 import { revealUsedCarRegAction } from "@/server/actions/used-car-reg";
 import {
   saveUsedCarAction,
@@ -31,6 +31,7 @@ export function StockDrawer({ car, onClose }: { car: StockRow | null; onClose: (
   const [price, setPrice] = useState("");
   const [band, setBand] = useState<PriceBand | null | undefined>(undefined);
   const [bandError, setBandError] = useState<string | null>(null);
+  const [bandNote, setBandNote] = useState<string | null>(null);
   const [card, setCard] = useState<Scorecard>({});
   const [reg, setReg] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -43,6 +44,7 @@ export function StockDrawer({ car, onClose }: { car: StockRow | null; onClose: (
     setReg(null);
     setBand(undefined);
     setBandError(null);
+    setBandNote(null);
     if (!car) return;
     setPrice(String(car.price));
     setCard(readScorecard(car.inspection));
@@ -55,6 +57,11 @@ export function StockDrawer({ car, onClose }: { car: StockRow | null; onClose: (
       });
       if (res.ok) setBand(res.data);
       else setBandError(res.error?.message ?? "Price band unavailable.");
+      // The explanation arrives separately so the numbers never wait for the model.
+      if (res.ok && res.data) {
+        const note = await getPriceBandNoteAction({ model_name: car.model_name, year: car.year, km: car.km, fuel: car.fuel });
+        if (note.ok) setBandNote(note.data);
+      }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [carId]);
@@ -120,6 +127,7 @@ export function StockDrawer({ car, onClose }: { car: StockRow | null; onClose: (
                   <p className="text-[11px] text-ink-soft">
                     Median {formatINR(band.median)} · {band.confidence} confidence · {band.rationale}
                   </p>
+                  {bandNote && <p className="pt-1 text-[11px] italic text-ink-soft">{bandNote}</p>}
                 </div>
               )}
 

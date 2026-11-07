@@ -3,6 +3,7 @@ import { planEscalations, selectWaiting } from "@/server/automations/escalations
 import { planExpiryAlerts, selectExpiryInput } from "@/server/automations/expiry";
 import { planFollowUps, selectFollowUps } from "@/server/automations/followups";
 import { planGarageReminders, selectGarageInput } from "@/server/automations/garage";
+import { planSavedCarNudges, selectSavedCarInput } from "@/server/automations/nudges";
 import { planOutcomeReminders, selectUnmarkedBookings } from "@/server/automations/outcomes";
 import { planReminders, selectReminderBookings } from "@/server/automations/reminders";
 import type { OutboxRow, RuleResult, TaskRow } from "@/server/automations/types";
@@ -24,6 +25,13 @@ const RULES: Rule[] = [
     },
   },
   { name: "lead_followups", plan: async (a, now) => planFollowUps(await selectFollowUps(a, now), now) },
+  {
+    name: "saved_car_nudges",
+    plan: async (a, now) => {
+      const { items, consented, engaged } = await selectSavedCarInput(a, now);
+      return planSavedCarNudges(items, consented, engaged);
+    },
+  },
   { name: "expiry_alerts", plan: async (a, now) => planExpiryAlerts(await selectExpiryInput(a, now), now) },
 ];
 

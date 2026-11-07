@@ -12,6 +12,7 @@ run** (the Admin Overview, System tab, shows each missing job in red as "not sch
 | `daily_finalize_deletions` | 21:30 | yes |
 | `daily_dms_export` | 18:45 (= 00:15 IST) | yes |
 | `process_automations` | every 5 minutes | yes (migration `0037`) |
+| `daily_digests` | 03:00 UTC (= 08:30 IST) | yes (migration `0041`) |
 
 ## Steps (per Supabase project: DEV, then PROD)
 

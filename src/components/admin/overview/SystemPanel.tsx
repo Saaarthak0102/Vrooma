@@ -21,6 +21,7 @@ const EXPECTED_JOBS: { name: string; label: string; needsVault?: boolean }[] = [
   { name: "eval_lead_sla_breaches", label: "SLA check (every minute)" },
   { name: "process_outbox_queue", label: "Outbox processing (every minute)", needsVault: true },
   { name: "process_automations", label: "Reminders and alerts (every 5 minutes)", needsVault: true },
+  { name: "daily_digests", label: "Daily staff digests (08:30 IST)", needsVault: true },
   { name: "daily_data_retention", label: "Data retention (daily)", needsVault: true },
   { name: "daily_finalize_deletions", label: "Finalise deletions (daily)", needsVault: true },
   { name: "daily_dms_export", label: "DMS daily CSV export (00:15 IST)", needsVault: true },

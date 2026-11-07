@@ -11,7 +11,9 @@ Vrooma integrates generative AI to solve dealership operational bottlenecks whil
 | **3. Chat Handoff Brief** | Sales Consultant | The chat transcript at the moment the buyer asks for a person. | Summary and suggested reply in `chat_conversations.ai_context`. | Fast model, 5 s timeout (the buyer is waiting); falls back to the intent-label brief. |
 | **4. Buyer Chatbot** | Visitors and buyers | The buyer's message, the last 9 turns, and read-only catalog tools (below). | A short plain-text answer plus the "solved or connect?" question. | Every rupee figure must come from a tool result, links only to our own pages, no discounts, no registration numbers. Falls back to the rule-based bot. |
 | **5. Lead Desk Agent** | Sales Consultant | The lead facts (as in 1), open test-drive slots at the lead's showroom, consultant workload. | Up to 3 ranked proposals, one line of reasoning each: call now, draft a message, offer a slot, move the stage, reassign, add a follow-up, ask a manager. | Proposes only. A consultant presses Apply on each. See below. |
-| **6. Used Car Valuation Engine** | Used-Car Manager | Model, year, odometer (km), fuel type, inspection score. | Suggested resale band (e.g. ₹8.10L – ₹8.45L). | Visible **only** to Used-Car Manager. Never shown on public cards. |
+| **6. Daily Digest** | Consultant, Used-Car Manager, Dealer Principal | Plain database queries (leads, tasks, bookings, stock, calls, outbox). | One email at 08:30 IST: consultant queue and today's bookings; manager ageing stock (60+ days) and trade-ins; admin yesterday's 5-minute response rate, missed service calls and outbox health. An optional "Where to start" line from the fast model. | Numbers are never model-written; the note may only use numbers already in the digest. Nobody with nothing to act on is emailed (except the dealer principal). |
+| **7. Price Band Note** | Used-Car Manager | The fixed output of `computePriceBand`. | Two sentences explaining how far to trust the band, under the band on the stock screen. | Manager and admin only. Cannot change the numbers, quote a figure that is not in the band, or recommend a price. |
+| **8. Used Car Valuation Engine** | Used-Car Manager | Model, year, odometer (km), fuel type, inspection score. | Suggested resale band (e.g. ₹8.10L – ₹8.45L). | Visible **only** to Used-Car Manager. Never shown on public cards. |
 
 ### How the lead briefing is kept fresh (`ensureLeadCopilot`)
 - Generated when a consultant first opens a lead, then rebuilt only when the facts changed (a hash of message, chat, events, bookings and stage in `leads.ai_input_hash`), and at most every 10 minutes. The Refresh button in the briefing card forces a rebuild, at most once per 30 seconds per lead.
@@ -25,6 +27,11 @@ Vrooma integrates generative AI to solve dealership operational bottlenecks whil
 - **Approval is the consultant's click**, and each kind goes through an existing path: *reply* and *offer a slot* only fill the editable reply box (nothing is sent or booked); *move the stage* calls `updateLeadStatusAction`; *reassign* calls `reassignLeadAction`; *follow-up* creates a `lead_tasks` row; *ask a manager* creates a task and emails `ALERT_EMAIL`.
 - A buyer asking for a discount is never answered by the agent: it proposes asking a manager.
 - With AI off, capped, slow or blocked, deterministic suggestions of the same shape are shown, labelled "Rule-based".
+
+### Digests, saved-car emails and the marketing gate
+- `/api/cron/digests` (migration `0041`, 03:00 UTC = 08:30 IST) builds the digests above; re-running the same day adds nothing and skips the model call for anyone already queued.
+- **Saved-car email** (`saved_car_nudge`): someone who saved a new car 7-14 days ago and has not enquired or booked since gets one email, only if they ticked marketing messages in their profile. Email only; 50 per run.
+- **Marketing consent gate** (`src/server/automations/consent-gate.ts`): templates listed there are checked at *send* time by the outbox worker against the account's latest `marketing` consent. No account, no consent, or an unsubscribe since queuing means the row is marked `skipped` ("no marketing consent"). Add any new marketing template to that list.
 
 ### Follow-up automations (no model)
 Part of `/api/cron/automations`, creating `lead_tasks` (migration `0040`) and an email to the lead's consultant: stage unchanged for 3-14 days with no timeline activity (alert mailbox told at 7+ days); a test drive marked attended 3-48 h ago ("follow up while it is fresh"); a test drive marked no-show in the last 48 h ("offer to rebook"). Only leads that are still open; 50 per run; keys make re-runs add nothing.
@@ -91,7 +98,7 @@ For reply drafts, `sendLeadReplyAction` writes `reply_sent_unedited` / `reply_se
 
 ## 4b. Date-driven triggers (no model involved)
 
-`/api/cron/automations` (every 5 minutes, migration `0037`) runs the rules in `src/server/automations/`. They only queue messages; the outbox job sends them. Each message has an idempotency key, so re-runs never duplicate. The service-due and expiry reminders are gated on the owner's latest `service_contact` consent (the unticked "Send me service and insurance reminders" box under My cars; unticking appends a granted=false event and the next run stops). A general consent check in the outbox worker is still to do before any marketing-type message (P6 re-engagement) is added.
+`/api/cron/automations` (every 5 minutes, migration `0037`) runs the rules in `src/server/automations/`. They only queue messages; the outbox job sends them. Each message has an idempotency key, so re-runs never duplicate. The service-due and expiry reminders are gated on the owner's latest `service_contact` consent (the unticked "Send me service and insurance reminders" box under My cars; unticking appends a granted=false event and the next run stops). Marketing-type templates are additionally gated at send time (see "Digests, saved-car emails and the marketing gate").
 
 | Rule | When | Goes to |
 |---|---|---|

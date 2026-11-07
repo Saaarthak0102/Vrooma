@@ -10,6 +10,8 @@ const SUBJECTS: Record<string, string> = {
   consultant_reply: "Your Vrooma consultant replied",
   lead_closed_deletion: "Your enquiry was closed",
   newsletter_subscription_confirmed: "You are subscribed to Vrooma updates",
+  saved_car_nudge: "Still thinking about your saved car?",
+  daily_digest: "Your Vrooma daily summary",
   lead_task_assigned: "A follow-up task for you",
   lead_stale_alert: "A lead has gone quiet",
   lead_escalated: "A consultant needs a manager on a lead",

@@ -4,7 +4,7 @@
  * so the System page and `pnpm check:cron` read this instead: no recent heartbeat means the app is not receiving
  * the job. Never throws; a failed write must not stop the job itself.
  */
-export type HeartbeatJob = "outbox" | "automations";
+export type HeartbeatJob = "outbox" | "automations" | "digests";
 
 export async function recordHeartbeat(admin: any, job: HeartbeatJob): Promise<void> {
   try {

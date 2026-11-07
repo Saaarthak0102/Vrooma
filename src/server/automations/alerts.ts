@@ -30,6 +30,7 @@ export const TIME_SENSITIVE_TEMPLATES = new Set([
   "booking_outcome_needed",
   "test_drive_reminder",
   "service_reminder",
+  "daily_digest",
 ]);
 
 export const STALE_AFTER_MS = 24 * 3600_000;

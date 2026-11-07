@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { authorizeCron } from "@/lib/cron-auth";
 import { isRecipientAllowed, isStaleTimeSensitive, resolveRecipient } from "@/server/automations/alerts";
+import { isMarketingTemplate, marketingConsentGranted } from "@/server/automations/consent-gate";
 import { recordHeartbeat } from "@/server/automations/heartbeat";
 import { deliverMessage, type DeliveryChannel } from "@/server/services/message-providers";
 
@@ -66,11 +67,13 @@ export async function GET(request: NextRequest) {
 
     // Do not send time-sensitive messages hours late, and keep non-production data away from real recipients.
     const recipient = resolveRecipient(msg.to_address);
-    const skipReason = isStaleTimeSensitive(msg.template, msg.created_at)
+    let skipReason: string | null = isStaleTimeSensitive(msg.template, msg.created_at)
       ? "stale: too old to be useful, not sent"
       : !isRecipientAllowed(recipient)
         ? "recipient is not on the non-production allowlist (OUTBOX_ALLOWLIST)"
         : null;
+    const noConsent = !skipReason && isMarketingTemplate(msg.template) && !(await marketingConsentGranted(admin, recipient));
+    if (noConsent) skipReason = "no marketing consent on file (unsubscribed or never opted in)";
     if (skipReason) {
       await admin
         .from("messages_outbox")

@@ -18,13 +18,14 @@ export const EXPECTED_JOBS = [
   "purge_stale_rate_limits",
   "process_outbox_queue",
   "process_automations",
+  "daily_digests",
   "daily_data_retention",
   "daily_finalize_deletions",
   "daily_dms_export",
 ];
 
 /** HTTP jobs that must be received by the app, and how stale (minutes) their last heartbeat may be. */
-export const HEARTBEAT_JOBS = { process_outbox_queue: ["outbox", 5], process_automations: ["automations", 15] };
+export const HEARTBEAT_JOBS = { process_outbox_queue: ["outbox", 5], process_automations: ["automations", 15], daily_digests: ["digests", 26 * 60] };
 
 /**
  * pg_cron reports an HTTP job as "succeeded" once the request is sent, even if the app answered 401/404. The app
