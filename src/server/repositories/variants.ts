@@ -35,7 +35,7 @@ async function fetchColorsForVariants(variantIds: string[]): Promise<Record<stri
       variant_id: row.variant_id,
       name: row.name,
       hex: row.hex,
-      image_url: row.image_url,
+      image_url: row.image_url ?? "",
     });
   }
   return map;

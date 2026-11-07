@@ -52,5 +52,9 @@ export default async function StaffBookingsPage() {
 
   const bayLoad = [...byKey.values()].sort((a, b) => a.day.localeCompare(b.day) || a.workshop.localeCompare(b.workshop));
 
-  return <StaffBookingsClient bookings={bookings} bayLoad={bayLoad} />;
+  return <StaffBookingsClient
+      bookings={bookings}
+      bayLoad={bayLoad}
+      workshops={workshops.map((w) => ({ id: w.id, name: w.name }))}
+    />;
 }

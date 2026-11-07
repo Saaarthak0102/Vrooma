@@ -363,3 +363,15 @@ Migrations `0030` to `0032` are applied to DEV (vrooma-dev) with the guarded `pn
 - **CI hygiene:** `db:lint` is green (four already-applied migrations are allow-listed, new ones must have BEGIN/COMMIT) and now runs in CI.
 - **Known limits / owner steps:** Vault secrets for the HTTP cron jobs; a real WhatsApp/SMS provider; account-deletion cancel (the account is deactivated and signed out at request time, so cancelling needs a verified-identity flow or an admin restore action, not built); PROD promotion of `0028`-`0032`; generated DB types (`src/types/db.ts`) are stale and are cast at three call sites; AI features remain rule/template based.
 - **Verification:** 576 unit tests; `pnpm e2e:console` adds a `platform` group (11 checks: public pages, real catalog data, price gate, cross-site refusal, database rate limiter, newsletter round trip, outbox `skipped`, DMS export, admin network create, validation) next to the `chat` group; `pnpm db:lint` clean.
+
+## 13. Remaining-items pass (2026-11-07)
+
+Code complete; **migrations 0033 and 0034 are not yet applied to DEV or PROD** (owner runs `pnpm db:push`).
+
+- **Account-deletion cancel:** `cancel_account_deletion()` (migration 0033) restores a buyer inside the 7-day window and marks the request `cancelled`. A deactivated buyer in the window keeps their session and is routed to `/restore-account` (middleware and `post-verify`); everyone else deactivated is still signed out with "account deactivated". `DELETE /api/me/delete` and `cancelAccountDeletionAction` do the same. Bookings released and leads closed at request time stay that way; marketing consent stays withdrawn.
+- **Generated types:** `src/types/database.types.ts` is the single source (the hand-written `db.ts` and its drift test are gone). `@supabase/ssr` upgraded to 0.12.x so the clients type-check without the old `as unknown as SupabaseClient<Database>` casts.
+- **Messaging:** WhatsApp (Meta Cloud API) and SMS (MSG91) adapters behind env vars; unchanged "skipped, never sent" behaviour without keys. Needs owner accounts (see `OPERATIONS.md` section 7).
+- **Service calls:** `call_logs` + `get_call_metrics()` (migration 0034), `POST /api/webhooks/calls`, a staff log-call form and the unanswered-rate line on the admin Overview.
+- **Tooling:** `pnpm check:cron` (lists missing scheduled jobs), `pnpm email:smoke`, `docs/backend/PROD_PROMOTION.md`.
+- **Still owner-only:** PROD promotion of 0028-0034, Vault secrets for the HTTP cron jobs, Resend key and domain, WhatsApp and SMS accounts, telephony webhook. AI features remain rule/template based by decision.
+

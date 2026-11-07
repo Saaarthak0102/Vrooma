@@ -94,9 +94,9 @@ export async function getPriceRule({
       const supabase = createAdminClient();
       const { data, error } = await supabase.rpc("resolve_price_rule", {
         p_city_id: normCity,
-        p_variant_id: normVariant,
-        p_model_id: normModel,
-        p_fuel: (fuel as any) || null,
+        p_variant_id: normVariant ?? undefined,
+        p_model_id: normModel ?? undefined,
+        p_fuel: (fuel as any) || undefined,
         p_date: targetIso,
       });
 

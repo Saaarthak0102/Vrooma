@@ -1,4 +1,4 @@
-﻿export type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -355,6 +355,135 @@ export type Database = {
           },
         ]
       }
+      chat_conversations: {
+        Row: {
+          ai_context: Json
+          assigned_to: string | null
+          created_at: string
+          first_staff_reply_at: string | null
+          guest_token: string | null
+          handoff_at: string | null
+          id: string
+          last_message_at: string
+          lead_id: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+          title: string
+          user_id: string | null
+        }
+        Insert: {
+          ai_context?: Json
+          assigned_to?: string | null
+          created_at?: string
+          first_staff_reply_at?: string | null
+          guest_token?: string | null
+          handoff_at?: string | null
+          id?: string
+          last_message_at?: string
+          lead_id?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          title?: string
+          user_id?: string | null
+        }
+        Update: {
+          ai_context?: Json
+          assigned_to?: string | null
+          created_at?: string
+          first_staff_reply_at?: string | null
+          guest_token?: string | null
+          handoff_at?: string | null
+          id?: string
+          last_message_at?: string
+          lead_id?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          title?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_conversations_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "consultant_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_conversations_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_conversations_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_conversations_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "my_enquiries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          role: string
+          sender_id: string | null
+        }
+        Insert: {
+          content: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          role: string
+          sender_id?: string | null
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          role?: string
+          sender_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "chat_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "consultant_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cities: {
         Row: {
           created_at: string
@@ -379,6 +508,54 @@ export type Database = {
           slug?: string
           state?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      call_logs: {
+        Row: {
+          caller_hash: string | null
+          caller_masked: string | null
+          created_at: string
+          direction: string
+          duration_seconds: number | null
+          external_id: string | null
+          handled_by: string | null
+          id: string
+          notes: string | null
+          outcome: Database["public"]["Enums"]["call_outcome"]
+          source: string
+          started_at: string
+          workshop_id: string | null
+        }
+        Insert: {
+          caller_hash?: string | null
+          caller_masked?: string | null
+          created_at?: string
+          direction?: string
+          duration_seconds?: number | null
+          external_id?: string | null
+          handled_by?: string | null
+          id?: string
+          notes?: string | null
+          outcome: Database["public"]["Enums"]["call_outcome"]
+          source?: string
+          started_at?: string
+          workshop_id?: string | null
+        }
+        Update: {
+          caller_hash?: string | null
+          caller_masked?: string | null
+          created_at?: string
+          direction?: string
+          duration_seconds?: number | null
+          external_id?: string | null
+          handled_by?: string | null
+          id?: string
+          notes?: string | null
+          outcome?: Database["public"]["Enums"]["call_outcome"]
+          source?: string
+          started_at?: string
+          workshop_id?: string | null
         }
         Relationships: []
       }
@@ -870,9 +1047,11 @@ export type Database = {
           last_error: string | null
           lead_id: string | null
           next_attempt_at: string
+          sent_at: string | null
           status: Database["public"]["Enums"]["message_status_type"]
           template: string
           to_address: string
+          updated_at: string
         }
         Insert: {
           attempts?: number
@@ -885,9 +1064,11 @@ export type Database = {
           last_error?: string | null
           lead_id?: string | null
           next_attempt_at?: string
+          sent_at?: string | null
           status?: Database["public"]["Enums"]["message_status_type"]
           template: string
           to_address: string
+          updated_at?: string
         }
         Update: {
           attempts?: number
@@ -900,9 +1081,11 @@ export type Database = {
           last_error?: string | null
           lead_id?: string | null
           next_attempt_at?: string
+          sent_at?: string | null
           status?: Database["public"]["Enums"]["message_status_type"]
           template?: string
           to_address?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -1947,6 +2130,11 @@ export type Database = {
         }
         Returns: undefined
       }
+      anonymise_user: { Args: { p_uid: string }; Returns: undefined }
+      cancel_account_deletion: {
+        Args: never
+        Returns: string
+      }
       book_slot: {
         Args: {
           p_address?: string
@@ -2016,6 +2204,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      check_rate_limit: {
+        Args: { p_key: string; p_limit: number; p_window_seconds: number }
+        Returns: boolean
       }
       complete_profile: {
         Args: {
@@ -2105,6 +2297,21 @@ export type Database = {
       generate_slots: {
         Args: { p_days?: number; p_start_date?: string }
         Returns: number
+      }
+      get_cron_status: {
+        Args: never
+        Returns: {
+          active: boolean
+          jobname: string
+          last_message: string
+          last_run_at: string
+          last_status: string
+          schedule: string
+        }[]
+      }
+      get_call_metrics: {
+        Args: { p_from?: string; p_to?: string }
+        Returns: Json
       }
       get_leak_metrics: {
         Args: { p_from?: string; p_to?: string }
@@ -2243,6 +2450,7 @@ export type Database = {
     Enums: {
       body_type: "sedan" | "suv" | "hatchback" | "ev" | "mpv"
       booking_kind_type: "test_drive" | "service"
+      call_outcome: "answered" | "missed" | "voicemail"
       booking_status_type: "confirmed" | "cancelled" | "completed" | "no_show"
       car_status_type: "available" | "booked" | "sold"
       consent_purpose_type:
@@ -2259,7 +2467,7 @@ export type Database = {
         | "newsletter"
         | "trade_in"
       data_request_kind: "export" | "delete" | "opt_out"
-      data_request_status: "received" | "in_progress" | "done" | "rejected"
+      data_request_status: "received" | "in_progress" | "done" | "rejected" | "cancelled"
       fuel_type: "petrol" | "diesel" | "cng" | "ev" | "hybrid"
       lead_event_type:
         | "created"
@@ -2286,7 +2494,13 @@ export type Database = {
         | "won"
         | "lost"
       message_channel_type: "whatsapp" | "sms" | "email"
-      message_status_type: "pending" | "sending" | "sent" | "failed" | "dead"
+      message_status_type:
+        | "pending"
+        | "sending"
+        | "sent"
+        | "failed"
+        | "dead"
+        | "skipped"
       role_type: "buyer" | "consultant" | "manager" | "admin"
       transmission_type: "manual" | "automatic"
     }
@@ -2418,6 +2632,7 @@ export const Constants = {
     Enums: {
       body_type: ["sedan", "suv", "hatchback", "ev", "mpv"],
       booking_kind_type: ["test_drive", "service"],
+      call_outcome: ["answered", "missed", "voicemail"],
       booking_status_type: ["confirmed", "cancelled", "completed", "no_show"],
       car_status_type: ["available", "booked", "sold"],
       consent_purpose_type: [
@@ -2436,7 +2651,7 @@ export const Constants = {
         "trade_in",
       ],
       data_request_kind: ["export", "delete", "opt_out"],
-      data_request_status: ["received", "in_progress", "done", "rejected"],
+      data_request_status: ["received", "in_progress", "done", "rejected", "cancelled"],
       fuel_type: ["petrol", "diesel", "cng", "ev", "hybrid"],
       lead_event_type: [
         "created",
@@ -2466,7 +2681,14 @@ export const Constants = {
         "lost",
       ],
       message_channel_type: ["whatsapp", "sms", "email"],
-      message_status_type: ["pending", "sending", "sent", "failed", "dead"],
+      message_status_type: [
+        "pending",
+        "sending",
+        "sent",
+        "failed",
+        "dead",
+        "skipped",
+      ],
       role_type: ["buyer", "consultant", "manager", "admin"],
       transmission_type: ["manual", "automatic"],
     },

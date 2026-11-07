@@ -165,7 +165,7 @@ export async function completeProfile(
       {
         p_full_name: data.full_name,
         p_phone: phoneNormalized,
-        p_whatsapp: whatsappNormalized,
+        p_whatsapp: whatsappNormalized ?? phoneNormalized,
         p_city_id: cityId,
         p_locale: "en", // English only; the column stays for the database but is never user-chosen
         p_marketing_consent: Boolean(data.marketing_consent),

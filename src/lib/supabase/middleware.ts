@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 import { env } from "@/lib/env";
 import { safeNext } from "@/server/auth/safe-next";
+import { isRestorableAccount } from "@/lib/account-restore";
 
 /**
  * List of paths that require auth check and session cookie refresh.
@@ -14,6 +15,7 @@ const PROTECTED_PATH_PATTERNS = [
   /^\/staff(\/|$)/,
   /^\/admin(\/|$)/,
   /^\/onboarding(\/|$)/,
+  /^\/restore-account(\/|$)/,
   /^\/sign-in(\/|$)/,
   /^\/sign-up(\/|$)/,
 ];
@@ -72,9 +74,15 @@ export async function updateSession(request: NextRequest, initialResponse?: Next
     if (user) {
       const { data: profile } = await supabase
         .from("profiles")
-        .select("role, is_active, onboarding_completed_at")
+        .select("role, is_active, onboarding_completed_at, deleted_at, anonymised_at")
         .eq("id", user.id)
         .single();
+
+      if (profile?.is_active === false && isRestorableAccount(profile)) {
+        // Erasure requested less than 7 days ago: keep the session, but the only page allowed is "restore account".
+        if (/^\/restore-account(\/|$)/.test(pathname)) return response;
+        return NextResponse.redirect(new URL(`/restore-account`, request.url));
+      }
 
       if (profile?.is_active === false) {
         await supabase.auth.signOut({ scope: "local" });
@@ -131,7 +139,7 @@ export async function updateSession(request: NextRequest, initialResponse?: Next
       }
     } else {
       // Unauthenticated visitor trying to access dashboard, profile, staff, admin, onboarding
-      const requiresAuth = /^\/(dashboard|profile|staff|admin|onboarding)(\/|$)/.test(pathname);
+      const requiresAuth = /^\/(dashboard|profile|staff|admin|onboarding|restore-account)(\/|$)/.test(pathname);
       if (requiresAuth) {
         return NextResponse.redirect(
           new URL(`/sign-in?next=${encodeURIComponent(safeNext(pathname))}`, request.url)

@@ -210,11 +210,11 @@ export async function processLeadCsv(
               p_name: name,
               p_phone: normalizedPhone,
               p_showroom_id: resolveShowroomId(showroomRaw),
-              p_model_id: matchedModelId,
-              p_email: email && email.includes("@") ? email : null,
+              p_model_id: matchedModelId ?? undefined,
+              p_email: email && email.includes("@") ? email : undefined,
               p_message: notes || `Imported via portal CSV batch`,
               p_source: "portal",
-              p_source_ref: sourceRef || null,
+              p_source_ref: sourceRef || undefined,
             });
 
             if (leadErr) {

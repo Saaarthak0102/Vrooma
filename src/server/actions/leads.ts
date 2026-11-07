@@ -44,7 +44,7 @@ export async function updateLeadStatusAction(
     const { data: updated, error } = await (userClient || admin).rpc("set_lead_status", {
       p_lead_id: leadId,
       p_status: status,
-      p_lost_reason: status === "lost" ? lostReason || "Not specified" : null,
+      p_lost_reason: status === "lost" ? lostReason || "Not specified" : undefined,
     });
 
     if (error) {

@@ -11,13 +11,15 @@ export interface LeakCardProps {
   lostLeads: number;
   /** Online service bookings in the window (the measurable side of "unanswered service calls"). */
   serviceBookings: number;
+  /** Measured phone calls (call_logs). Null when the metric could not be loaded. */
+  calls?: { totalCalls: number; unanswered: number; unansweredPct: number | null } | null;
 }
 
 /**
  * The brief's ₹2.11 crore leakage story. The arithmetic below is the documented BASELINE from the brief
  * (4,500 leads, 30% delayed, 2% vs 6% conversion ...). The "now" rows are measured from the database.
  */
-export function LeakCard({ windowDays, slaPct, totalLeads, contactedInSla, lostLeads, serviceBookings }: LeakCardProps) {
+export function LeakCard({ windowDays, slaPct, totalLeads, contactedInSla, lostLeads, serviceBookings, calls }: LeakCardProps) {
   const slaOnTarget = slaPct !== null && slaPct >= 90;
 
   return (
@@ -88,9 +90,25 @@ export function LeakCard({ windowDays, slaPct, totalLeads, contactedInSla, lostL
             <span>Now: service bookings made online</span>
             <span>{serviceBookings}</span>
           </div>
+          <div
+            className={`flex items-center justify-between rounded-md px-3 py-1.5 text-[11px] font-semibold ${
+              !calls || calls.unansweredPct === null
+                ? "bg-ink/5 text-ink-soft"
+                : calls.unansweredPct < 5
+                  ? "bg-success/10 text-success"
+                  : "bg-warning/10 text-warning"
+            }`}
+          >
+            <span>Now: service calls unanswered</span>
+            <span>
+              {!calls || calls.unansweredPct === null
+                ? "No calls logged yet"
+                : `${calls.unansweredPct}% (${calls.unanswered} of ${calls.totalCalls}) · target under 5%`}
+            </span>
+          </div>
           <p className="text-[11px] text-ink-mute">
-            Phone calls are not tracked in this system, so the unanswered-call rate itself cannot be measured here.
-            Online bookings are the calls that no longer depend on someone picking up.
+            Calls come from the telephony webhook or are logged by hand on the Bookings screen. Online bookings are
+            the calls that no longer depend on someone picking up.
           </p>
         </section>
       </div>

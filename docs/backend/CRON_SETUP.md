@@ -23,7 +23,7 @@ run** (the Admin Overview, System tab, shows each missing job in red as "not sch
    select private.ensure_cron_jobs();
    ```
    `pg_cron` and `pg_net` must be enabled (Database, Extensions).
-3. Verify: open `/admin?tab=system`. Every job should show a last-run time. `select * from public.get_cron_status();`
+3. Verify: run `pnpm check:cron` (read-only; exits 1 and names any missing job), or open `/admin?tab=system`. Every job should show a last-run time. `select * from public.get_cron_status();`
    gives the same data.
 4. Update a secret later with `select vault.update_secret(id, 'new value')` and re-run `ensure_cron_jobs()`.
 

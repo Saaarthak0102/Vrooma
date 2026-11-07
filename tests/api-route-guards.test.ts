@@ -10,7 +10,7 @@ import { GET as leadsGet } from "@/app/api/leads/route";
 import { GET as leadGet, PATCH as leadPatch } from "@/app/api/leads/[id]/route";
 import { GET as bookingsGet, POST as bookingsPost } from "@/app/api/bookings/route";
 import { GET as profileGet, PUT as profilePut } from "@/app/api/me/profile/route";
-import { POST as deletePost } from "@/app/api/me/delete/route";
+import { POST as deletePost, DELETE as deleteCancel } from "@/app/api/me/delete/route";
 import { POST as outboxSend } from "@/app/api/outbox/send/route";
 import { POST as copilotPost } from "@/app/api/ai/lead-copilot/route";
 import { POST as leadsImportPost } from "@/app/api/leads/import/route";
@@ -47,6 +47,12 @@ describe("unauthenticated callers are refused", () => {
 
   it("POST /api/me/delete", async () => {
     expect((await deletePost(json("/api/me/delete", "POST", {}))).status).toBe(401);
+  });
+
+  it("DELETE /api/me/delete (cancel erasure) needs a session and a same-site request", async () => {
+    expect((await deleteCancel(json("/api/me/delete", "DELETE", {}))).status).toBe(401);
+    const res = await deleteCancel(json("/api/me/delete", "DELETE", {}, { "sec-fetch-site": "cross-site" }));
+    expect(res.status).toBe(403);
   });
 
   it("cookie-authenticated POSTs refuse cross-site requests before doing anything", async () => {

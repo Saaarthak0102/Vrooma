@@ -212,3 +212,40 @@ pnpm dev:cron --once   # single pass
 - SQL: `select * from public.get_cron_status();` (service role / SQL editor only).
 - Raw history: `select * from cron.job_run_details order by start_time desc limit 20;`.
 - HTTP jobs record only that the request was **sent**. `pg_net` responses are in `net._http_response`; a 401/503 there means the secrets do not match the app's `CRON_SECRET`.
+
+---
+
+## 7. Messaging, email and call tracking (owner setup)
+
+All three are optional per environment. A channel with no keys never pretends to send: rows are stored as `skipped`.
+
+### 7.1 Email (Resend)
+1. Create a Resend account and add your sending domain. Add the DNS records Resend shows (SPF `TXT`, DKIM `CNAME`s, and
+   a DMARC `TXT` such as `v=DMARC1; p=none; rua=mailto:you@yourdomain`). Wait until the domain shows **Verified**.
+2. Set `RESEND_API_KEY` and `EMAIL_FROM` (for example `Vrooma Lucknow <notifications@your-domain>`) in Vercel. In
+   production the build refuses to start without `RESEND_API_KEY`.
+3. Check it: `pnpm email:smoke you@example.com` sends one test email with the same key and sender.
+
+### 7.2 WhatsApp (Meta Cloud API)
+1. In Meta for Developers create a Business app, add the WhatsApp product. Meta gives a free test number (can message
+   up to 5 verified recipients) and the first 1,000 customer-initiated conversations a month are free.
+2. Copy the permanent token and the Phone Number ID into `WHATSAPP_TOKEN` and `WHATSAPP_PHONE_ID`.
+3. To message customers who have not written to you in the last 24 hours, Meta requires approved templates. Create one
+   with a single body variable (`{{1}}`) per outbound template name, then map them:
+   `WHATSAPP_TEMPLATES={"booking_confirmation":{"name":"booking_confirmation","language":"en"}}`.
+   Unmapped template names go out as plain text, which Meta only delivers inside the 24-hour window.
+
+### 7.3 SMS (MSG91)
+Indian SMS needs a DLT-registered sender and template. Register on a DLT portal, create one template with a single
+variable (`##VAR1##`), create the matching MSG91 Flow, then set `MSG91_AUTH_KEY` and `MSG91_TEMPLATE_ID`. Without
+both, SMS stays `skipped`. There is no free SMS provider for India, so you may prefer to leave SMS off.
+
+### 7.4 Service calls (unanswered-call rate)
+- Manual: staff log calls on **Staff, Bookings, Log a service call**.
+- Automatic: set `CALLS_WEBHOOK_SECRET`, then point your telephony vendor (Exotel, Knowlarity, ...) at
+  `POST https://YOUR-APP-DOMAIN/api/webhooks/calls` with header `Authorization: Bearer <secret>` and JSON
+  `{"externalId":"<vendor call id>","outcome":"answered|missed|voicemail","callerNumber":"+91...","workshopId":"<uuid>","durationSeconds":42,"startedAt":"2026-11-07T10:15:00+05:30"}`.
+  Only `externalId` and `outcome` are required. A repeated `externalId` is ignored (safe vendor retries). Numbers are stored
+  masked plus a salted hash; call logs are purged after 12 months by the retention job.
+- The admin Overview shows "service calls unanswered" (missed + voicemail, inbound) against the 5% target.
+

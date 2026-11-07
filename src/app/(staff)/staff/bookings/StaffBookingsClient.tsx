@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { setBookingOutcomeAction } from "@/server/actions/booking";
 import { BookingsOverview, bookingMatches, type BookingFilter } from "@/components/staff/BookingsOverview";
+import { LogCallForm } from "@/components/staff/LogCallForm";
 import type { Booking } from "@/types/domain";
 
 export interface BayLoadRow {
@@ -22,7 +23,15 @@ export interface BayLoadRow {
 const dayFmt = new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", weekday: "short", day: "numeric", month: "short" });
 const timeFmt = new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hour12: true });
 
-export function StaffBookingsClient({ bookings, bayLoad }: { bookings: Booking[]; bayLoad: BayLoadRow[] }) {
+export function StaffBookingsClient({
+  bookings,
+  bayLoad,
+  workshops,
+}: {
+  bookings: Booking[];
+  bayLoad: BayLoadRow[];
+  workshops: { id: string; name: string }[];
+}) {
   const router = useRouter();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [filter, setFilter] = useState<BookingFilter>(null);
@@ -178,6 +187,13 @@ export function StaffBookingsClient({ bookings, bayLoad }: { bookings: Booking[]
           exportName="bookings"
           emptyMessage="No bookings yet."
         />
+      </section>
+
+      <section aria-labelledby="calls-heading" className="space-y-2">
+        <h2 id="calls-heading" className="text-sm font-black text-ink">
+          Log a service call
+        </h2>
+        <LogCallForm workshops={workshops} />
       </section>
 
       <section aria-labelledby="bay-heading" className="space-y-2">

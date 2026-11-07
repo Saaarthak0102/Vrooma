@@ -6,7 +6,7 @@ if (typeof window !== "undefined") {
 
 import { createClient as createSupabaseClient, SupabaseClient } from "@supabase/supabase-js";
 import { env } from "@/lib/env";
-import type { Database } from "@/types/db";
+import type { Database } from "@/types/database.types";
 
 let cachedAdminClient: SupabaseClient<Database> | null = null;
 

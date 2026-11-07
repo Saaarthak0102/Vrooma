@@ -2,7 +2,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createPublicClient } from "@/lib/supabase/public";
 import { Lead, LeadStatus, LeadSource } from "@/types/domain";
 import { AppError } from "@/lib/errors";
-import type { Database } from "@/types/db";
+import type { Database } from "@/types/database.types";
 
 const LEAD_COLUMNS = `
   id,
@@ -209,12 +209,12 @@ export async function createLead(data: {
     p_name: data.name,
     p_phone: cleanedPhone,
     p_showroom_id: data.showroom_id,
-    p_model_id: data.model_id || null,
-    p_used_car_id: data.used_car_id || null,
-    p_email: data.email || null,
-    p_message: data.message || null,
+    p_model_id: data.model_id || undefined,
+    p_used_car_id: data.used_car_id || undefined,
+    p_email: data.email || undefined,
+    p_message: data.message || undefined,
     p_source: (data.source as any) || "web",
-    p_consent_id: data.consent_id || null,
+    p_consent_id: data.consent_id || undefined,
   });
 
   if (error) {

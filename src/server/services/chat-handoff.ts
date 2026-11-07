@@ -80,13 +80,13 @@ export async function requestHandoff(params: {
   const { data: lead, error } = await admin.rpc("create_lead", {
     p_name: params.contact.name,
     p_phone: params.contact.phone,
-    p_email: params.contact.email ?? null,
+    p_email: params.contact.email ?? undefined,
     p_showroom_id: showroomId,
     p_message: `Chat handoff. ${context.summary}${context.lastQuestion ? ` Last question: "${context.lastQuestion}"` : ""}`.slice(0, 1000),
     p_source: "chat",
     p_source_ref: existing.id,
     p_consent_id: consentId,
-    p_user_id: params.userId ?? null,
+    p_user_id: params.userId ?? undefined,
   });
   if (error || !lead) return { error: "We could not reach a consultant right now. Please try again." };
 

@@ -210,13 +210,13 @@ export async function bookSlotAction(
       p_slot_id: slot.id,
       p_kind: parsed.data.kind,
       p_vehicle_info: vehicleInfo as any,
-      p_service_type_id: parsed.data.serviceTypeId || null,
-      p_notes: parsed.data.notes || null,
+      p_service_type_id: parsed.data.serviceTypeId || undefined,
+      p_notes: parsed.data.notes || undefined,
       p_consent_id: consentId,
       p_idempotency_key: idemKey,
       // Only a home visit stores an address; showroom and workshop visits never do.
-      p_address: parsed.data.homeVisit ? parsed.data.address!.trim() : null,
-      p_pincode: parsed.data.homeVisit ? parsed.data.pincode!.trim() : null,
+      p_address: parsed.data.homeVisit ? parsed.data.address!.trim() : undefined,
+      p_pincode: parsed.data.homeVisit ? parsed.data.pincode!.trim() : undefined,
     });
 
     if (bookErr) {
@@ -268,7 +268,7 @@ export async function bookSlotAction(
         const { data: leadRow } = await admin.rpc("create_lead", {
           p_name: parsed.data.contactName || profile.full_name,
           p_phone: leadPhone,
-          p_email: user.email || null,
+          p_email: user.email || undefined,
           p_showroom_id: showroomIdToAssign,
           p_message: leadMsg,
           p_source: leadSource,

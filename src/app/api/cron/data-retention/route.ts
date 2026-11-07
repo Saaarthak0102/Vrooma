@@ -20,6 +20,7 @@ export async function POST(request: NextRequest) {
       anonymizedLeads: 0,
       purgedOutbox: 0,
       purgedIdempotency: 0,
+      purgedCallLogs: 0,
     };
 
     // 1. Purge expired idempotency keys (> 7 days)
@@ -66,6 +67,11 @@ export async function POST(request: NextRequest) {
         stats.anonymizedLeads = oldLeads.length;
       }
     }
+
+    // 3b. Purge call logs past their retention period (masked numbers only, but not needed forever)
+    const callCutoff = new Date(now - RETENTION_POLICIES.CALL_LOG_PURGE_DAYS * 24 * 60 * 60 * 1000).toISOString();
+    const { data: delCalls } = await admin.from("call_logs").delete().lte("started_at", callCutoff).select("id");
+    stats.purgedCallLogs = (delCalls || []).length;
 
     // 4. Record non-personal audit event
     try {

@@ -9,6 +9,7 @@ import { ActionResponse, successResponse, errorResponse } from "@/lib/errors";
 import { normalizeIndianPhone } from "@/lib/phone";
 import { recordConsent } from "@/server/privacy/consent";
 import { Profile } from "@/types/domain";
+import { isRestorableAccount } from "@/lib/account-restore";
 
 const profileUpdateSchema = z.object({
   fullName: z.string().trim().min(2, "Full name must be at least 2 characters"),
@@ -206,6 +207,36 @@ export async function requestAccountDeletionAction(): Promise<ActionResponse<{ r
     });
   } catch (err: any) {
     return errorResponse("INTERNAL_ERROR", err?.message || "Account deletion request failed.");
+  }
+}
+
+/**
+ * Undo an erasure request during the 7-day cooling-off window. Runs as the signed-in user (the RPC checks
+ * auth.uid()). Bookings released and leads closed at request time are not reopened.
+ */
+export async function cancelAccountDeletionAction(): Promise<ActionResponse<{ requestId: string }>> {
+  try {
+    const { user, profile } = await requireUser();
+    if (profile && !isRestorableAccount(profile) && profile.is_active === false) {
+      return errorResponse("FORBIDDEN", "This account can no longer be restored. Please contact support.");
+    }
+
+    const supabase = await createClient();
+    if (!supabase) return errorResponse("INTERNAL_ERROR", "Database client unavailable");
+
+    const { data, error } = await supabase.rpc("cancel_account_deletion");
+    if (error) {
+      const code = (error as { code?: string }).code;
+      if (code === "VR006") {
+        return errorResponse("CONFLICT", "There is no pending deletion request to cancel. It may already be finalised.");
+      }
+      return errorResponse("INTERNAL_ERROR", `Could not restore the account: ${error.message}`);
+    }
+
+    console.info(`[deletion] Account ${user.id} restored; request ${data} cancelled`);
+    return successResponse({ requestId: data as string });
+  } catch (err: any) {
+    return errorResponse("INTERNAL_ERROR", err?.message || "Could not restore the account.");
   }
 }
 

@@ -253,6 +253,8 @@ export interface Profile {
   locale: "en";
   is_active?: boolean;
   onboarding_completed_at?: string | null;
+  deleted_at?: string | null;
+  anonymised_at?: string | null;
   created_at?: string;
   updated_at?: string;
 }

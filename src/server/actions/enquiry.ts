@@ -32,7 +32,7 @@ export async function requestModelOfferAction(
     const { data: lead, error } = await admin.rpc("create_lead", {
       p_name: profile.full_name,
       p_phone: profile.phone,
-      p_email: user.email || null,
+      p_email: user.email || undefined,
       p_showroom_id: showroomId,
       p_model_id: model.id,
       p_message: `Offer request: ${model.name}${variantName ? ` ${variantName}` : ""}`,

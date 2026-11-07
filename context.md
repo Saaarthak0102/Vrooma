@@ -287,9 +287,9 @@ Interactive 3D flip cards are deployed exclusively on the three main catalog rou
   - The buyer chat box (`ChatWidget`) is answered by a rule-based bot (`src/server/ai/support-bot.ts`) that ends each answer with "Is your query solved, or would you like to connect with a Vrooma consultant?" (quick replies: solved / connect). Guests can chat too (guest token).
   - "Connect" creates a real lead (source `chat`) through `create_lead`, so showroom routing, the 5-minute SLA and the lead timeline apply; guests give name, mobile and DPDP consent inside the chat box. The AI brief (`chat_conversations.ai_context`) is shown to the consultant in `/staff/chats` and stored on the lead.
   - Consultant replies are blocked by the same discount filter; messages travel by Supabase Realtime (consultant side) and a 4 s poll (buyer side).
-- **Still upcoming:**
-  - Promote migrations `0028` and `0029` (support chat) to PROD after approval; they are applied on DEV only.
-  - Add the Vault secrets (`app_url`, `cron_secret`) so the HTTP cron jobs are scheduled (`select private.ensure_cron_jobs();`).
-  - Live Resend email and real WhatsApp/SMS delivery (outbox currently mocks WhatsApp/SMS).
-  - Production Vercel AI SDK integration for live LLM streaming in lead copilots.
-  - PROD project promotion of migrations after DEV verification.
+- **Remaining-items pass (code complete, 2026-11-07):** account-deletion cancel (`/restore-account`, migration `0033`), generated DB types as the single source, WhatsApp (Meta) and SMS (MSG91) adapters, service-call tracking (`call_logs`, `/api/webhooks/calls`, migration `0034`), `pnpm check:cron`, `pnpm email:smoke`. See `docs/backend/STATUS.md` section 13.
+- **Still upcoming (owner steps):**
+  - Apply `0033`/`0034` on DEV, then promote `0028`-`0034` to PROD (`docs/backend/PROD_PROMOTION.md`).
+  - Add the Vault secrets (`app_url`, `cron_secret`) so the HTTP cron jobs are scheduled (`docs/backend/CRON_SETUP.md`, verify with `pnpm check:cron`).
+  - Accounts and keys: Resend (domain + `RESEND_API_KEY`), WhatsApp Cloud API, MSG91 + DLT, telephony webhook.
+  - Production Vercel AI SDK integration for live LLM streaming in lead copilots (deliberately deferred).

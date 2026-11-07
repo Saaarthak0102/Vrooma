@@ -3,7 +3,7 @@ import { createPublicClient } from "@/lib/supabase/public";
 import { Profile, Role } from "@/types/domain";
 import { AppError } from "@/lib/errors";
 
-import type { Database } from "@/types/db";
+import type { Database } from "@/types/database.types";
 
 type ProfileUpdate = Database["public"]["Tables"]["profiles"]["Update"];
 

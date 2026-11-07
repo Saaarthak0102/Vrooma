@@ -7,7 +7,7 @@ import { safeRevalidateTag, safeRevalidatePath } from "@/server/cache";
 import { ActionResponse, successResponse, errorResponse } from "@/lib/errors";
 import { priceRuleSchema } from "@/lib/validation/price-rule";
 import { Role, BodyType, FuelType, CarStatus } from "@/types/domain";
-import type { Database } from "@/types/db";
+import type { Database } from "@/types/database.types";
 
 async function logAudit(
   actorId: string,

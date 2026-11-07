@@ -1,7 +1,7 @@
 /**
  * Regression guard: trade-in submissions failed because the code wrote fuel/transmission columns that the
  * trade_in_requests table does not have. database.types.ts is generated from the real schema; everything the
- * app writes must exist there, and the hand-written types must agree with it.
+ * app writes must exist there.
  */
 import { describe, it, expect } from "vitest";
 import fs from "node:fs";
@@ -49,12 +49,6 @@ describe("trade_in_requests columns", () => {
     for (const m of block.matchAll(/^\s*([a-z_]+):/gm)) {
       expect(real.has(m[1]), `column "${m[1]}" does not exist`).toBe(true);
     }
-  });
-
-  it("hand-written types match the real table", () => {
-    expect(tableKeys(read("src/types/db.ts"), "trade_in_requests", "Row")).toEqual(
-      tableKeys(generated, "trade_in_requests", "Row")
-    );
   });
 
   it("the server schema no longer invents fuel or transmission", () => {

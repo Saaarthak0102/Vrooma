@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { safeNext } from "./safe-next";
 import { postSignInPath } from "@/lib/console-nav";
+import { isRestorableAccount } from "@/lib/account-restore";
 
 export interface PostVerifyDestination {
   /** App path to navigate to after a link has been verified. */
@@ -30,9 +31,13 @@ export async function resolvePostVerifyDestination(
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("onboarding_completed_at, is_active, role")
+    .select("onboarding_completed_at, is_active, role, deleted_at, anonymised_at")
     .eq("id", user.id)
     .single();
+
+  if (profile?.is_active === false && isRestorableAccount(profile)) {
+    return { destination: "/restore-account", disabled: false };
+  }
 
   if (profile?.is_active === false) {
     await supabase.auth.signOut({ scope: "local" });

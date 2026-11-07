@@ -3,6 +3,7 @@ import { Car, Clock, PhoneCall, Users } from "lucide-react";
 import { requireRole } from "@/server/auth/viewer";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getLeakMetricsAction } from "@/server/actions/admin-leak";
+import { getCallMetricsAction } from "@/server/actions/calls";
 import { LeakCard } from "@/components/admin/LeakCard";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { TabLinks, pickTab, type TabLinkItem } from "@/components/layout/TabLinks";
@@ -40,8 +41,9 @@ export default async function AdminOverviewPage({
     const since = new Date(Date.now() - WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString();
     const admin = createAdminClient();
 
-    const [metrics, testDrives, services, activeStaff, overview] = await Promise.all([
+    const [metrics, callMetrics, testDrives, services, activeStaff, overview] = await Promise.all([
       getLeakMetricsAction(since),
+      getCallMetricsAction(WINDOW_DAYS),
       admin
         .from("bookings")
         .select("id", { count: "exact", head: true })
@@ -109,6 +111,7 @@ export default async function AdminOverviewPage({
           contactedInSla={m?.contactedInSla ?? 0}
           lostLeads={m?.lostLeads ?? 0}
           serviceBookings={services.count ?? 0}
+          calls={callMetrics.ok ? callMetrics.data : null}
         />
       </div>
     );

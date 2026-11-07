@@ -12,6 +12,7 @@ const envSchema = z.object({
   RESEND_API_KEY: z.string().optional().default(""),
   AI_PROVIDER_API_KEY: z.string().optional().default(""),
   CRON_SECRET: z.string().optional().default(""),
+  CALLS_WEBHOOK_SECRET: z.string().optional().default(""),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -38,6 +39,7 @@ const rawEnv = {
   RESEND_API_KEY: process.env.RESEND_API_KEY,
   AI_PROVIDER_API_KEY: process.env.AI_PROVIDER_API_KEY,
   CRON_SECRET: process.env.CRON_SECRET,
+  CALLS_WEBHOOK_SECRET: process.env.CALLS_WEBHOOK_SECRET,
 };
 
 // Support SKIP_ENV_VALIDATION=1 for CI pipelines
@@ -69,6 +71,7 @@ if (skipValidation) {
       RESEND_API_KEY: rawEnv.RESEND_API_KEY || "",
       AI_PROVIDER_API_KEY: rawEnv.AI_PROVIDER_API_KEY || "",
       CRON_SECRET: rawEnv.CRON_SECRET || "",
+      CALLS_WEBHOOK_SECRET: rawEnv.CALLS_WEBHOOK_SECRET || "",
     };
   } else {
     parsedData = parsed.data;

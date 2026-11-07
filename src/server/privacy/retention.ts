@@ -5,5 +5,6 @@ export const RETENTION_POLICIES = {
   LEAD_ANONYMIZATION_MONTHS: 24, // Closed leads older than 24 months scrubbed
   OUTBOX_PURGE_DAYS: 90,        // Sent or dead messages purged after 90 days
   IDEMPOTENCY_PURGE_DAYS: 7,    // Idempotency tokens purged after 7 days
+  CALL_LOG_PURGE_DAYS: 365,     // Service-call logs kept 12 months
 } as const;
 
