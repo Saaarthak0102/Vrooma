@@ -937,6 +937,9 @@ export type Database = {
       leads: {
         Row: {
           ai_draft: string | null
+          ai_generated_at: string | null
+          ai_input_hash: string | null
+          ai_profile: Json | null
           ai_summary: string | null
           assigned_at: string | null
           assigned_to: string | null
@@ -965,6 +968,9 @@ export type Database = {
         }
         Insert: {
           ai_draft?: string | null
+          ai_generated_at?: string | null
+          ai_input_hash?: string | null
+          ai_profile?: Json | null
           ai_summary?: string | null
           assigned_at?: string | null
           assigned_to?: string | null
@@ -993,6 +999,9 @@ export type Database = {
         }
         Update: {
           ai_draft?: string | null
+          ai_generated_at?: string | null
+          ai_input_hash?: string | null
+          ai_profile?: Json | null
           ai_summary?: string | null
           assigned_at?: string | null
           assigned_to?: string | null

@@ -13,7 +13,9 @@ import { ReplyDraftEditor } from "@/components/staff/ReplyDraftEditor";
 import { ReassignDialog } from "@/components/staff/ReassignDialog";
 import { LeadStatusControl } from "@/components/staff/LeadStatusControl";
 import { LeadTimeline } from "@/components/staff/LeadTimeline";
-import { getLeadDrawerAction, type LeadDrawerData } from "@/server/actions/lead-drawer";
+import { getLeadDrawerAction, refreshLeadCopilotAction, type LeadDrawerData } from "@/server/actions/lead-drawer";
+import type { LeadAiProfile } from "@/server/ai/lead-context";
+import { toast } from "sonner";
 import type { Lead, Role } from "@/types/domain";
 
 export interface LeadDrawerProps {
@@ -28,6 +30,7 @@ export interface LeadDrawerProps {
 export function LeadDrawer({ leadId, viewerRole, onClose, onLeadChanged }: LeadDrawerProps) {
   const [data, setData] = useState<LeadDrawerData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async (id: string) => {
     const res = await getLeadDrawerAction(id);
@@ -46,6 +49,20 @@ export function LeadDrawer({ leadId, viewerRole, onClose, onLeadChanged }: LeadD
   }, [leadId, load]);
 
   const lead = data?.lead;
+
+  const refreshBriefing = useCallback(async (id: string) => {
+    setRefreshing(true);
+    try {
+      const res = await refreshLeadCopilotAction(id);
+      if (res.ok) {
+        setData((current) => (current ? { ...current, lead: res.data.lead } : current));
+      } else {
+        toast.error(res.error?.message ?? "Could not refresh the briefing.");
+      }
+    } finally {
+      setRefreshing(false);
+    }
+  }, []);
 
   return (
     <Sheet open={Boolean(leadId)} onOpenChange={(open) => !open && onClose()}>
@@ -130,10 +147,16 @@ export function LeadDrawer({ leadId, viewerRole, onClose, onLeadChanged }: LeadD
               }}
             />
 
-            <AiSummaryCard summary={lead.ai_summary} customerName={lead.name} />
+            <AiSummaryCard
+              summary={lead.ai_summary}
+              customerName={lead.name}
+              profile={(lead.ai_profile as LeadAiProfile | null) ?? null}
+              refreshing={refreshing}
+              onRefresh={() => void refreshBriefing(lead.id)}
+            />
 
             <ReplyDraftEditor
-              key={lead.id}
+              key={`${lead.id}:${lead.ai_draft ?? ""}`}
               leadId={lead.id}
               customerName={lead.name}
               leadPhone={lead.phone}

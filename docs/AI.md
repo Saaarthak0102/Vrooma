@@ -6,9 +6,16 @@ Vrooma integrates generative AI to solve dealership operational bottlenecks whil
 
 | Capability | Target User | Input Data | Generated Output | Guardrails & Policy |
 |---|---|---|---|---|
-| **1. Buyer Summarizer** | Sales Consultant | Lead form text, requested variant, trade-in data, source. | 3-bullet executive briefing: buyer intent, timeline, and budget fit. | Read-only summary for internal staff preparation. |
-| **2. First-Reply Copilot** | Sales Consultant | Buyer summary, customer name, requested model, showroom. | Contextual greeting and invitation to showroom/drive. | **Zero Discount Policy.** Drafts must be reviewed and sent manually by consultant. |
-| **3. Used Car Valuation Engine** | Used-Car Manager | Model, year, odometer (km), fuel type, inspection score. | Suggested resale band (e.g. ₹8.10L – ₹8.45L). | Visible **only** to Used-Car Manager. Never shown on public cards. |
+| **1. Buyer Summarizer + profile** | Sales Consultant | Lead message, source, stage, last 15 timeline events, website-chat transcript, saved cars, bookings, showroom, consultant first name. | Summary (max 60 words), urgency, extracted budget / timeline / fuel / finance / trade-in, suggested next step (`leads.ai_summary`, `leads.ai_profile`). | Staff only. First name only goes to the model: no phone, email or registration number. May say "asked about a discount". |
+| **2. First-Reply Copilot** | Sales Consultant | Same facts. | Under-60-word draft in `leads.ai_draft`, shown in the editable reply box. | **Zero Discount Policy.** No rupee amount at all, no registration number. Blocked drafts fall back to the rule-based draft. Consultant reviews and sends manually. |
+| **3. Chat Handoff Brief** | Sales Consultant | The chat transcript at the moment the buyer asks for a person. | Summary and suggested reply in `chat_conversations.ai_context`. | Fast model, 5 s timeout (the buyer is waiting); falls back to the intent-label brief. |
+| **4. Used Car Valuation Engine** | Used-Car Manager | Model, year, odometer (km), fuel type, inspection score. | Suggested resale band (e.g. ₹8.10L – ₹8.45L). | Visible **only** to Used-Car Manager. Never shown on public cards. |
+
+### How the lead briefing is kept fresh (`ensureLeadCopilot`)
+- Generated when a consultant first opens a lead, then rebuilt only when the facts changed (a hash of message, chat, events, bookings and stage in `leads.ai_input_hash`), and at most every 10 minutes. The Refresh button in the briefing card forces a rebuild, at most once per 30 seconds per lead.
+- The reply draft is replaced only while nobody has contacted the buyer; after the first contact the draft is left alone.
+- With AI off, capped, slow or blocked, the rule-based briefing fills **empty** fields only, so a model-written briefing is never overwritten by a weaker one. `leads.ai_profile.origin` says `ai` or `rules`; the card title drops "AI" for the latter.
+- The profile columns (migration `0036`) are read separately from the main lead queries, so deploying before the migration is applied only hides the profile; it never breaks the Lead Desk.
 
 ---
 

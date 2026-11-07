@@ -31,12 +31,13 @@ export async function getLeadDrawerAction(leadId: string): Promise<ActionRespons
       return errorResponse("NOT_FOUND", "Lead not found.");
     }
 
-    const [lead, events, consultants, chat] = await Promise.all([
-      ensureLeadCopilot(raw),
+    const [events, consultants, chat] = await Promise.all([
       listLeadEvents(raw.id),
       listUsers("consultant"),
       findConversationForLead(raw.id),
     ]);
+    // Cheap no-op unless the lead is new or has changed since its last AI summary.
+    const lead = await ensureLeadCopilot(raw, { events, actorId: user.id });
 
     return successResponse({
       lead,
@@ -46,5 +47,25 @@ export async function getLeadDrawerAction(leadId: string): Promise<ActionRespons
     });
   } catch (err: any) {
     return errorResponse("INTERNAL_ERROR", err?.message || "Could not load the lead.");
+  }
+}
+
+/**
+ * Consultant presses "Refresh" on the AI briefing: rebuild the summary and buyer profile from the latest facts.
+ * Same access rule as the drawer. The first-reply draft is only replaced while nobody has replied yet.
+ */
+export async function refreshLeadCopilotAction(leadId: string): Promise<ActionResponse<{ lead: Lead }>> {
+  try {
+    const { user, profile } = await requireRole("consultant", "manager", "admin");
+    const raw = await getLeadById(leadId);
+
+    if (!raw || (profile.role === "consultant" && raw.assigned_to !== user.id)) {
+      return errorResponse("NOT_FOUND", "Lead not found.");
+    }
+
+    const lead = await ensureLeadCopilot(raw, { force: true, actorId: user.id });
+    return successResponse({ lead });
+  } catch (err: any) {
+    return errorResponse("INTERNAL_ERROR", err?.message || "Could not refresh the briefing.");
   }
 }

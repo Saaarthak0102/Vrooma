@@ -33,6 +33,8 @@ export interface AiRunOptions<T> {
   userId?: string | null;
   leadId?: string | null;
   inputHash?: string | null;
+  /** Overrides the tier's default timeout, e.g. when a buyer is waiting on the result. */
+  timeoutMs?: number;
   /** Redacted description of the input for the audit row. Never raw buyer text or contact details. */
   promptForLog?: string;
   /** Calls the model. Must honour `signal`. Return the typed value plus token usage. */
@@ -90,7 +92,7 @@ export async function runWithFallback<T>(options: AiRunOptions<T>, deps: AiRunDe
 
   const startedAt = deps.now();
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), deps.timeoutMs(options.tier));
+  const timer = setTimeout(() => controller.abort(), options.timeoutMs ?? deps.timeoutMs(options.tier));
 
   try {
     const aborted = new Promise<never>((_, reject) => {

@@ -27,6 +27,11 @@ export interface GuardOptions {
    * not contain any rupee amount (first-reply drafts); otherwise every amount must appear in these values.
    */
   groundingSources?: unknown[];
+  /**
+   * Internal, staff-only text (lead summaries, suggested actions) may describe what the buyer asked for, including
+   * "asked for a discount". Never set this for anything that can reach a buyer or be sent as a reply.
+   */
+  skipDiscountCheck?: boolean;
 }
 
 /** Indian registration number (state, RTO, series, four digits). Upper-case on purpose: masked forms have `*`. */
@@ -132,7 +137,7 @@ export function guardAiText(text: string, options: GuardOptions = {}): GuardResu
   if (!trimmed) return { ok: false, reason: "empty" };
   if (options.maxChars && trimmed.length > options.maxChars) return { ok: false, reason: "too_long" };
 
-  const forbidden = findForbiddenDiscountWord(trimmed);
+  const forbidden = options.skipDiscountCheck ? null : findForbiddenDiscountWord(trimmed);
   if (forbidden) return { ok: false, reason: "discount", detail: forbidden };
 
   if (containsRegistrationNumber(trimmed)) return { ok: false, reason: "registration_number" };

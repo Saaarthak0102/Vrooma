@@ -2,6 +2,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { recordConsent } from "@/server/privacy/consent";
 import { listShowrooms } from "@/server/repositories/showrooms";
 import { buildChatContext } from "@/server/ai/chat-context";
+import { enrichChatContext } from "@/server/ai/chat-context-ai";
 import {
   getConversation,
   insertMessages,
@@ -70,12 +71,17 @@ export async function requestHandoff(params: {
     return { error: "We could not record your consent. Please try again." };
   }
 
-  const context = buildChatContext({
-    buyerMessages,
-    buyerName: params.contact.name,
-    signedIn: Boolean(params.userId),
-    totalMessages: messages.length,
-  });
+  // Rule-based brief first (always works), then the model rewrites the summary and suggested reply if it can.
+  const context = await enrichChatContext(
+    buildChatContext({
+      buyerMessages,
+      buyerName: params.contact.name,
+      signedIn: Boolean(params.userId),
+      totalMessages: messages.length,
+    }),
+    messages.filter((m) => m.role !== "system").map((m) => ({ role: m.role, content: m.content })),
+    { userId: params.userId ?? null },
+  );
 
   const { data: lead, error } = await admin.rpc("create_lead", {
     p_name: params.contact.name,

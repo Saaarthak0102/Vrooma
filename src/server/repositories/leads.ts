@@ -148,6 +148,27 @@ export async function getLeadById(id: string): Promise<Lead | null> {
   return mapRowToLead(data);
 }
 
+export type LeadAiMeta = Pick<Lead, "ai_profile" | "ai_input_hash" | "ai_generated_at">;
+
+/**
+ * The AI profile columns added in migration 0036, read on their own and tolerantly. They are deliberately not part
+ * of LEAD_COLUMNS: if the app is deployed before the migration is applied, lists and the Lead Desk keep working and
+ * only the AI profile is missing, instead of every lead query failing on an unknown column.
+ */
+export async function getLeadAiMeta(id: string): Promise<LeadAiMeta | null> {
+  const { data, error } = await getClient()
+    .from("leads")
+    .select("ai_profile, ai_input_hash, ai_generated_at")
+    .eq("id", id)
+    .maybeSingle();
+  if (error || !data) return null;
+  return {
+    ai_profile: data.ai_profile ?? null,
+    ai_input_hash: data.ai_input_hash ?? null,
+    ai_generated_at: data.ai_generated_at ?? null,
+  };
+}
+
 export interface LeadEventView {
   id: string;
   type: string;

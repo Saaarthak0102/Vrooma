@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getLeadById } from "@/server/repositories/leads";
-import { generateLeadCopilot } from "@/server/ai/lead-copilot";
+import { ensureLeadCopilot } from "@/server/services/lead-copilot-persist";
 import { guardRole } from "@/server/auth/api-guard";
 
 export async function POST(request: NextRequest) {
@@ -19,8 +19,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, error: "Lead not found" }, { status: 404 });
     }
 
-    const result = await generateLeadCopilot(lead);
-    return NextResponse.json({ ok: true, data: result });
+    // Same rules as the desk: regenerated only when the lead changed, never more than once per 30 s on demand.
+    const updated = await ensureLeadCopilot(lead, { force: true, actorId: session.user.id });
+    return NextResponse.json({
+      ok: true,
+      data: {
+        summary: updated.ai_summary ?? "",
+        draftReply: updated.ai_draft ?? "",
+        profile: updated.ai_profile ?? null,
+      },
+    });
   } catch (err: any) {
     console.error("[api/ai/lead-copilot] failed:", err?.message);
     return NextResponse.json({ ok: false, error: "Something went wrong. Please try again." }, { status: 500 });

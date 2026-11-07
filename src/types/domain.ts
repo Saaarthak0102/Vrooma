@@ -238,6 +238,10 @@ export interface Lead {
   first_contacted_at?: string | null;
   ai_summary?: string | null;
   ai_draft?: string | null;
+  /** Structured AI buyer profile (staff only). See LeadAiProfile in src/server/ai/lead-copilot.ts. */
+  ai_profile?: unknown | null;
+  ai_input_hash?: string | null;
+  ai_generated_at?: string | null;
   consent_id?: string | null;
   created_at: string;
 }
