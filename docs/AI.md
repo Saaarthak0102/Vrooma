@@ -78,6 +78,22 @@ For reply drafts, `sendLeadReplyAction` writes `reply_sent_unedited` / `reply_se
 
 ---
 
+## 4b. Date-driven triggers (no model involved)
+
+`/api/cron/automations` (every 5 minutes, migration `0037`) runs the rules in `src/server/automations/`. They only queue messages; the outbox job sends them. Each message has an idempotency key, so re-runs never duplicate. The consent gate for marketing-type messages is not built yet because none exist: it must be added before the first service-due, insurance-expiry or re-engagement message ships (P4/P6).
+
+| Rule | When | Goes to |
+|---|---|---|
+| Test drive / service reminder | 24 h and 3 h before the slot (skipped if booked inside that window) | Buyer: email + WhatsApp |
+| Booking outcome needed | Slot ended over 1 h ago, still `confirmed` (last 7 days) | Lead's consultant, else `ALERT_EMAIL` |
+| Lead uncontacted | New lead, no contact after 15 min | Consultant + `ALERT_EMAIL` |
+| Chat unanswered | Handoff with no staff reply after 10 min | Consultant + `ALERT_EMAIL` |
+| Price rule expiring | Ended in the last 30 days or ends within 7, with no successor for the same city/model/variant/fuel | `ALERT_EMAIL` |
+| Offer ending | Within 3 days | `ALERT_EMAIL` |
+| DPDP request due | Within 5 days of the 30-day deadline | `ALERT_EMAIL` |
+
+---
+
 ## 5. Foundation (`src/server/ai/`)
 
 Every AI feature is called through `runAi()` (`index.ts` -> `runner.ts`), so they all behave the same way:

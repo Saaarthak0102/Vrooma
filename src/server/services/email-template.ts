@@ -10,6 +10,14 @@ const SUBJECTS: Record<string, string> = {
   consultant_reply: "Your Vrooma consultant replied",
   lead_closed_deletion: "Your enquiry was closed",
   newsletter_subscription_confirmed: "You are subscribed to Vrooma updates",
+  test_drive_reminder: "Reminder: your Vrooma test drive",
+  service_reminder: "Reminder: your Vrooma service appointment",
+  booking_outcome_needed: "Booking outcome needed",
+  lead_uncontacted_escalation: "Lead still uncontacted after 15 minutes",
+  chat_waiting_alert: "A buyer is waiting in chat",
+  price_rule_expiry_alert: "On-road price rule expiring",
+  offer_expiry_alert: "An offer is about to end",
+  dpdp_deadline_alert: "A data request deadline is close",
 };
 
 export function emailSubject(template: string): string {

@@ -5,6 +5,7 @@
  * jobs that call the app cannot fire while you develop. This loop calls the same routes every 60 seconds:
  *
  *   /api/cron/outbox   (send queued emails / messages)
+ *   /api/cron/automations (queue reminders, escalations and expiry alerts)
  *   /api/cron/sla      (flag leads past the 5-minute SLA; idempotent, so it is safe next to the pg_cron job)
  *
  * It refuses to run unless APP_ENV is not "production" AND the target URL is localhost.
@@ -15,7 +16,7 @@
 import fs from "node:fs";
 import path from "node:path";
 
-export const CRON_ROUTES = ["/api/cron/outbox", "/api/cron/sla"];
+export const CRON_ROUTES = ["/api/cron/outbox", "/api/cron/automations", "/api/cron/sla"];
 export const INTERVAL_MS = 60_000;
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]", "::1"]);
 

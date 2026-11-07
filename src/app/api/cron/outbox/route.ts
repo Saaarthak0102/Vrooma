@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { authorizeCron } from "@/lib/cron-auth";
+import { resolveRecipient } from "@/server/automations/alerts";
 import { deliverMessage, type DeliveryChannel } from "@/server/services/message-providers";
 
 const BACKOFF_MINUTES = [1, 5, 30, 120];
@@ -62,7 +63,7 @@ export async function GET(request: NextRequest) {
     if (lockErr || !claimed || claimed.length === 0) continue;
 
     try {
-      const result = await deliverMessage(msg.channel as DeliveryChannel, msg.to_address, msg.template, msg.body);
+      const result = await deliverMessage(msg.channel as DeliveryChannel, resolveRecipient(msg.to_address), msg.template, msg.body);
 
       if (result.status === "skipped") {
         // Nothing was sent (no provider for this channel). Record that honestly instead of "sent".

@@ -11,6 +11,7 @@ run** (the Admin Overview, System tab, shows each missing job in red as "not sch
 | `daily_data_retention` | 20:30 | yes |
 | `daily_finalize_deletions` | 21:30 | yes |
 | `daily_dms_export` | 18:45 (= 00:15 IST) | yes |
+| `process_automations` | every 5 minutes | yes (migration `0037`) |
 
 ## Steps (per Supabase project: DEV, then PROD)
 
@@ -31,6 +32,11 @@ run** (the Admin Overview, System tab, shows each missing job in red as "not sch
 
 - `/api/cron/outbox`: sends pending email through Resend (`RESEND_API_KEY`). WhatsApp and SMS rows are marked
   `skipped` (no provider connected), never `sent`.
+- `/api/cron/automations`: queues (never sends) the date-driven messages, de-duplicated by outbox idempotency key:
+  24 h and 3 h test-drive / service reminders (email + WhatsApp), "record the outcome" emails for bookings still
+  `confirmed` an hour after their slot, escalations for a lead uncontacted after 15 minutes or a chat unanswered after
+  10 minutes, and alerts for price rules / offers about to end and DPDP requests due within 5 days. Internal alerts go
+  to `ALERT_EMAIL` (also substituted for the old `manager@vrooma.in` / `staff@vrooma.in` placeholders at send time).
 - `/api/cron/dms-export`: writes `vrooma-dms-YYYY-MM-DD.csv` for the day that just ended into the private
   `dms-exports` Storage bucket. Managers and admins can download it from Storage, or on demand from
   `GET /api/export/daily-csv?date=YYYY-MM-DD` while signed in.

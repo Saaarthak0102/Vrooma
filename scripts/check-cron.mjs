@@ -17,6 +17,7 @@ export const EXPECTED_JOBS = [
   "purge_expired_idempotency",
   "purge_stale_rate_limits",
   "process_outbox_queue",
+  "process_automations",
   "daily_data_retention",
   "daily_finalize_deletions",
   "daily_dms_export",

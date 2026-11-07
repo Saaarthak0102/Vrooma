@@ -241,6 +241,18 @@ All three are optional per environment. A channel with no keys never pretends to
    | `booking_cancellation` | `Vrooma booking update. {{1}} Reply here to book a new slot.` | `Your Vrooma booking (TD-1042) has been cancelled. The time slot has been released.` |
    | `consultant_reply` | `Message from your Vrooma consultant. {{1}} Reply here to continue.` | `Hi Rahul, this is Anita from Vrooma Hazratganj. The Model H ZX automatic is available for a test drive this week. When suits you?` |
 
+   Two more are needed for the reminders sent by `/api/cron/automations` (same shape: category **Utility**, English,
+   body only, `{{1}}` carries the whole text):
+
+   | Name | Body | Sample for `{{1}}` |
+   |---|---|---|
+   | `test_drive_reminder` | `Vrooma test drive reminder. {{1}} Reply here to change your slot.` | `Hi Asha, a reminder from Vrooma: your test drive for your Model H ZX is on Tue, 10 Nov, 11:00 am at Hazratganj. Booking TD-1042.` |
+   | `service_reminder` | `Vrooma service reminder. {{1}} Reply here to change your slot.` | `Hi Asha, a reminder from Vrooma: your service appointment is on Tue, 10 Nov, 10:00 am at Transport Nagar. Booking SV-2031.` |
+
+   Add `"test_drive_reminder":{"name":"test_drive_reminder","language":"en"}` and the same for `service_reminder` to
+   `WHATSAPP_TEMPLATES`. Until they are approved the WhatsApp reminder is sent as plain text, which Meta rejects outside
+   the 24-hour window (the row retries, then goes `dead`); the email reminder is unaffected.
+
    Approval usually takes minutes to a day. Then map them (one line in Vercel / `.env.local`):
    `WHATSAPP_TEMPLATES={"lead_acknowledgement":{"name":"lead_acknowledgement","language":"en"},"booking_confirmation":{"name":"booking_confirmation","language":"en"},"booking_cancellation":{"name":"booking_cancellation","language":"en"},"consultant_reply":{"name":"consultant_reply","language":"en"}}`
    The app sends the whole message text as `{{1}}` (line breaks are flattened, text is cut at 800 characters).

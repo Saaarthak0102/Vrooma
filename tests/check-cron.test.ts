@@ -12,7 +12,7 @@ describe("evaluateCronStatus", () => {
     const dbOnly = ["eval_lead_sla_breaches", "daily_slot_generation", "purge_expired_idempotency", "purge_stale_rate_limits"];
     const r = evaluateCronStatus(dbOnly.map((n) => row(n)));
     expect(r.ok).toBe(false);
-    expect(r.missing).toEqual(["process_outbox_queue", "daily_data_retention", "daily_finalize_deletions", "daily_dms_export"]);
+    expect(r.missing).toEqual(["process_outbox_queue", "process_automations", "daily_data_retention", "daily_finalize_deletions", "daily_dms_export"]);
   });
 
   it("flags inactive and failing jobs; never-run alone is not a failure", () => {
