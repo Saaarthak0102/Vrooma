@@ -1,14 +1,15 @@
-import { enqueueOnce } from "@/server/automations/enqueue";
+import { enqueueOnce, enqueueTasksOnce } from "@/server/automations/enqueue";
 import { planEscalations, selectWaiting } from "@/server/automations/escalations";
 import { planExpiryAlerts, selectExpiryInput } from "@/server/automations/expiry";
+import { planFollowUps, selectFollowUps } from "@/server/automations/followups";
 import { planGarageReminders, selectGarageInput } from "@/server/automations/garage";
 import { planOutcomeReminders, selectUnmarkedBookings } from "@/server/automations/outcomes";
 import { planReminders, selectReminderBookings } from "@/server/automations/reminders";
-import type { OutboxRow, RuleResult } from "@/server/automations/types";
+import type { OutboxRow, RuleResult, TaskRow } from "@/server/automations/types";
 
 interface Rule {
   name: string;
-  plan: (admin: any, now: Date) => Promise<OutboxRow[]>;
+  plan: (admin: any, now: Date) => Promise<OutboxRow[] | { rows: OutboxRow[]; tasks: TaskRow[] }>;
 }
 
 const RULES: Rule[] = [
@@ -22,6 +23,7 @@ const RULES: Rule[] = [
       return planGarageReminders(vehicles, consented, today);
     },
   },
+  { name: "lead_followups", plan: async (a, now) => planFollowUps(await selectFollowUps(a, now), now) },
   { name: "expiry_alerts", plan: async (a, now) => planExpiryAlerts(await selectExpiryInput(a, now), now) },
 ];
 
@@ -33,9 +35,13 @@ export async function runAutomations(admin: any, now: Date = new Date()): Promis
   const results: RuleResult[] = [];
   for (const rule of RULES) {
     try {
-      const rows = await rule.plan(admin, now);
+      const out = await rule.plan(admin, now);
+      const rows = Array.isArray(out) ? out : out.rows;
+      const tasks = Array.isArray(out) ? [] : out.tasks;
+      // Tasks first: the email tells the consultant to open a task that should already exist.
+      await enqueueTasksOnce(admin, tasks);
       await enqueueOnce(admin, rows);
-      results.push({ rule: rule.name, planned: rows.length });
+      results.push({ rule: rule.name, planned: rows.length + tasks.length });
     } catch (err: any) {
       console.error(`[automations] ${rule.name} failed: ${err?.message}`);
       results.push({ rule: rule.name, planned: 0, error: String(err?.message ?? err) });

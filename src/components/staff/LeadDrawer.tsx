@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { SlaTimer } from "@/components/staff/SlaTimer";
 import { StatusPill } from "@/components/staff/StatusPill";
 import { AiSummaryCard } from "@/components/staff/AiSummaryCard";
+import { NextBestActionCard } from "@/components/staff/NextBestActionCard";
 import { ReplyDraftEditor } from "@/components/staff/ReplyDraftEditor";
 import { ReassignDialog } from "@/components/staff/ReassignDialog";
 import { LeadStatusControl } from "@/components/staff/LeadStatusControl";
@@ -31,6 +32,8 @@ export function LeadDrawer({ leadId, viewerRole, onClose, onLeadChanged }: LeadD
   const [data, setData] = useState<LeadDrawerData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  /** Text the agent put into the reply box; replaces the AI draft until the lead changes. */
+  const [agentDraft, setAgentDraft] = useState<string | null>(null);
 
   const load = useCallback(async (id: string) => {
     const res = await getLeadDrawerAction(id);
@@ -45,6 +48,7 @@ export function LeadDrawer({ leadId, viewerRole, onClose, onLeadChanged }: LeadD
   useEffect(() => {
     setData(null);
     setError(null);
+    setAgentDraft(null);
     if (leadId) void load(leadId);
   }, [leadId, load]);
 
@@ -155,12 +159,24 @@ export function LeadDrawer({ leadId, viewerRole, onClose, onLeadChanged }: LeadD
               onRefresh={() => void refreshBriefing(lead.id)}
             />
 
+            <NextBestActionCard
+              leadId={lead.id}
+              onUseDraft={(text, mode) =>
+                setAgentDraft((current) => {
+                  if (mode === "replace") return text;
+                  const base = (current ?? lead.ai_draft ?? "").trim();
+                  return base ? `${base} ${text}` : text;
+                })
+              }
+              onLeadChanged={() => void load(lead.id)}
+            />
+
             <ReplyDraftEditor
-              key={`${lead.id}:${lead.ai_draft ?? ""}`}
+              key={`${lead.id}:${agentDraft ?? lead.ai_draft ?? ""}`}
               leadId={lead.id}
               customerName={lead.name}
               leadPhone={lead.phone}
-              initialDraft={lead.ai_draft || ""}
+              initialDraft={agentDraft ?? (lead.ai_draft || "")}
               onSent={() => {
                 onLeadChanged({
                   id: lead.id,

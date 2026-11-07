@@ -188,7 +188,7 @@ describe("runAutomations", () => {
   it("runs every rule and reports each one", async () => {
     const { admin } = fakeAdmin();
     const results = await runAutomations(admin, NOW);
-    expect(results.map((r) => r.rule)).toEqual(["booking_reminders", "booking_outcomes", "escalations", "garage_reminders", "expiry_alerts"]);
+    expect(results.map((r) => r.rule)).toEqual(["booking_reminders", "booking_outcomes", "escalations", "garage_reminders", "lead_followups", "expiry_alerts"]);
     expect(results.every((r) => !r.error)).toBe(true);
   });
 
@@ -196,7 +196,7 @@ describe("runAutomations", () => {
     const { admin } = fakeAdmin("price_rules");
     const results = await runAutomations(admin, NOW);
     expect(results.find((r) => r.rule === "expiry_alerts")?.error).toContain("boom");
-    expect(results.filter((r) => !r.error)).toHaveLength(4);
+    expect(results.filter((r) => !r.error)).toHaveLength(5);
   });
 });
 

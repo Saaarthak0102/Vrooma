@@ -10,13 +10,24 @@ Vrooma integrates generative AI to solve dealership operational bottlenecks whil
 | **2. First-Reply Copilot** | Sales Consultant | Same facts. | Under-60-word draft in `leads.ai_draft`, shown in the editable reply box. | **Zero Discount Policy.** No rupee amount at all, no registration number. Blocked drafts fall back to the rule-based draft. Consultant reviews and sends manually. |
 | **3. Chat Handoff Brief** | Sales Consultant | The chat transcript at the moment the buyer asks for a person. | Summary and suggested reply in `chat_conversations.ai_context`. | Fast model, 5 s timeout (the buyer is waiting); falls back to the intent-label brief. |
 | **4. Buyer Chatbot** | Visitors and buyers | The buyer's message, the last 9 turns, and read-only catalog tools (below). | A short plain-text answer plus the "solved or connect?" question. | Every rupee figure must come from a tool result, links only to our own pages, no discounts, no registration numbers. Falls back to the rule-based bot. |
-| **5. Used Car Valuation Engine** | Used-Car Manager | Model, year, odometer (km), fuel type, inspection score. | Suggested resale band (e.g. ₹8.10L – ₹8.45L). | Visible **only** to Used-Car Manager. Never shown on public cards. |
+| **5. Lead Desk Agent** | Sales Consultant | The lead facts (as in 1), open test-drive slots at the lead's showroom, consultant workload. | Up to 3 ranked proposals, one line of reasoning each: call now, draft a message, offer a slot, move the stage, reassign, add a follow-up, ask a manager. | Proposes only. A consultant presses Apply on each. See below. |
+| **6. Used Car Valuation Engine** | Used-Car Manager | Model, year, odometer (km), fuel type, inspection score. | Suggested resale band (e.g. ₹8.10L – ₹8.45L). | Visible **only** to Used-Car Manager. Never shown on public cards. |
 
 ### How the lead briefing is kept fresh (`ensureLeadCopilot`)
 - Generated when a consultant first opens a lead, then rebuilt only when the facts changed (a hash of message, chat, events, bookings and stage in `leads.ai_input_hash`), and at most every 10 minutes. The Refresh button in the briefing card forces a rebuild, at most once per 30 seconds per lead.
 - The reply draft is replaced only while nobody has contacted the buyer; after the first contact the draft is left alone.
 - With AI off, capped, slow or blocked, the rule-based briefing fills **empty** fields only, so a model-written briefing is never overwritten by a weaker one. `leads.ai_profile.origin` says `ai` or `rules`; the card title drops "AI" for the latter.
 - The profile columns (migration `0036`) are read separately from the main lead queries, so deploying before the migration is applied only hides the profile; it never breaks the Lead Desk.
+
+### Lead Desk Agent (`src/server/ai/lead-agent.ts`, `src/lib/lead-agent.ts`)
+- Opened from **Next steps** in the lead drawer ("Suggest next steps"; 10 runs a minute per person). Smart model with up to 6 tool steps.
+- **It cannot act.** Its tools are two lookups (`get_open_slots`, `get_consultant_load`) and six `propose_*` tools that only record a suggestion after validating it against real data: a slot id must be one returned by `get_open_slots` (the label comes from our data), a consultant id must be real and not the current owner, **won and lost can never be proposed**, and a reply must pass the same strict guard as first-reply drafts (no discount, no rupee amount, no registration number, under 420 characters). Invalid proposals are returned to the model as errors so it can correct them. One per kind, three at most.
+- **Approval is the consultant's click**, and each kind goes through an existing path: *reply* and *offer a slot* only fill the editable reply box (nothing is sent or booked); *move the stage* calls `updateLeadStatusAction`; *reassign* calls `reassignLeadAction`; *follow-up* creates a `lead_tasks` row; *ask a manager* creates a task and emails `ALERT_EMAIL`.
+- A buyer asking for a discount is never answered by the agent: it proposes asking a manager.
+- With AI off, capped, slow or blocked, deterministic suggestions of the same shape are shown, labelled "Rule-based".
+
+### Follow-up automations (no model)
+Part of `/api/cron/automations`, creating `lead_tasks` (migration `0040`) and an email to the lead's consultant: stage unchanged for 3-14 days with no timeline activity (alert mailbox told at 7+ days); a test drive marked attended 3-48 h ago ("follow up while it is fresh"); a test drive marked no-show in the last 48 h ("offer to rebook"). Only leads that are still open; 50 per run; keys make re-runs add nothing.
 
 ### Buyer chatbot (`src/server/ai/chat-answer.ts`, `chat-tools.ts`)
 - Fast model with up to 4 tool steps. The existing flow is unchanged: handoff, "solved" and greetings never reach the model, and every answer still ends with the closing question and the two quick replies.
