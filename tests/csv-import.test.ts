@@ -1,4 +1,31 @@
 import { describe, it, expect, vi } from "vitest";
+
+// These tests run the real import code, which creates leads through the create_lead RPC. Against the real DEV
+// database that left hundreds of fake leads behind on every run, so the database is faked here.
+const rpcCalls = vi.hoisted(() => [] as { name: string; args: Record<string, unknown> }[]);
+vi.mock("@/lib/supabase/admin", () => {
+  const rows = (table: string) =>
+    table === "showrooms" ? [{ id: "a0000001-0000-0000-0000-000000000001", name: "Hazratganj" }] : table === "models" ? [] : null;
+  return {
+    createAdminClient: () => ({
+      from: (table: string) => {
+        const c: any = {
+          select: () => c,
+          eq: () => c,
+          insert: () => c,
+          single: async () => ({ data: { id: "csv-import-test" }, error: null }),
+          then: (resolve: (v: unknown) => void) => resolve({ data: rows(table), error: null }),
+        };
+        return c;
+      },
+      rpc: async (name: string, args: Record<string, unknown>) => {
+        rpcCalls.push({ name, args });
+        return { data: { id: `lead-${rpcCalls.length}`, ref: `LD-MOCK-${rpcCalls.length}`, created_at: new Date().toISOString() }, error: null };
+      },
+    }),
+  };
+});
+
 import {
   sanitizeCsvCell,
   escapeCsvCellForExport,
@@ -94,6 +121,13 @@ Valid Name,12345,bad@example.com`;
       expect(result.skipped).toBe(1);
       expect(result.errors[0]).toContain("Invalid Indian phone number");
     });
+  });
+
+  it("never touches the real database: every lead goes through the fake create_lead", async () => {
+    const before = rpcCalls.length;
+    await processLeadCsv("name,phone,email\nFake Person,9876543299,fake@example.com");
+    expect(rpcCalls.length).toBe(before + 1);
+    expect(rpcCalls.every((c) => c.name === "create_lead")).toBe(true);
   });
 });
 

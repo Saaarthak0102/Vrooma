@@ -1,8 +1,9 @@
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { POST as leadsPost } from "@/app/api/leads/route";
 import { NextRequest } from "next/server";
+import { cleanupTestData, TEST_BUYER_EMAILS } from "@/../scripts/cleanup-test-data";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://eobtzcwinjmimzisypca.supabase.co";
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
@@ -10,6 +11,21 @@ const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || pr
 const LUCKNOW_CITY_ID = "c0000001-0000-0000-0000-000000000001";
 const VARIANT_H_ZX_ID = "e0000001-0000-0000-0000-000000000001";
 const HAZRATGANJ_SHOWROOM_ID = "a0000001-0000-0000-0000-000000000001";
+
+// Both describe blocks below create real leads and bookings on DEV. Remove what this run created (and hand booked
+// seats back) once every test in the file has finished, so repeated runs do not bury the lead desk, the digests and
+// the escalation rules in fake leads.
+const startedAt = new Date().toISOString();
+afterAll(async () => {
+  try {
+    const cleaner: any = createAdminClient();
+    const { data: buyers } = await cleaner.from("profiles").select("id").in("email", TEST_BUYER_EMAILS);
+    const r = await cleanupTestData(cleaner, { since: startedAt, testBuyerIds: (buyers ?? []).map((b: { id: string }) => b.id) });
+    if (r.leads || r.bookings) console.info(`[e2e-flows] cleaned up ${r.leads} test leads and ${r.bookings} bookings`);
+  } catch (err: any) {
+    console.warn(`[e2e-flows] cleanup skipped: ${err?.message}`);
+  }
+});
 
 describe("Phase 09: Post-0014 End-to-End Workflow Verification", () => {
   // The public lead route derives the client IP from the platform header; model a Vercel deployment.
@@ -24,6 +40,7 @@ describe("Phase 09: Post-0014 End-to-End Workflow Verification", () => {
   let buyerBClient: AnyClient;
   let consultantClient: AnyClient;
   const admin: any = createAdminClient();
+
 
   let buyerAId: string;
   let buyerBId: string;

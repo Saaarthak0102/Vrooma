@@ -110,3 +110,18 @@ pnpm seed:ai-demo -- --reset       # removes only its own rows, then re-seeds
   service-desk calls, and an AI audit log. Everything belongs to the existing dev personas.
 - Seeded follow-up tasks use the same keys as the automations, so the 5-minute job will not create duplicates of them.
 
+## Cleaning up test data (DEV only)
+
+Test runs create real leads, bookings and outbox rows on DEV. `tests/e2e-flows.test.ts` now removes what it creates when it finishes, and
+`tests/csv-import.test.ts` runs against a fake database, so repeated `pnpm test` runs no longer pile up fake leads. To clear what older runs left behind:
+
+```
+pnpm cleanup:test-data -- --dry-run    # shows what would go
+pnpm cleanup:test-data                 # deletes it
+```
+
+(Set `SUPABASE_PROJECT_REF=eobtzcwinjmimzisypca`, as for the seed scripts. Do not leave it exported while running `pnpm test`: the project-guard tests expect it to be unset.)
+
+It removes only leads that look like test data (known test names, `E2E-` prefixes, the sample-CSV people), with their bookings, outbox rows, AI log rows, trade-ins and chats, plus bookings made by the test buyer accounts, and hands the booked seats back to the slots.
+It never touches the AI demo data (`LD-D-` leads, `BK-D-` bookings, `5eed` ids) or a real person's enquiry.
+
