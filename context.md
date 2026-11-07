@@ -158,7 +158,7 @@ Interactive 3D flip cards are deployed exclusively on the three main catalog rou
 | Used Car 140-pt Inspection | Lead Gate (Name/Phone) | Full access | Full access | Full access |
 | Book Test Drive / Service | Auto-creates Lead | Full access | Assisted Booking | Full access |
 | Buyer Dashboard (`/dashboard`) | Redirect to Sign-in | Full access | Full access | Full access |
-| Lead Desk (`/staff`) and Bookings (`/staff/bookings`) | 403 Forbidden | 403 Forbidden | Assigned leads (consultant) / all (manager, admin) | All leads |
+| Lead Desk (`/staff`), Bookings (`/staff/bookings`) and Chats (`/staff/chats`) | 403 Forbidden | 403 Forbidden | Assigned leads (consultant) / all (manager, admin) | All leads |
 | Used Stock (`/staff/stock`) | 403 Forbidden | 403 Forbidden | 403 for consultants; managers and admins only | Full access |
 | Admin console (`/admin`, `/admin/catalog`, `/admin/team`) | 403 Forbidden | 403 Forbidden | 403 Forbidden | Admin only |
 | AI Used Price Suggestion | Hidden | Hidden | Hidden | Used-Car Manager only |
@@ -181,11 +181,12 @@ Interactive 3D flip cards are deployed exclusively on the three main catalog rou
 - `/dashboard/*` — Buyer account portal: booked drives, service status, saved vehicles, enquiries, DPDP profile download.
 - `/staff` — Lead Desk (all staff): KPI strip, spreadsheet of leads with live SLA timers and inline stage, side panel with AI summary, discount-guarded reply, reassign and activity; CSV import dialog.
 - `/staff/bookings` — test drives and service in one grid, plus workshop bay load for the next 7 days (all staff).
+- `/staff/chats` — support chats the buyer chatbot handed to a consultant: status KPIs, grid, side panel with the AI brief, live transcript and a discount-guarded reply box (all staff; consultants see only their own).
 - `/staff/stock` — Used Stock (manager and admin): stock grid, final price, manager-only price band from past sales, inspection scorecard, audited registration reveal, vehicle intake, and the Trade-ins tab.
 - `/admin` — Overview (admin): live success metrics and the ₹2.11 cr leakage monitor; tabs for the AI reply log and system health.
 - `/admin/catalog` — Models and variants, on-road price rules, offers, banners (tabs).
 - `/admin/team` — People and roles, showrooms and bay capacity, lead routing rules, slot calendar (tabs).
-- Old `/staff/leads*` and `/admin/*` deep links redirect to these screens. Each non-buyer role has at most 3 screens: consultant 2, manager 3, admin 3 of its own.
+- Old `/staff/leads*` and `/admin/*` deep links redirect to these screens. Each non-buyer role has at most 4 screens: consultant 3, manager 4, admin 3 of its own.
 
 ### Core Data Model Entities
 
@@ -282,7 +283,12 @@ Interactive 3D flip cards are deployed exclusively on the three main catalog rou
   - Staff always land in their console after any sign-in (`postSignInPath`); the dev persona switch is a real sign-in.
   - Each console screen opens with an interactive Overview (funnel, donuts, bars, trends; click to filter the table). Aggregation is in `src/lib/analytics.ts`; verified by `pnpm charts:console`. See `docs/WIRING.md`.
   - Every console feature is verified against Supabase by `pnpm e2e:console` (42 checks) and every screen's layout by `pnpm layout:console`. See `docs/backend/STATUS.md` section 10 for fixed bugs and known limits.
+- **Support chat handoff (Complete, migration `0028`):**
+  - The buyer chat box (`ChatWidget`) is answered by a rule-based bot (`src/server/ai/support-bot.ts`) that ends each answer with "Is your query solved, or would you like to connect with a Vrooma consultant?" (quick replies: solved / connect). Guests can chat too (guest token).
+  - "Connect" creates a real lead (source `chat`) through `create_lead`, so showroom routing, the 5-minute SLA and the lead timeline apply; guests give name, mobile and DPDP consent inside the chat box. The AI brief (`chat_conversations.ai_context`) is shown to the consultant in `/staff/chats` and stored on the lead.
+  - Consultant replies are blocked by the same discount filter; messages travel by Supabase Realtime (consultant side) and a 4 s poll (buyer side).
 - **Still upcoming:**
+  - Promote migrations `0028` and `0029` (support chat) to PROD after approval; they are applied on DEV only.
   - Add the Vault secrets (`app_url`, `cron_secret`) so the HTTP cron jobs are scheduled (`select private.ensure_cron_jobs();`).
   - Live Resend email and real WhatsApp/SMS delivery (outbox currently mocks WhatsApp/SMS).
   - Production Vercel AI SDK integration for live LLM streaming in lead copilots.

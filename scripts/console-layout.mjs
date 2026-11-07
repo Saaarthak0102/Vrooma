@@ -40,10 +40,12 @@ const SCREENS = {
   consultant: [
     { id: "lead-desk", path: "/staff", drawer: "first-row" },
     { id: "bookings", path: "/staff/bookings" },
+    { id: "chats", path: "/staff/chats" },
   ],
   manager: [
     { id: "lead-desk", path: "/staff", drawer: "first-row" },
     { id: "bookings", path: "/staff/bookings" },
+    { id: "chats", path: "/staff/chats" },
     { id: "stock", path: "/staff/stock", drawer: "first-row", dialog: /Add vehicle/i },
     { id: "trade-ins", path: "/staff/stock", tab: /^Trade-ins/, drawer: "first-row" },
   ],

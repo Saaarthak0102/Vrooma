@@ -100,6 +100,13 @@ export async function reassignLeadAction(
       return errorResponse("INTERNAL_ERROR", `Failed to reassign lead: ${error.message}`);
     }
 
+    // A support chat linked to this lead moves with it, so the new consultant sees the conversation.
+    try {
+      await (admin as any).from("chat_conversations").update({ assigned_to: toConsultantId }).eq("lead_id", leadId);
+    } catch (chatErr: any) {
+      console.warn(`[leads] Chat reassignment error: ${chatErr?.message}`);
+    }
+
     // Queue notification to new consultant
     try {
       await admin.from("messages_outbox").insert({

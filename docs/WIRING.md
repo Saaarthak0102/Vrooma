@@ -32,7 +32,7 @@ All former admin and staff placeholders are now wired to real server actions and
 
 ```bash
 pnpm check:wiring        # dead-button audit
-pnpm e2e:console         # every console feature, in a browser, asserted in Supabase (dev only)
+pnpm e2e:console         # every console feature incl. the support chat group (--only=chat), in a browser, asserted in Supabase (dev only)
 pnpm charts:console      # overview charts and their table filters, asserted against Supabase (dev only)
 pnpm layout:console      # phone/tablet/desktop layout audit of every console screen (dev only)
 ```
@@ -48,6 +48,7 @@ Numbers come from rows the page already reads, aggregated by `src/lib/analytics.
 |---|---|---|
 | `/staff` Lead Desk | pipeline funnel, lead source, interest by model, leads per day | the leads loaded in the grid (newest 200; labelled on the chart) |
 | `/staff/bookings` | next-7-day bookings by type, workshop bay load, outcomes, type split | `bookings` and `slots` |
+| `/staff/chats` | status cards (waiting, live, resolved, average first reply); click a card to filter | `chat_conversations` |
 | `/staff/stock` | status, price bands, days on lot, fuel mix (trade-ins tab: condition, lead stage) | `used_cars`, `trade_in_requests` |
 | `/admin` | lead funnel, enquiries vs replied in 5 min, online bookings, team workload (7/30/90 days) | `leads`, `bookings` (90 days) |
 | `/admin/catalog` (Models) | enquiries by model, live vs hidden catalog | `leads`, `models`, `variants` |

@@ -9,12 +9,13 @@ export interface ConsoleLink {
 }
 
 /**
- * Every non-buyer screen. Each role gets 2-3: consultant 2, manager 3, admin 3 of their own
+ * Every non-buyer screen. Each role gets 3-4: consultant 3, manager 4, admin 3 of their own
  * (the admin can also open the staff screens).
  */
 export const CONSOLE_LINKS: ConsoleLink[] = [
   { href: "/staff", label: "Lead Desk", roles: ["consultant", "manager", "admin"], exact: true },
   { href: "/staff/bookings", label: "Bookings", roles: ["consultant", "manager", "admin"] },
+  { href: "/staff/chats", label: "Chats", roles: ["consultant", "manager", "admin"] },
   { href: "/staff/stock", label: "Used Stock", roles: ["manager", "admin"] },
   { href: "/admin", label: "Overview", roles: ["admin"], exact: true },
   { href: "/admin/catalog", label: "Catalog", roles: ["admin"] },

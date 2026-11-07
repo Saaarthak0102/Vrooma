@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
-import { Mail, Phone } from "lucide-react";
+import Link from "next/link";
+import { Mail, MessageSquare, Phone } from "lucide-react";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -78,6 +79,14 @@ export function LeadDrawer({ leadId, viewerRole, onClose, onLeadChanged }: LeadD
                 {lead.source.replace("_", " ")}
               </Badge>
               <SlaTimer dueAt={lead.sla_due_at} firstContactedAt={lead.first_contacted_at} />
+              {data.chatId && (
+                <Link
+                  href={`/staff/chats?chat=${data.chatId}`}
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-accent hover:underline"
+                >
+                  <MessageSquare className="h-3.5 w-3.5" aria-hidden /> View chat
+                </Link>
+              )}
               <div className="ml-auto">
                 <ReassignDialog
                   leadId={lead.id}

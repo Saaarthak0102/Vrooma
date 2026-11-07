@@ -59,7 +59,7 @@
 
 | Screen | Consultant | Manager | Admin | Enforced by |
 |---|:---:|:---:|:---:|---|
-| `/staff` Lead Desk, `/staff/bookings` | ✅ (own leads) | ✅ | ✅ | middleware + layout + RLS |
+| `/staff` Lead Desk, `/staff/bookings`, `/staff/chats` | ✅ (own leads) | ✅ | ✅ | middleware + layout + RLS |
 | `/staff/stock` Used Stock | ❌ 403 | ✅ | ✅ | middleware + page `requireRole` |
 | `/admin`, `/admin/catalog`, `/admin/team` | ❌ 403 | ❌ 403 | ✅ | middleware + layout |
 

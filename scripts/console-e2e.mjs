@@ -8,7 +8,7 @@
  * Everything it creates is prefixed "E2E" and removed at the end.
  *
  *   node scripts/console-e2e.mjs                       # all groups
- *   node scripts/console-e2e.mjs --only=consultant     # consultant | manager | admin | cross
+ *   node scripts/console-e2e.mjs --only=consultant     # consultant | manager | admin | chat | cross
  *   TEST_URL=http://localhost:3000 node scripts/console-e2e.mjs
  */
 import fs from "node:fs";
@@ -303,7 +303,7 @@ async function consultantGroup(browser) {
   await check("Bookings screen loads and bay load matches the slots table", async () => {
     await open(page, "/staff/bookings");
     await page.getByRole("heading", { name: /Test drives & service bookings/i }).waitFor();
-    await page.getByRole("heading", { name: /Workshop bay load/i }).waitFor();
+    await page.getByRole("heading", { name: /Workshop bay load · next 7 days/i }).waitFor();
     const now = new Date();
     const until = new Date(now.getTime() + 7 * 86400_000);
     const { data: slots } = await db
@@ -910,6 +910,255 @@ async function crossGroup(browser) {
   await page.context().close();
 }
 
+/* ============================ support chat (bot -> consultant) ============================ */
+
+const FORBIDDEN_IN_BOT = /\b(discount|price cut|waiver|cashback)\b/i;
+
+/** Remove everything a chat test created: messages, conversation, the lead it opened and the consent row. */
+function trackConversation(id) {
+  cleanups.push(async () => {
+    const { data: conv } = await db.from("chat_conversations").select("lead_id").eq("id", id).maybeSingle();
+    await db.from("chat_messages").delete().eq("conversation_id", id);
+    await db.from("chat_conversations").delete().eq("id", id);
+    if (conv?.lead_id) {
+      await db.from("ai_logs").delete().eq("lead_id", conv.lead_id);
+      await db.from("messages_outbox").delete().eq("lead_id", conv.lead_id);
+      await db.from("lead_events").delete().eq("lead_id", conv.lead_id);
+      await db.from("leads").delete().eq("id", conv.lead_id);
+    }
+  });
+}
+
+/** Open the public site as the given session and open the chat box (it appears after a little scrolling). */
+async function openChat(page, urlPath = "/cars") {
+  await open(page, urlPath);
+  await page.evaluate(() => window.scrollTo(0, 600));
+  await page.getByRole("button", { name: /Open Vrooma Live Chat/i }).click();
+  await page.getByPlaceholder(/Ask about prices|Message your consultant/i).waitFor();
+}
+
+async function chatSay(page, text) {
+  await page.getByPlaceholder(/Ask about prices|Message your consultant/i).fill(text);
+  await page.getByRole("button", { name: "Send Message" }).click();
+}
+
+async function latestConversation(filter) {
+  const { data } = await db
+    .from("chat_conversations")
+    .select("*")
+    .match(filter)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data;
+}
+
+async function chatGroup(browser) {
+  currentGroup = "chat";
+  console.log("\n== Support chat ==");
+  const ctx = await consultantContext();
+  const guestPhone = `98${String(Math.floor(Math.random() * 1e8)).padStart(8, "0")}`;
+  const guest = await newPage(browser, null);
+  const gp = guest.page;
+  let convId = null;
+
+  await check("bot answers, then asks whether the query is solved or to connect to a consultant", async () => {
+    await openChat(gp);
+    await chatSay(gp, "what is the on-road price?");
+    await gp.getByText(/Is your query solved/i).first().waitFor();
+    await gp.getByRole("button", { name: /Yes, it's solved/i }).waitFor();
+    await gp.getByRole("button", { name: /Connect me to a consultant/i }).waitFor();
+    const conv = await eventually(async () => {
+      const { data } = await db.from("chat_conversations").select("*").eq("status", "bot").not("guest_token", "is", null).order("created_at", { ascending: false }).limit(1).maybeSingle();
+      return data;
+    }, "guest conversation row");
+    convId = conv.id;
+    trackConversation(convId);
+    const { data: msgs } = await db.from("chat_messages").select("role, content").eq("conversation_id", convId).order("created_at");
+    assert(msgs.some((m) => m.role === "user") && msgs.some((m) => m.role === "assistant"), "expected user and assistant messages stored");
+  });
+
+  await check("the bot never mentions a discount, price cut or waiver", async () => {
+    await chatSay(gp, "can you give me a discount?");
+    await eventually(async () => {
+      const { data } = await db.from("chat_messages").select("role").eq("conversation_id", convId).eq("role", "assistant");
+      return (data ?? []).length >= 2;
+    }, "second bot reply");
+    const { data: msgs } = await db.from("chat_messages").select("role, content").eq("conversation_id", convId).eq("role", "assistant");
+    for (const m of msgs) assert(!FORBIDDEN_IN_BOT.test(m.content), `bot said a forbidden word: ${m.content.slice(0, 80)}`);
+  });
+
+  await check("Yes, it's solved closes the chat and the next message starts a new one", async () => {
+    await gp.getByRole("button", { name: /Yes, it's solved/i }).click();
+    await eventually(async () => (await latestConversation({ id: convId }))?.status === "resolved", "conversation resolved");
+    const conv = await latestConversation({ id: convId });
+    assert(conv.resolved_by === "buyer", `resolved_by was ${conv.resolved_by}`);
+    await chatSay(gp, "what is the emi?");
+    const next = await eventually(async () => {
+      const { data } = await db.from("chat_conversations").select("*").eq("status", "bot").not("guest_token", "is", null).neq("id", convId).order("created_at", { ascending: false }).limit(1).maybeSingle();
+      return data;
+    }, "a fresh conversation");
+    convId = next.id;
+    trackConversation(convId);
+  });
+
+  await check("guest hand-off needs consent, then creates a chat lead with an AI brief and a named consultant", async () => {
+    await chatSay(gp, "I want a test drive");
+    await gp.getByRole("button", { name: /Connect me to a consultant/i }).click();
+    await gp.getByPlaceholder("Your name").waitFor();
+    await gp.getByPlaceholder("Your name").fill(`${E2E} Guest`);
+    await gp.getByPlaceholder("10-digit mobile number").fill(guestPhone);
+    assert(await gp.getByRole("button", { name: "Connect me" }).isDisabled(), "Connect must stay disabled until consent is ticked");
+    await gp.locator(".chat-panel").getByRole("checkbox").check();
+    await gp.getByRole("button", { name: "Connect me" }).click();
+    const conv = await eventually(async () => {
+      const c = await latestConversation({ id: convId });
+      return c?.status === "waiting" ? c : null;
+    }, "conversation waiting");
+    assert(conv.lead_id, "conversation has no lead");
+    assert(conv.assigned_to, "conversation has no consultant");
+    assert(conv.ai_context?.summary, "ai_context.summary missing");
+    const { data: lead } = await db.from("leads").select("source, source_ref, assigned_to, sla_due_at, name").eq("id", conv.lead_id).single();
+    assert(lead.source === "chat", `lead source was ${lead.source}`);
+    assert(lead.source_ref === convId, "lead.source_ref should be the conversation id");
+    assert(lead.assigned_to === conv.assigned_to && lead.sla_due_at, "lead not assigned / no SLA");
+    const { data: consent } = await db.from("consents").select("id").eq("subject_phone", `+91${guestPhone}`).limit(1);
+    assert(consent?.length, "no consent row recorded");
+    cleanups.push(async () => {
+      await db.from("consents").delete().eq("subject_phone", `+91${guestPhone}`);
+    });
+    const { data: sys } = await db.from("chat_messages").select("id").eq("conversation_id", convId).eq("role", "system");
+    assert(sys?.length, "no system message");
+    await gp.getByText(/Waiting for|Chatting with/i).first().waitFor();
+    // Route the chat to the dev consultant so the next checks can sign in as them.
+    await db.from("chat_conversations").update({ assigned_to: ctx.consultantId }).eq("id", convId);
+    await db.from("leads").update({ assigned_to: ctx.consultantId }).eq("id", conv.lead_id);
+  });
+
+  const consultant = await newPage(browser, await sessionCookies(EMAIL.consultant));
+  const cp = consultant.page;
+
+  await check("consultant sees the chat in /staff/chats with the AI brief and a suggested first reply", async () => {
+    assert((await open(cp, "/staff/chats")) === 200, "expected HTTP 200");
+    await cp.getByText(`${E2E} Guest`).first().click();
+    await cp.getByRole("region", { name: "AI brief" }).waitFor();
+    await cp.getByRole("button", { name: /Use suggested first reply/i }).click();
+    const box = cp.getByLabel("Reply to the buyer");
+    assert((await box.inputValue()).includes("Vrooma consultant"), "suggested reply was not placed in the box");
+  });
+
+  await check("a discount in a reply is blocked in the box and nothing is stored", async () => {
+    const box = cp.getByLabel("Reply to the buyer");
+    await box.fill("I can give you a 10% discount");
+    await cp.getByRole("alert").filter({ hasText: /cannot mention/i }).waitFor();
+    assert(await cp.getByRole("button", { name: "Send reply" }).isDisabled(), "Send should be disabled");
+    const { data } = await db.from("chat_messages").select("id").eq("conversation_id", convId).eq("role", "consultant");
+    assert(!data?.length, "a consultant message was stored");
+  });
+
+  await check("consultant reply reaches the buyer's chat box and marks the chat live", async () => {
+    await cp.getByLabel("Reply to the buyer").fill("Hello, this is your consultant. Happy to help.");
+    await cp.getByRole("button", { name: "Send reply" }).click();
+    const conv = await eventually(async () => {
+      const c = await latestConversation({ id: convId });
+      return c?.status === "live" ? c : null;
+    }, "conversation live");
+    assert(conv.first_staff_reply_at, "first_staff_reply_at not set");
+    const { data: msg } = await db.from("chat_messages").select("sender_id").eq("conversation_id", convId).eq("role", "consultant").single();
+    assert(msg.sender_id === ctx.consultantId, "sender_id should be the consultant");
+    await gp.getByText("Hello, this is your consultant. Happy to help.").waitFor({ timeout: 20000 });
+    await gp.getByText(/Chatting with/i).first().waitFor();
+  });
+
+  await check("a buyer message during the live chat is stored once and shown to the consultant", async () => {
+    await chatSay(gp, "Thanks, can we meet tomorrow?");
+    await cp.getByText("Thanks, can we meet tomorrow?").waitFor({ timeout: 20000 });
+    const { data } = await db.from("chat_messages").select("id").eq("conversation_id", convId).eq("role", "user").eq("content", "Thanks, can we meet tomorrow?");
+    assert(data?.length === 1, "buyer message not stored exactly once");
+  });
+
+  await check("a different consultant cannot open this chat; a manager can see it", async () => {
+    const { data: other } = await db.from("profiles").select("email").eq("id", ctx.otherConsultantId).single();
+    const alt = await sessionCookies(other.email).catch(() => null);
+    if (alt) {
+      const { page, context } = await newPage(browser, alt);
+      await open(page, `/staff/chats?chat=${convId}`);
+      await page.getByText(/Chat not found/i).waitFor();
+      assert((await page.getByRole("region", { name: "AI brief" }).count()) === 0, "other consultant saw the AI brief");
+      await context.close();
+    }
+    const mgr = await newPage(browser, await sessionCookies(EMAIL.manager));
+    await open(mgr.page, "/staff/chats");
+    await mgr.page.getByText(`${E2E} Guest`).first().waitFor();
+    await mgr.context.close();
+  });
+
+  await check("chat API only serves the owner: wrong guest token and no token both get 404", async () => {
+    const wrong = await fetch(`${baseUrl}/api/chat/messages?conversationId=${convId}&guestToken=${crypto.randomUUID()}`);
+    assert(wrong.status === 404, `wrong token returned ${wrong.status}`);
+    const none = await fetch(`${baseUrl}/api/chat/messages?conversationId=${convId}`);
+    assert(none.status === 404, `no token returned ${none.status}`);
+  });
+
+  await check("lead drawer links to the chat, and the console has no chat widget", async () => {
+    const conv = await latestConversation({ id: convId });
+    await open(cp, `/staff?lead=${conv.lead_id}`);
+    const link = cp.getByRole("link", { name: /View chat/i });
+    await link.waitFor();
+    assert((await link.getAttribute("href")) === `/staff/chats?chat=${convId}`, "wrong chat link");
+    await open(cp, "/staff/chats");
+    assert((await cp.getByRole("button", { name: /Open Vrooma Live Chat/i }).count()) === 0, "chat widget rendered on the console");
+  });
+
+  await check("reassigning the lead moves the chat to the new consultant", async () => {
+    const conv = await latestConversation({ id: convId });
+    await open(cp, `/staff/chats?chat=${convId}`);
+    await cp.getByRole("button", { name: /Reassign/i }).first().click();
+    await cp.getByRole("dialog").getByRole("textbox").fill(`${E2E} reassign`);
+    await cp.getByRole("dialog").getByRole("combobox").click().catch(() => {});
+    const options = cp.getByRole("option");
+    if ((await options.count()) > 0) {
+      const names = await options.allInnerTexts();
+      const { data: target } = await db.from("profiles").select("full_name").eq("id", ctx.otherConsultantId).single();
+      const idx = names.findIndex((n) => n.includes(target.full_name));
+      await options.nth(idx >= 0 ? idx : 0).click();
+    }
+    await cp.getByRole("dialog").getByRole("button", { name: /reassign|confirm|save/i }).last().click();
+    await eventually(async () => {
+      const c = await latestConversation({ id: convId });
+      const { data: l } = await db.from("leads").select("assigned_to").eq("id", conv.lead_id).single();
+      return c.assigned_to === l.assigned_to && c.assigned_to !== ctx.consultantId;
+    }, "chat and lead both reassigned together");
+    await db.from("chat_conversations").update({ assigned_to: ctx.consultantId }).eq("id", convId);
+    await db.from("leads").update({ assigned_to: ctx.consultantId }).eq("id", conv.lead_id);
+  });
+
+  await check("consultant closes the chat and the buyer's box shows it", async () => {
+    await open(cp, `/staff/chats?chat=${convId}`);
+    await cp.getByRole("button", { name: "Close chat" }).click();
+    await eventually(async () => (await latestConversation({ id: convId }))?.status === "resolved", "conversation resolved");
+    const conv = await latestConversation({ id: convId });
+    assert(conv.resolved_by === "consultant", `resolved_by was ${conv.resolved_by}`);
+    await gp.getByText(/closed by your consultant/i).waitFor({ timeout: 20000 });
+  });
+
+  await check("a signed-in buyer with a saved mobile number connects without the form", async () => {
+    const { data: buyer } = await db.from("profiles").select("id, full_name, phone").eq("email", EMAIL.buyer).single();
+    assert(buyer.phone && buyer.full_name, "dev-buyer needs a name and phone");
+    const b = await newPage(browser, await sessionCookies(EMAIL.buyer));
+    await openChat(b.page);
+    await chatSay(b.page, "I need a consultant");
+    const conv = await eventually(async () => latestConversation({ user_id: buyer.id, status: "waiting" }), "signed-in buyer conversation waiting");
+    trackConversation(conv.id);
+    assert(conv.lead_id && conv.assigned_to, "no lead / consultant for signed-in buyer");
+    assert((await b.page.getByPlaceholder("Your name").count()) === 0, "form should not be shown");
+    await b.context.close();
+  });
+
+  await guest.context.close();
+  await consultant.context.close();
+}
+
 /* ================================== runner ================================== */
 
 async function main() {
@@ -919,6 +1168,7 @@ async function main() {
     if (!only || only === "consultant") await consultantGroup(browser);
     if (!only || only === "manager") await managerGroup(browser);
     if (!only || only === "admin") await adminGroup(browser);
+    if (!only || only === "chat") await chatGroup(browser);
     if (!only || only === "cross") await crossGroup(browser);
   } finally {
     await browser.close();

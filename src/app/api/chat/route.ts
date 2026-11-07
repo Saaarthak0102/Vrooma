@@ -1,22 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
+import { randomUUID } from "crypto";
 import { getViewer } from "@/server/auth/viewer";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { buildBotReply, CLOSING_REPLIES, detectIntent, type QuickReply } from "@/server/ai/support-bot";
+import {
+  countMessages,
+  createConversation,
+  findOwnedConversation,
+  insertMessages,
+  listMessages,
+  updateConversation,
+  type ChatConversation,
+  type ChatMessage,
+} from "@/server/repositories/chats";
+import { requestHandoff } from "@/server/services/chat-handoff";
+import { normalizeIndianPhone } from "@/lib/phone";
 
 export const dynamic = "force-dynamic";
 
 const MAX_MESSAGE_LENGTH = 1000;
-
-// Stub assistant for now; wired to a live model in a later phase.
-function buildReply(message: string): string {
-  const text = message.toLowerCase();
-  if (text.includes("model h") || text.includes("price")) {
-    return "Official on-road prices come from our live price table and include the full road tax, insurance and charges breakup. Open the model page and sign in to see the exact figure for your city.";
-  }
-  if (text.includes("used") || text.includes("8 lakh")) {
-    return "We currently have certified used cars like UC-1182 (Model C VX Diesel 2022) and UC-1190 (Model S LX 2021) available in Hazratganj, both 140-point inspected!";
-  }
-  return "Thank you for reaching out! Our Lucknow showroom consultant is available right now. Would you like to lock a test drive slot or view our full price breakup?";
-}
 
 // Best-effort throttle (per server instance): stops a single client from flooding the chat endpoint.
 const chatHits = new Map<string, { count: number; resetAt: number }>();
@@ -37,16 +38,33 @@ function allowChat(key: string): boolean {
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+function view(conv: ChatConversation) {
+  return {
+    status: conv.status,
+    consultantName: conv.assigned_name,
+    leadRef: conv.lead_ref,
+  };
+}
+
+/**
+ * Buyer chat turn.
+ * - status "bot": the rule-based assistant answers and ends with "solved, or connect to a consultant?".
+ * - "waiting" / "live": the buyer's message is stored for the consultant; no bot reply.
+ * - "resolved": a fresh conversation starts.
+ * Body: { message?, action?: "solved" | "connect", conversationId?, guestToken? }
+ */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    const action = body?.action === "solved" || body?.action === "connect" ? (body.action as "solved" | "connect") : null;
     const message = typeof body?.message === "string" ? body.message.trim().slice(0, MAX_MESSAGE_LENGTH) : "";
-    if (!message) {
+    if (!message && !action) {
       return NextResponse.json({ ok: false, error: "Message is required." }, { status: 400 });
     }
 
     const viewer = await getViewer();
-    const throttleKey = viewer.user?.id ?? `ip_${request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown"}`;
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+    const throttleKey = viewer.user?.id ?? `ip_${ip}`;
     if (!allowChat(throttleKey)) {
       return NextResponse.json(
         { ok: false, error: "You are sending messages too quickly. Please wait a moment." },
@@ -54,62 +72,102 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const reply = buildReply(message);
-    let conversationId: string | null = null;
+    // Owner: the signed-in buyer, otherwise a guest token (issued here, kept by the widget).
+    const userId = viewer.isAuthenticated && viewer.user ? viewer.user.id : null;
+    let guestToken: string | null = null;
+    if (!userId) {
+      guestToken = typeof body?.guestToken === "string" && UUID_RE.test(body.guestToken) ? body.guestToken : randomUUID();
+    }
 
-    // Only signed-in buyers get their chats stored; guests still get a reply.
-    if (viewer.isAuthenticated && viewer.user) {
-      const admin = createAdminClient();
-      const requestedId = typeof body?.conversationId === "string" && UUID_RE.test(body.conversationId) ? body.conversationId : null;
+    const requestedId = typeof body?.conversationId === "string" && UUID_RE.test(body.conversationId) ? body.conversationId : null;
+    let conv: ChatConversation | null = requestedId ? await findOwnedConversation(requestedId, { userId, guestToken }) : null;
 
-      if (requestedId) {
-        const { data: owned } = await admin
-          .from("chat_conversations")
-          .select("id")
-          .eq("id", requestedId)
-          .eq("user_id", viewer.user.id)
-          .maybeSingle();
-        conversationId = owned?.id ?? null;
-
-        // Cap the length of one conversation: past it, start a fresh one.
-        if (conversationId) {
-          const { count } = await admin
-            .from("chat_messages")
-            .select("id", { count: "exact", head: true })
-            .eq("conversation_id", conversationId);
-          if ((count ?? 0) >= MAX_MESSAGES_PER_CONVERSATION) conversationId = null;
-        }
+    // A closed chat, or one past the length cap, is replaced by a fresh conversation.
+    if (conv && (conv.status === "resolved" || (await countMessages(conv.id)) >= MAX_MESSAGES_PER_CONVERSATION)) {
+      conv = null;
+    }
+    if (!conv) {
+      const title = (message || "Support chat").length > 60 ? `${message.slice(0, 57)}...` : message || "Support chat";
+      const id = await createConversation({ userId, guestToken, title });
+      if (!id) {
+        return NextResponse.json({ ok: false, error: "Chat is unavailable right now. Please try again." }, { status: 503 });
       }
-
-      if (!conversationId) {
-        const title = message.length > 60 ? `${message.slice(0, 57)}...` : message;
-        const { data: created, error: createErr } = await admin
-          .from("chat_conversations")
-          .insert({ user_id: viewer.user.id, title })
-          .select("id")
-          .single();
-        if (createErr) console.warn(`[chat] Could not start conversation: ${createErr.message}`);
-        conversationId = created?.id ?? null;
-      }
-
-      if (conversationId) {
-        const now = Date.now();
-        const { error: msgErr } = await admin.from("chat_messages").insert([
-          { conversation_id: conversationId, role: "user", content: message, created_at: new Date(now).toISOString() },
-          { conversation_id: conversationId, role: "assistant", content: reply, created_at: new Date(now + 1).toISOString() },
-        ]);
-        if (msgErr) console.warn(`[chat] Could not store messages: ${msgErr.message}`);
-        await admin
-          .from("chat_conversations")
-          .update({ last_message_at: new Date(now + 1).toISOString() })
-          .eq("id", conversationId);
+      conv = await findOwnedConversation(id, { userId, guestToken });
+      if (!conv) {
+        return NextResponse.json({ ok: false, error: "Chat is unavailable right now. Please try again." }, { status: 503 });
       }
     }
 
-    return NextResponse.json({
-      ok: true,
-      data: { reply, conversationId, mode: "mock_stub" },
-    });
+    // Every message stored during this turn goes back to the widget (with ids, so polling can de-duplicate).
+    const out: ChatMessage[] = [];
+    const store = async (msgs: Array<{ role: ChatMessage["role"]; content: string }>) => {
+      out.push(...(await insertMessages(conv!.id, msgs)));
+    };
+
+    const respond = (extra: Record<string, unknown>) =>
+      NextResponse.json({
+        ok: true,
+        data: {
+          conversationId: conv!.id,
+          guestToken,
+          ...view(conv!),
+          messages: out.map((m) => ({ id: m.id, role: m.role, content: m.content, created_at: m.created_at })),
+          ...extra,
+        },
+      });
+
+    // ---- Live chat: store the buyer's message, the consultant answers. ----
+    if (conv.status === "waiting" || conv.status === "live") {
+      if (action === "solved") {
+        await updateConversation(conv.id, { status: "resolved", resolved_at: new Date().toISOString(), resolved_by: "buyer" });
+        await store([{ role: "system", content: "The buyer closed this chat." }]);
+        conv = (await findOwnedConversation(conv.id, { userId, guestToken })) ?? conv;
+        return respond({ reply: null, quickReplies: [] as QuickReply[], needsContact: false });
+      }
+      if (message) await store([{ role: "user", content: message }]);
+      return respond({ reply: null, quickReplies: [] as QuickReply[], needsContact: false });
+    }
+
+    // ---- Bot stage ----
+    const intent = action === "solved" ? "solved" : action === "connect" ? "handoff" : detectIntent(message);
+
+    if (message && !action) await store([{ role: "user", content: message }]);
+    if (action === "connect") await store([{ role: "user", content: "Connect me to a consultant" }]);
+    if (action === "solved") await store([{ role: "user", content: "Yes, it's solved" }]);
+
+    if (intent === "solved") {
+      const bot = buildBotReply("solved");
+      await store([{ role: "assistant", content: bot.reply }]);
+      await updateConversation(conv.id, { status: "resolved", resolved_at: new Date().toISOString(), resolved_by: "buyer" });
+      conv = (await findOwnedConversation(conv.id, { userId, guestToken })) ?? conv;
+      return respond({ reply: bot.reply, quickReplies: [], needsContact: false });
+    }
+
+    if (intent === "handoff") {
+      // A signed-in buyer with a saved name and mobile number is connected straight away.
+      const phone = viewer.profile?.phone ? normalizeIndianPhone(viewer.profile.phone) : null;
+      if (userId && viewer.profile?.full_name && phone) {
+        const res = await requestHandoff({
+          conversationId: conv.id,
+          contact: { name: viewer.profile.full_name, phone, email: viewer.user?.email || null },
+          userId,
+          ipAddress: ip,
+        });
+        if ("error" in res) {
+          return respond({ notice: res.error, quickReplies: CLOSING_REPLIES, needsContact: false });
+        }
+        conv = res.conversation;
+        out.push(...(await listMessages(conv.id, new Date(Date.now() - 10_000).toISOString())).filter((m) => m.role === "system"));
+        return respond({ reply: null, quickReplies: [], needsContact: false });
+      }
+      const reply = "Happy to connect you. Please share your name and mobile number so your consultant can reach you.";
+      await store([{ role: "assistant", content: reply }]);
+      return respond({ reply, quickReplies: [], needsContact: true });
+    }
+
+    const bot = buildBotReply(message);
+    await store([{ role: "assistant", content: bot.reply }]);
+    return respond({ reply: bot.reply, quickReplies: bot.quickReplies, needsContact: false });
   } catch (err: any) {
     console.error("[api/chat] failed:", err?.message);
     return NextResponse.json({ ok: false, error: "Chat is unavailable right now. Please try again." }, { status: 500 });

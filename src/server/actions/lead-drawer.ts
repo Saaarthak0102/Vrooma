@@ -4,6 +4,7 @@ import { requireRole } from "@/server/auth/viewer";
 import { ActionResponse, successResponse, errorResponse } from "@/lib/errors";
 import { getLeadById, listLeadEvents, type LeadEventView } from "@/server/repositories/leads";
 import { listUsers } from "@/server/repositories/users";
+import { findConversationForLead } from "@/server/repositories/chats";
 import { ensureLeadCopilot } from "@/server/services/lead-copilot-persist";
 import type { Lead, Profile } from "@/types/domain";
 
@@ -12,6 +13,8 @@ export interface LeadDrawerData {
   events: LeadEventView[];
   /** Active consultants a lead can be reassigned to. */
   consultants: Profile[];
+  /** Support chat that created or belongs to this lead, if any. */
+  chatId: string | null;
 }
 
 /**
@@ -28,16 +31,18 @@ export async function getLeadDrawerAction(leadId: string): Promise<ActionRespons
       return errorResponse("NOT_FOUND", "Lead not found.");
     }
 
-    const [lead, events, consultants] = await Promise.all([
+    const [lead, events, consultants, chat] = await Promise.all([
       ensureLeadCopilot(raw),
       listLeadEvents(raw.id),
       listUsers("consultant"),
+      findConversationForLead(raw.id),
     ]);
 
     return successResponse({
       lead,
       events,
       consultants: consultants.filter((c) => c.is_active !== false),
+      chatId: chat?.id ?? null,
     });
   } catch (err: any) {
     return errorResponse("INTERNAL_ERROR", err?.message || "Could not load the lead.");

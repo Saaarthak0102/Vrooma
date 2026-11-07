@@ -334,3 +334,15 @@ DEV project is `eobtzcwinjmimzisypca`; PRODUCTION is `ajumkjokagqfdikfguti`.
 - **Bugs fixed on the way:** offers saved a non-existent column; banners failed with an empty link; price rules accepted a scope the database rejects; CSV import history wrote the wrong column; trade-in submit wrote non-existent columns; `saveUsedCarAction` overwrote the private plate, photos and score; `saveModelAction` wiped gallery and featured flag; admin pages fell back to the first record for an unknown id.
 - **Known limits:** WhatsApp and SMS are simulated (outbox logs only); the AI summary and draft are templates, not a live model; phone calls are not tracked, so the unanswered-call rate cannot be measured (the Overview shows online service bookings); no admin create for showrooms, workshops or demo cars.
 - **Verification:** `pnpm e2e:console` 42/42, `pnpm layout:console` clean, 554 unit tests.
+
+---
+
+## 11. Support chat with consultant handoff (2026-11-07)
+
+- **Applied to DEV (vrooma-dev) on 2026-11-07 with the guarded `pnpm db:push`; NOT promoted to PROD.** `0029_chat_assigned_to_profiles.sql` is a forward fix found by the e2e run: `assigned_to` pointed at `auth.users`, which PostgREST cannot embed, so every chat request failed until it pointed at `profiles`.
+- **Migration `0028_support_chat_handoff.sql`:** `chat_conversations` gains `status` (bot / waiting / live / resolved), `lead_id`, `assigned_to`, `guest_token`, `ai_context`, handoff and resolve timestamps; `chat_messages` allows `consultant` and `system` roles. Staff read policies (consultant: assigned chats; manager and admin: all); both tables join the `supabase_realtime` publication.
+- **Buyer flow:** `/api/chat` (bot turns, "solved" / "connect" actions), `/api/chat/handoff` (name, mobile, DPDP consent for guests), `/api/chat/messages` (polling). Only the owner (signed-in user or guest token) can read a chat.
+- **Handoff:** `src/server/services/chat-handoff.ts` records consent, creates the lead (source `chat`) via `create_lead`, links the chat, saves the AI brief on chat and lead, and posts a system message. Reassigning the lead moves the chat (`reassignLeadAction`).
+- **Console:** `/staff/chats` (consultant 3 screens, manager 4). Replies go through `sendChatReplyAction`, which rejects discount words.
+- **Known limits:** the bot is rule based (no live model); the buyer side polls every 4 s; the buyer is not notified by WhatsApp or SMS of a consultant reply.
+- **Verification:** `pnpm e2e:console` now has a `chat` group (14 checks: bot closing question, no discount words, solved, guest consent and handoff, AI brief, guarded reply, live round trip, isolation between consultants, owner-only API, lead drawer link, reassign, close, signed-in handoff); whole suite 56/56. Unit tests in `tests/support-chat.test.ts`. `pnpm layout:console` includes the `chats` screen.

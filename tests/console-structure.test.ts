@@ -10,10 +10,10 @@ import { CONSOLE_LINKS, landingPathForRole, linksForRole } from "@/lib/console-n
 const read = (rel: string) => fs.readFileSync(path.join(process.cwd(), rel), "utf8");
 
 describe("console navigation", () => {
-  it("gives each role at most 3 screens of its own", () => {
+  it("gives each role at most 4 screens of its own (Chats added to the staff screens)", () => {
     // The admin can also open the staff screens; the screens that are THEIRS are the /admin ones.
-    expect(linksForRole("consultant")).toHaveLength(2);
-    expect(linksForRole("manager")).toHaveLength(3);
+    expect(linksForRole("consultant")).toHaveLength(3);
+    expect(linksForRole("manager")).toHaveLength(4);
     expect(linksForRole("admin").filter((l) => l.href.startsWith("/admin"))).toHaveLength(3);
     expect(linksForRole("buyer")).toHaveLength(0);
   });
