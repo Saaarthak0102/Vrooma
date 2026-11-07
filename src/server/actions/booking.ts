@@ -10,6 +10,7 @@ import { listShowrooms, listWorkshops } from "@/server/repositories/showrooms";
 import { listDemoCars, listSlots } from "@/server/repositories/slots";
 import { normalizeVehicleReg, maskVehicleReg } from "@/lib/validation/vehicle";
 import { recordConsent } from "@/server/privacy/consent";
+import { queueWhatsAppCopy } from "@/server/services/outbox";
 
 /**
  * Loads showrooms, demo cars, and available slots for the test drive booking wizard.
@@ -314,16 +315,27 @@ export async function bookSlotAction(
         timeStyle: "short",
       });
 
+      const confirmationBody = parsed.data.homeVisit
+        ? `Namaste ${profile.full_name}! Your Vrooma ${appointmentKindLabel} appointment is confirmed (${bookingRow.ref}) on ${dateFormatted}. We will come to your address (${parsed.data.address!.trim()}, ${parsed.data.pincode!.trim()}). Assigned Specialist: ${consultantDisplayName}.`
+        : `Namaste ${profile.full_name}! Your Vrooma ${appointmentKindLabel} appointment is confirmed (${bookingRow.ref}) on ${dateFormatted} at ${facilityName}. Assigned Specialist: ${consultantDisplayName}.`;
+
       await admin.from("messages_outbox").insert({
         channel,
         to_address: dest,
         template: "booking_confirmation",
-        body: parsed.data.homeVisit
-          ? `Namaste ${profile.full_name}! Your Vrooma ${appointmentKindLabel} appointment is confirmed (${bookingRow.ref}) on ${dateFormatted}. We will come to your address (${parsed.data.address!.trim()}, ${parsed.data.pincode!.trim()}). Assigned Specialist: ${consultantDisplayName}.`
-          : `Namaste ${profile.full_name}! Your Vrooma ${appointmentKindLabel} appointment is confirmed (${bookingRow.ref}) on ${dateFormatted} at ${facilityName}. Assigned Specialist: ${consultantDisplayName}.`,
+        body: confirmationBody,
         idempotency_key: `outbox_booking_${bookingRow.id}`,
         status: "pending",
       });
+      // Email is the primary row; the buyer also gets it on WhatsApp (if no email, the row above already is WhatsApp).
+      if (profile.email) {
+        await queueWhatsAppCopy({
+          phone: profile.phone,
+          template: "booking_confirmation",
+          body: confirmationBody,
+          idempotencyKey: `outbox_booking_${bookingRow.id}`,
+        });
+      }
     } catch (outboxErr: any) {
       console.warn(`[booking] Failed to queue outbox confirmation: ${outboxErr?.message}`);
     }
@@ -373,14 +385,19 @@ export async function cancelBookingAction(
     try {
       const dest = profile.email || profile.phone || "customer@vrooma.in";
       const channel = profile.email ? "email" : "whatsapp";
+      const cancelBody = `Your Vrooma booking (${booking.ref}) has been cancelled. The time slot has been released.`;
+      const cancelKey = `outbox_cancel_${booking.id}_${Date.now()}`;
       await admin.from("messages_outbox").insert({
         channel,
         to_address: dest,
         template: "booking_cancellation",
-        body: `Your Vrooma booking (${booking.ref}) has been cancelled. The time slot has been released.`,
-        idempotency_key: `outbox_cancel_${booking.id}_${Date.now()}`,
+        body: cancelBody,
+        idempotency_key: cancelKey,
         status: "pending",
       });
+      if (profile.email) {
+        await queueWhatsAppCopy({ phone: profile.phone, template: "booking_cancellation", body: cancelBody, idempotencyKey: cancelKey });
+      }
     } catch (err: any) {
       console.warn(`[booking] Outbox cancellation write error: ${err?.message}`);
     }

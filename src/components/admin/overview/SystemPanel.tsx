@@ -51,6 +51,7 @@ export async function SystemPanel() {
     { data: recentCronLogs },
     { data: recentImports },
     cronStatusResult,
+    { count: webhookCalls },
   ] = await Promise.all([
     admin.from("messages_outbox").select("*", { count: "exact", head: true }).eq("status", "pending"),
     admin.from("messages_outbox").select("*", { count: "exact", head: true }).eq("status", "dead"),
@@ -62,7 +63,34 @@ export async function SystemPanel() {
     admin.from("audit_log").select("action, new_values, created_at").ilike("action", "%CRON%").order("created_at", { ascending: false }).limit(6),
     admin.from("csv_imports").select("filename, rows_count, created_at").order("created_at", { ascending: false }).limit(4),
     admin.rpc("get_cron_status"),
+    // Calls received from a telephony vendor (manual staff entries have another source).
+    (admin as any).from("call_logs").select("*", { count: "exact", head: true }).eq("source", "webhook"),
   ]);
+
+  // Presence only: secrets are never rendered.
+  const integrations: { label: string; connected: boolean; detail: string }[] = [
+    {
+      label: "Email (Resend)",
+      connected: Boolean(process.env.RESEND_API_KEY),
+      detail: process.env.RESEND_API_KEY ? "Sending from " + (process.env.EMAIL_FROM || "default sender") : "Add RESEND_API_KEY and EMAIL_FROM",
+    },
+    {
+      label: "WhatsApp (Meta Cloud API)",
+      connected: Boolean(process.env.WHATSAPP_TOKEN && process.env.WHATSAPP_PHONE_ID),
+      detail:
+        process.env.WHATSAPP_TOKEN && process.env.WHATSAPP_PHONE_ID
+          ? "Connected"
+          : "Add WHATSAPP_TOKEN and WHATSAPP_PHONE_ID; messages are skipped until then",
+    },
+    {
+      label: "Telephony (call tracking)",
+      connected: (webhookCalls || 0) > 0,
+      detail:
+        (webhookCalls || 0) > 0
+          ? `${webhookCalls} calls received from your vendor`
+          : "Connect a telephony vendor (Exotel, Knowlarity...) and point it at /api/webhooks/calls. Staff can log calls by hand meanwhile.",
+    },
+  ];
 
   // get_cron_status needs migration 0018; until it is applied show "status unavailable" rather than failing the page.
   const cronStatusAvailable = !cronStatusResult.error;
@@ -118,6 +146,22 @@ export async function SystemPanel() {
             <p className="text-[11px] text-ink-mute">30-day statutory resolution target</p>
           </Card>
         </div>
+
+        {/* Integrations: what is connected and what still needs an account */}
+        <Card className="p-5 space-y-3" data-testid="integrations">
+          <h3 className="text-sm font-bold text-ink">Integrations</h3>
+          {integrations.map((i) => (
+            <div key={i.label} className="flex items-start justify-between gap-3 p-2.5 rounded-lg bg-stone-50 border border-border/80 text-xs">
+              <div>
+                <div className="font-medium text-ink">{i.label}</div>
+                <div className="text-[11px] text-ink-mute">{i.detail}</div>
+              </div>
+              <Badge variant={i.connected ? "secondary" : "outline"} className="text-[10px] shrink-0">
+                {i.connected ? "Connected" : "Not connected"}
+              </Badge>
+            </div>
+          ))}
+        </Card>
 
         {/* Two-Column Monitor Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

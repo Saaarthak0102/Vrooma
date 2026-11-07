@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { deliverMessage } from "@/server/services/message-providers";
 
-describe("WhatsApp and SMS providers", () => {
+describe("WhatsApp provider (SMS removed)", () => {
   const originalEnv = { ...process.env };
   const fetchMock = vi.fn();
 
   beforeEach(() => {
     process.env = { ...originalEnv };
-    for (const k of ["WHATSAPP_TOKEN", "WHATSAPP_PHONE_ID", "WHATSAPP_TEMPLATES", "MSG91_AUTH_KEY", "MSG91_TEMPLATE_ID"]) {
+    for (const k of ["WHATSAPP_TOKEN", "WHATSAPP_PHONE_ID", "WHATSAPP_TEMPLATES"]) {
       delete process.env[k];
     }
     fetchMock.mockReset();
@@ -21,7 +21,6 @@ describe("WhatsApp and SMS providers", () => {
 
   it("skips (never 'sent') without keys and does not call the network", async () => {
     await expect(deliverMessage("whatsapp", "+919876543210", "x", "hi")).resolves.toMatchObject({ status: "skipped", reason: expect.stringMatching(/provider/i) });
-    await expect(deliverMessage("sms", "+919876543210", "x", "hi")).resolves.toMatchObject({ status: "skipped", reason: expect.stringMatching(/provider/i) });
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -60,16 +59,10 @@ describe("WhatsApp and SMS providers", () => {
     await expect(deliverMessage("whatsapp", "+919876543210", "x", "hi")).rejects.toThrow(/WhatsApp API error \(400\)/);
   });
 
-  it("sends SMS through the MSG91 flow and treats a 200 'error' body as a failure", async () => {
-    process.env.MSG91_AUTH_KEY = "key";
-    process.env.MSG91_TEMPLATE_ID = "tpl";
-    fetchMock.mockResolvedValueOnce(new Response('{"type":"success"}', { status: 200 }));
-    await expect(deliverMessage("sms", "+919876543210", "x", "Your slot is confirmed")).resolves.toEqual({ status: "sent" });
-    const sent = JSON.parse(fetchMock.mock.calls[0][1].body);
-    expect(sent).toMatchObject({ template_id: "tpl", recipients: [{ mobiles: "919876543210", VAR1: "Your slot is confirmed" }] });
-    expect(fetchMock.mock.calls[0][1].headers.authkey).toBe("key");
-
-    fetchMock.mockResolvedValueOnce(new Response('{"type":"error","message":"template not approved"}', { status: 200 }));
-    await expect(deliverMessage("sms", "+919876543210", "x", "hi")).rejects.toThrow(/MSG91 API error/);
+  it("never sends a legacy sms row, even if WhatsApp keys exist", async () => {
+    process.env.WHATSAPP_TOKEN = "tok";
+    process.env.WHATSAPP_PHONE_ID = "123";
+    await expect(deliverMessage("sms", "+919876543210", "x", "hi")).resolves.toMatchObject({ status: "skipped", reason: expect.stringMatching(/SMS/) });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

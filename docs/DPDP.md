@@ -15,7 +15,7 @@ Under the **Digital Personal Data Protection Act, 2023 (DPDP Act)** of India:
 Every lead, test-drive, service, and trade-in form across Vrooma embeds the standardized `@/components/forms/ConsentCheckbox`:
 - **Strict Rule:** The checkbox is **never pre-checked**.
 - **Legal Notice:** Explicitly outlines the exact processing purpose:
-  > *"I consent to Vrooma contacting me via Phone, SMS, or WhatsApp regarding this enquiry and vehicle quotation under the DPDP Act 2023. I understand I can withdraw consent at any time."*
+  > *"I consent to Vrooma contacting me via Phone, WhatsApp, or Email regarding this enquiry and vehicle quotation under the DPDP Act 2023. I understand I can withdraw consent at any time."*
 - **Traceability:** When submitted, the timestamp, user agent, IP address, and consent version are permanently recorded alongside the lead record.
 
 ---

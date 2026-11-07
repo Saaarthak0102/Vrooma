@@ -7,7 +7,7 @@ Vrooma transforms the traditional car buying and servicing experience by replaci
 
 **Stack:** Next.js 15 (App Router) · React 19 · TypeScript (strict) · Tailwind CSS · Radix UI · Supabase (Postgres, Auth, Storage, Realtime, `pg_cron`) · `next-intl` (English text catalogue only) · Vitest.
 
-**Status:** Frontend Phases 1–2 and backend Phases 0–6 are complete (auth, schema, data layer, bookings & leads, account privacy, hardening). Live LLM streaming in the lead copilot and real WhatsApp/SMS delivery are still to come. See [`docs/backend/STATUS.md`](./docs/backend/STATUS.md).
+**Status:** Frontend Phases 1–2 and backend Phases 0–6 are complete (auth, schema, data layer, bookings & leads, account privacy, hardening). Live LLM streaming in the lead copilot and WhatsApp account setup are still to come. See [`docs/backend/STATUS.md`](./docs/backend/STATUS.md).
 
 ---
 
@@ -87,7 +87,7 @@ Supabase cannot call `localhost`, so the HTTP cron jobs (outbox, retention, dele
 - **Security:** RLS enabled on every `public` table, default deny. All `SECURITY DEFINER` functions set `search_path = ''` and have explicit grants. Role matrix in [`docs/backend/ROLE_MATRIX.md`](./docs/backend/ROLE_MATRIX.md).
 - **Key RPCs:** `create_lead`, `book_slot`, `cancel_booking`, `reassign_lead`, `set_lead_status`, `get_onroad_breakup`, `get_onroad_teaser`, `get_used_car_reg`, `get_leak_metrics`, `request_account_deletion`, `admin_set_role`. Call paths: [`docs/backend/RPC_CALL_PATHS.md`](./docs/backend/RPC_CALL_PATHS.md).
 - **Scheduled jobs:** created by `private.ensure_cron_jobs()`. SQL jobs (SLA evaluation, slot generation, idempotency and rate-limit purges) run in-database. HTTP jobs (outbox, data retention, finalize deletions) need the Vault secrets `app_url` and `cron_secret`; after adding them run `select private.ensure_cron_jobs();`. Check status with `public.get_cron_status()`.
-- **Outbox:** customer messages are queued in `messages_outbox` and delivered by `/api/cron/outbox` with backoff and stale-claim recovery. WhatsApp/SMS are mocked.
+- **Outbox:** customer messages are queued in `messages_outbox` and delivered by `/api/cron/outbox` with backoff and stale-claim recovery. Email (Resend) and WhatsApp (Meta Cloud API) are real when keys are set, otherwise rows are `skipped`. SMS was removed.
 - **Environments:** DEV (`vrooma-dev`) and PROD are separate projects. Promote migrations DEV → PROD only after DEV verification ([`ENVIRONMENTS.md`](./docs/backend/ENVIRONMENTS.md), [`OPERATIONS.md`](./docs/backend/OPERATIONS.md)).
 
 ### API routes (`src/app/api`)

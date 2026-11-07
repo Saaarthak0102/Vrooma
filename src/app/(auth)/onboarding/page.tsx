@@ -288,7 +288,7 @@ export default function OnboardingPage() {
                 className="mt-0.5"
               />
               <label htmlFor="onboard-service" className="text-xs text-ink-soft leading-relaxed select-none cursor-pointer">
-                I consent to Vrooma contacting me regarding quotations, test drive scheduling, and service reminders via Phone, WhatsApp, SMS, and Email. <span className="text-accent">*</span>
+                I consent to Vrooma contacting me regarding quotations, test drive scheduling, and service reminders via Phone, WhatsApp, and Email. <span className="text-accent">*</span>
               </label>
             </div>
             {errors.serviceConsent && <p className="text-[11px] text-danger pl-6">{errors.serviceConsent}</p>}

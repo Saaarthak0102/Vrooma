@@ -23,6 +23,7 @@
     "dev:cron": "node scripts/dev-cron.mjs",
     "check:cron": "node scripts/check-cron.mjs",
     "email:smoke": "node scripts/email-smoke.mjs",
+    "whatsapp:smoke": "node scripts/whatsapp-smoke.mjs",
     "e2e:console": "node scripts/console-e2e.mjs",
     "layout:console": "node scripts/console-layout.mjs",
     "charts:console": "node scripts/console-charts.mjs"

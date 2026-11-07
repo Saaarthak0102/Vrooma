@@ -39,7 +39,7 @@ export default function PrivacyPage() {
         <section className="space-y-2">
           <h2 className="text-base font-bold text-ink">3. Specified Purpose of Processing</h2>
           <p>
-            Customer data is strictly processed to assign enquiries to showroom sales specialists within our 5-minute SLA, confirm test drive and workshop appointments, compute on-road taxes, and transmit transactional booking updates via SMS or WhatsApp.
+            Customer data is strictly processed to assign enquiries to showroom sales specialists within our 5-minute SLA, confirm test drive and workshop appointments, compute on-road taxes, and transmit transactional booking updates via WhatsApp or email.
           </p>
         </section>
 

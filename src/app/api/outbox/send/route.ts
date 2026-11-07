@@ -4,7 +4,7 @@ import { guardCronOrAdmin } from "@/server/auth/api-guard";
 import { z } from "zod";
 
 const sendSchema = z.object({
-  channel: z.enum(["whatsapp", "sms", "email"]),
+  channel: z.enum(["whatsapp", "email"]),
   to: z.string().min(3).max(254),
   template: z.string().min(1).max(80),
   body: z.string().min(1).max(2000),

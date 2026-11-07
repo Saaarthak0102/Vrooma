@@ -298,7 +298,7 @@ export interface TradeInRequest {
 
 export interface OutboxMessage {
   id: string;
-  channel: "whatsapp" | "sms" | "email";
+  channel: "whatsapp" | "email";
   to_phone_or_email: string;
   template: string;
   body: string;

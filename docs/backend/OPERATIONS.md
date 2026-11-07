@@ -235,10 +235,14 @@ All three are optional per environment. A channel with no keys never pretends to
    `WHATSAPP_TEMPLATES={"booking_confirmation":{"name":"booking_confirmation","language":"en"}}`.
    Unmapped template names go out as plain text, which Meta only delivers inside the 24-hour window.
 
-### 7.3 SMS (MSG91)
-Indian SMS needs a DLT-registered sender and template. Register on a DLT portal, create one template with a single
-variable (`##VAR1##`), create the matching MSG91 Flow, then set `MSG91_AUTH_KEY` and `MSG91_TEMPLATE_ID`. Without
-both, SMS stays `skipped`. There is no free SMS provider for India, so you may prefer to leave SMS off.
+Check it: `pnpm whatsapp:smoke +919876543210` sends Meta's `hello_world` template. The recipient must be verified under
+WhatsApp > API Setup > "To". Use a System User token, because the temporary token expires in 24 hours.
+Booking confirmations and cancellations go out on email and WhatsApp; consultant replies use the channel the consultant picks.
+
+### 7.3 SMS (removed)
+SMS (MSG91) was removed: it is paid and needs DLT registration. Everything goes by WhatsApp or email. The `sms` value
+remains in the Postgres enum `message_channel_type` only because enum values cannot be dropped safely; old `sms` rows
+are marked `skipped`, never sent.
 
 ### 7.4 Service calls (unanswered-call rate)
 - Manual: staff log calls on **Staff, Bookings, Log a service call**.

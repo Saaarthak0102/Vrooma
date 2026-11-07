@@ -140,7 +140,7 @@ export async function reassignLeadAction(
 export async function sendLeadReplyAction(
   leadId: string,
   message: string,
-  channel: "whatsapp" | "email" | "sms" = "whatsapp"
+  channel: "whatsapp" | "email" = "whatsapp"
 ): Promise<ActionResponse<{ messageId: string; statusUpdated: boolean }>> {
   try {
     const { profile } = await requireRole("consultant", "manager", "admin");

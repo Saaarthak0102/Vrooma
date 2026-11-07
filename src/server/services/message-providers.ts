@@ -1,5 +1,6 @@
 import { sendEmail } from "@/server/services/outbox";
 
+/** "sms" is legacy only (see deliverMessage); nothing new is queued with it. */
 export type DeliveryChannel = "email" | "whatsapp" | "sms";
 
 export type DeliveryResult =
@@ -8,7 +9,7 @@ export type DeliveryResult =
 
 const GRAPH_VERSION = "v21.0";
 
-/** "+91 98765 43210" -> "919876543210" (both providers want country code + digits, no plus). */
+/** "+91 98765 43210" -> "919876543210" (WhatsApp wants country code + digits, no plus). */
 function toProviderNumber(to: string): string {
   return to.replace(/\D/g, "");
 }
@@ -67,38 +68,11 @@ async function sendWhatsApp(to: string, template: string, body: string): Promise
 }
 
 /**
- * SMS via MSG91's Flow API. Indian SMS must use a DLT-registered template, so the whole message text is passed as
- * the single variable VAR1 of one approved template (MSG91_TEMPLATE_ID). Needs MSG91_AUTH_KEY and MSG91_TEMPLATE_ID.
- */
-async function sendSms(to: string, body: string): Promise<DeliveryResult> {
-  const authKey = process.env.MSG91_AUTH_KEY;
-  const templateId = process.env.MSG91_TEMPLATE_ID;
-  if (!authKey || !templateId) {
-    return { status: "skipped", reason: "No SMS provider is connected (MSG91_AUTH_KEY / MSG91_TEMPLATE_ID not set)." };
-  }
-
-  const res = await fetch("https://control.msg91.com/api/v5/flow", {
-    method: "POST",
-    headers: { authkey: authKey, "Content-Type": "application/json", accept: "application/json" },
-    body: JSON.stringify({
-      template_id: templateId,
-      short_url: "0",
-      recipients: [{ mobiles: toProviderNumber(to), VAR1: body.slice(0, 160) }],
-    }),
-  });
-  const text = await res.text();
-  // MSG91 answers 200 with {"type":"error"} for rejected requests.
-  if (!res.ok || /"type"\s*:\s*"error"/i.test(text)) {
-    throw new Error(`MSG91 API error (${res.status}): ${text.slice(0, 300)}`);
-  }
-  return { status: "sent" };
-}
-
-/**
  * One place that knows which channels have a real provider.
  * - email: Resend (needs RESEND_API_KEY; without it outside production the message is skipped, never "sent").
  * - whatsapp: Meta WhatsApp Cloud API (WHATSAPP_TOKEN, WHATSAPP_PHONE_ID).
- * - sms: MSG91 Flow API (MSG91_AUTH_KEY, MSG91_TEMPLATE_ID).
+ * SMS was removed (paid, needs DLT). The `sms` value stays in the Postgres enum only because enum values cannot be
+ * dropped safely; any old `sms` row is skipped, never sent.
  * Missing keys give "skipped" with a reason. "sent" is returned only after the provider accepted the message.
  */
 export async function deliverMessage(
@@ -109,5 +83,5 @@ export async function deliverMessage(
 ): Promise<DeliveryResult> {
   if (channel === "email") return sendEmail(to, template, body);
   if (channel === "whatsapp") return sendWhatsApp(to, template, body);
-  return sendSms(to, body);
+  return { status: "skipped", reason: "SMS is no longer supported; messages go by WhatsApp or email." };
 }

@@ -3,7 +3,7 @@ import { OutboxMessage } from "@/types/domain";
 import { renderEmail } from "@/server/services/email-template";
 
 export interface SendMessageParams {
-  channel: "whatsapp" | "sms" | "email";
+  channel: "whatsapp" | "email";
   to: string;
   template: string;
   body: string;
@@ -42,6 +42,36 @@ export async function dispatchMessage(params: SendMessageParams): Promise<Outbox
 
   console.info(`[Outbox Dispatch ${params.channel.toUpperCase()}] To: ${params.to} | Body: ${params.body}`);
   return msg;
+}
+
+/**
+ * Queues the same notice on WhatsApp next to its email row. Transactional only (booking, cancellation); the buyer
+ * consented to WhatsApp contact at sign-up. A missing phone or missing WhatsApp keys never blocks the email: the
+ * cron marks the row `skipped` when no provider is connected. Errors are logged, not thrown.
+ */
+export async function queueWhatsAppCopy(params: {
+  phone: string | null | undefined;
+  template: string;
+  body: string;
+  idempotencyKey: string;
+  leadId?: string | null;
+}): Promise<void> {
+  if (!params.phone) return;
+  try {
+    const supabase = createAdminClient();
+    const { error } = await supabase.from("messages_outbox").insert({
+      channel: "whatsapp",
+      to_address: params.phone,
+      template: params.template,
+      body: params.body,
+      lead_id: params.leadId ?? null,
+      idempotency_key: `${params.idempotencyKey}_wa`,
+      status: "pending",
+    });
+    if (error) console.warn(`[outbox] WhatsApp copy not queued: ${error.message}`);
+  } catch (err: any) {
+    console.warn(`[outbox] WhatsApp copy not queued: ${err?.message}`);
+  }
 }
 
 /**

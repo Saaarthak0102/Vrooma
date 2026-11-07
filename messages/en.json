@@ -191,7 +191,7 @@
     "subtitle": "Sign in to unlock live on-road price breakups, instant bookings, and saved cars.",
     "emailLabel": "Email address",
     "phoneLabel": "Mobile number",
-    "sendMagicLink": "Send Magic Link",
+    "sendMagicLink": "Send Magic Link",
     "signUp": "Sign Up",
     "createAccount": "Create Account",
     "hasAccount": "Already have an account? Sign in",
@@ -211,14 +211,14 @@
     "email": "Email Address",
     "emailPlaceholder": "aditya@example.com",
     "whatsapp": "WhatsApp Number",
-    "whatsappPlaceholder": "98765 43210",
+    "whatsappPlaceholder": "98765 43210",
     "saveChanges": "Save Changes",
     "saving": "Saving...",
     "updatedSuccess": "Profile updated successfully",
     "updateError": "Something went wrong",
     "nameRequired": "Full Name is required",
     "emailInvalid": "Please enter a valid email address",
-    "whatsappInvalid": "Please enter a valid 10-digit WhatsApp number",
+    "whatsappInvalid": "Please enter a valid 10-digit WhatsApp number",
     "pincodeInvalid": "Please enter a valid 6-digit Indian PIN code"
   },
   "dashboard": {
@@ -342,7 +342,7 @@
     "privacyTitle": "Privacy Policy (DPDP Act 2023)",
     "termsTitle": "Terms and Conditions of Service",
     "dataRightsTitle": "Personal Data Rights & Opt-Out",
-    "optOutLabel": "Opt out of WhatsApp & SMS updates",
+    "optOutLabel": "Opt out of WhatsApp updates",
     "deleteRequest": "Request Permanent Data Deletion"
   },
   "listing": {

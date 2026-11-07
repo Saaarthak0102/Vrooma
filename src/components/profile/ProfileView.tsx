@@ -276,7 +276,7 @@ export function ProfileView() {
                     <span>Showroom & Festive Updates</span>
                   </div>
                   <p className="text-[11px] text-ink-soft">
-                    Receive price drop alerts, demo car slot releases, and service recalls via SMS/WhatsApp.
+                    Receive price drop alerts, demo car slot releases, and service recalls via WhatsApp.
                   </p>
                 </div>
                 <Switch
