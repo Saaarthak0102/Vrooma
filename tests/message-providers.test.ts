@@ -20,8 +20,8 @@ describe("WhatsApp and SMS providers", () => {
   });
 
   it("skips (never 'sent') without keys and does not call the network", async () => {
-    await expect(deliverMessage("whatsapp", "+919876543210", "x", "hi")).resolves.toMatchObject({ status: "skipped" });
-    await expect(deliverMessage("sms", "+919876543210", "x", "hi")).resolves.toMatchObject({ status: "skipped" });
+    await expect(deliverMessage("whatsapp", "+919876543210", "x", "hi")).resolves.toMatchObject({ status: "skipped", reason: expect.stringMatching(/provider/i) });
+    await expect(deliverMessage("sms", "+919876543210", "x", "hi")).resolves.toMatchObject({ status: "skipped", reason: expect.stringMatching(/provider/i) });
     expect(fetchMock).not.toHaveBeenCalled();
   });
 

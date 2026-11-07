@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { logCallAction } from "@/server/actions/calls";
-import { CALL_OUTCOMES, type CallOutcome } from "@/lib/calls";
+import { CALL_OUTCOMES, type CallOutcome } from "@/lib/call-outcomes";
 
 const OUTCOME_LABEL: Record<CallOutcome, string> = {
   answered: "Answered",

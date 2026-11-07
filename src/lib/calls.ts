@@ -2,8 +2,10 @@ import { createHash } from "node:crypto";
 import { z } from "zod";
 import { normalizeIndianPhone } from "@/lib/phone";
 
-export const CALL_OUTCOMES = ["answered", "missed", "voicemail"] as const;
-export type CallOutcome = (typeof CALL_OUTCOMES)[number];
+import { CALL_OUTCOMES } from "@/lib/call-outcomes";
+
+export { CALL_OUTCOMES };
+export type { CallOutcome } from "@/lib/call-outcomes";
 
 /** "+91 ******3210": enough for staff to recognise a repeat caller, not enough to call them back. */
 export function maskCaller(raw: string | null | undefined): string | null {

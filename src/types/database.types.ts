@@ -355,6 +355,76 @@ export type Database = {
           },
         ]
       }
+      call_logs: {
+        Row: {
+          caller_hash: string | null
+          caller_masked: string | null
+          created_at: string
+          direction: string
+          duration_seconds: number | null
+          external_id: string | null
+          handled_by: string | null
+          id: string
+          notes: string | null
+          outcome: Database["public"]["Enums"]["call_outcome"]
+          source: string
+          started_at: string
+          workshop_id: string | null
+        }
+        Insert: {
+          caller_hash?: string | null
+          caller_masked?: string | null
+          created_at?: string
+          direction?: string
+          duration_seconds?: number | null
+          external_id?: string | null
+          handled_by?: string | null
+          id?: string
+          notes?: string | null
+          outcome: Database["public"]["Enums"]["call_outcome"]
+          source?: string
+          started_at?: string
+          workshop_id?: string | null
+        }
+        Update: {
+          caller_hash?: string | null
+          caller_masked?: string | null
+          created_at?: string
+          direction?: string
+          duration_seconds?: number | null
+          external_id?: string | null
+          handled_by?: string | null
+          id?: string
+          notes?: string | null
+          outcome?: Database["public"]["Enums"]["call_outcome"]
+          source?: string
+          started_at?: string
+          workshop_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "call_logs_handled_by_fkey"
+            columns: ["handled_by"]
+            isOneToOne: false
+            referencedRelation: "consultant_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "call_logs_handled_by_fkey"
+            columns: ["handled_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "call_logs_workshop_id_fkey"
+            columns: ["workshop_id"]
+            isOneToOne: false
+            referencedRelation: "workshops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chat_conversations: {
         Row: {
           ai_context: Json
@@ -508,54 +578,6 @@ export type Database = {
           slug?: string
           state?: string
           updated_at?: string
-        }
-        Relationships: []
-      }
-      call_logs: {
-        Row: {
-          caller_hash: string | null
-          caller_masked: string | null
-          created_at: string
-          direction: string
-          duration_seconds: number | null
-          external_id: string | null
-          handled_by: string | null
-          id: string
-          notes: string | null
-          outcome: Database["public"]["Enums"]["call_outcome"]
-          source: string
-          started_at: string
-          workshop_id: string | null
-        }
-        Insert: {
-          caller_hash?: string | null
-          caller_masked?: string | null
-          created_at?: string
-          direction?: string
-          duration_seconds?: number | null
-          external_id?: string | null
-          handled_by?: string | null
-          id?: string
-          notes?: string | null
-          outcome: Database["public"]["Enums"]["call_outcome"]
-          source?: string
-          started_at?: string
-          workshop_id?: string | null
-        }
-        Update: {
-          caller_hash?: string | null
-          caller_masked?: string | null
-          created_at?: string
-          direction?: string
-          duration_seconds?: number | null
-          external_id?: string | null
-          handled_by?: string | null
-          id?: string
-          notes?: string | null
-          outcome?: Database["public"]["Enums"]["call_outcome"]
-          source?: string
-          started_at?: string
-          workshop_id?: string | null
         }
         Relationships: []
       }
@@ -2131,10 +2153,6 @@ export type Database = {
         Returns: undefined
       }
       anonymise_user: { Args: { p_uid: string }; Returns: undefined }
-      cancel_account_deletion: {
-        Args: never
-        Returns: string
-      }
       book_slot: {
         Args: {
           p_address?: string
@@ -2175,6 +2193,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      cancel_account_deletion: { Args: never; Returns: string }
       cancel_booking: {
         Args: { p_booking_id: string; p_reason?: string }
         Returns: {
@@ -2298,6 +2317,10 @@ export type Database = {
         Args: { p_days?: number; p_start_date?: string }
         Returns: number
       }
+      get_call_metrics: {
+        Args: { p_from?: string; p_to?: string }
+        Returns: Json
+      }
       get_cron_status: {
         Args: never
         Returns: {
@@ -2308,10 +2331,6 @@ export type Database = {
           last_status: string
           schedule: string
         }[]
-      }
-      get_call_metrics: {
-        Args: { p_from?: string; p_to?: string }
-        Returns: Json
       }
       get_leak_metrics: {
         Args: { p_from?: string; p_to?: string }
@@ -2450,8 +2469,8 @@ export type Database = {
     Enums: {
       body_type: "sedan" | "suv" | "hatchback" | "ev" | "mpv"
       booking_kind_type: "test_drive" | "service"
-      call_outcome: "answered" | "missed" | "voicemail"
       booking_status_type: "confirmed" | "cancelled" | "completed" | "no_show"
+      call_outcome: "answered" | "missed" | "voicemail"
       car_status_type: "available" | "booked" | "sold"
       consent_purpose_type:
         | "terms_privacy"
@@ -2467,7 +2486,12 @@ export type Database = {
         | "newsletter"
         | "trade_in"
       data_request_kind: "export" | "delete" | "opt_out"
-      data_request_status: "received" | "in_progress" | "done" | "rejected" | "cancelled"
+      data_request_status:
+        | "received"
+        | "in_progress"
+        | "done"
+        | "rejected"
+        | "cancelled"
       fuel_type: "petrol" | "diesel" | "cng" | "ev" | "hybrid"
       lead_event_type:
         | "created"
@@ -2632,8 +2656,8 @@ export const Constants = {
     Enums: {
       body_type: ["sedan", "suv", "hatchback", "ev", "mpv"],
       booking_kind_type: ["test_drive", "service"],
-      call_outcome: ["answered", "missed", "voicemail"],
       booking_status_type: ["confirmed", "cancelled", "completed", "no_show"],
+      call_outcome: ["answered", "missed", "voicemail"],
       car_status_type: ["available", "booked", "sold"],
       consent_purpose_type: [
         "terms_privacy",
@@ -2651,7 +2675,13 @@ export const Constants = {
         "trade_in",
       ],
       data_request_kind: ["export", "delete", "opt_out"],
-      data_request_status: ["received", "in_progress", "done", "rejected", "cancelled"],
+      data_request_status: [
+        "received",
+        "in_progress",
+        "done",
+        "rejected",
+        "cancelled",
+      ],
       fuel_type: ["petrol", "diesel", "cng", "ev", "hybrid"],
       lead_event_type: [
         "created",

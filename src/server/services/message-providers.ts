@@ -26,7 +26,7 @@ async function sendWhatsApp(to: string, template: string, body: string): Promise
   const token = process.env.WHATSAPP_TOKEN;
   const phoneId = process.env.WHATSAPP_PHONE_ID;
   if (!token || !phoneId) {
-    return { status: "skipped", reason: "WHATSAPP_TOKEN / WHATSAPP_PHONE_ID are not set." };
+    return { status: "skipped", reason: "No WhatsApp provider is connected (WHATSAPP_TOKEN / WHATSAPP_PHONE_ID not set)." };
   }
 
   let templates: Record<string, { name: string; language: string }> = {};
@@ -74,7 +74,7 @@ async function sendSms(to: string, body: string): Promise<DeliveryResult> {
   const authKey = process.env.MSG91_AUTH_KEY;
   const templateId = process.env.MSG91_TEMPLATE_ID;
   if (!authKey || !templateId) {
-    return { status: "skipped", reason: "MSG91_AUTH_KEY / MSG91_TEMPLATE_ID are not set." };
+    return { status: "skipped", reason: "No SMS provider is connected (MSG91_AUTH_KEY / MSG91_TEMPLATE_ID not set)." };
   }
 
   const res = await fetch("https://control.msg91.com/api/v5/flow", {
