@@ -37,6 +37,9 @@ async function sendWhatsApp(to: string, template: string, body: string): Promise
     console.warn("[Outbox] WHATSAPP_TEMPLATES is not valid JSON; sending plain text.");
   }
   const mapped = templates[template];
+  // Meta rejects template parameters with newlines, tabs or 4+ spaces, and the whole body must stay under 1024
+  // characters including the template's fixed text, so keep the variable to one tidy line of at most 800.
+  const templateVariable = body.replace(/\s+/g, " ").trim().slice(0, 800);
 
   const payload = mapped
     ? {
@@ -46,7 +49,7 @@ async function sendWhatsApp(to: string, template: string, body: string): Promise
         template: {
           name: mapped.name,
           language: { code: mapped.language || "en" },
-          components: [{ type: "body", parameters: [{ type: "text", text: body.slice(0, 1000) }] }],
+          components: [{ type: "body", parameters: [{ type: "text", text: templateVariable }] }],
         },
       }
     : {

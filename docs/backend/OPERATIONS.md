@@ -230,10 +230,23 @@ All three are optional per environment. A channel with no keys never pretends to
 1. In Meta for Developers create a Business app, add the WhatsApp product. Meta gives a free test number (can message
    up to 5 verified recipients) and the first 1,000 customer-initiated conversations a month are free.
 2. Copy the permanent token and the Phone Number ID into `WHATSAPP_TOKEN` and `WHATSAPP_PHONE_ID`.
-3. To message customers who have not written to you in the last 24 hours, Meta requires approved templates. Create one
-   with a single body variable (`{{1}}`) per outbound template name, then map them:
-   `WHATSAPP_TEMPLATES={"booking_confirmation":{"name":"booking_confirmation","language":"en"}}`.
+3. To message customers who have not written to you in the last 24 hours, Meta requires approved templates. Four are
+   needed. Create each in WhatsApp Manager > Message templates with category **Utility**, language English, body only
+   (no header, footer or buttons). Meta does not allow a variable at the very start or end, hence the fixed text:
+
+   | Name | Body | Sample for `{{1}}` |
+   |---|---|---|
+   | `lead_acknowledgement` | `Hello from Vrooma. {{1}} Reply here if you need anything before then.` | `Namaste Rahul! Thank you for your interest in Vrooma. Our dedicated consultant will reach out to you within 5 minutes.` |
+   | `booking_confirmation` | `Vrooma booking update. {{1}} Reply here to change your slot.` | `Namaste Rahul! Your Vrooma Test Drive appointment is confirmed (TD-1042) on 12 Nov 2026, 11:00 am at Hazratganj Showroom. Assigned Specialist: Anita Verma.` |
+   | `booking_cancellation` | `Vrooma booking update. {{1}} Reply here to book a new slot.` | `Your Vrooma booking (TD-1042) has been cancelled. The time slot has been released.` |
+   | `consultant_reply` | `Message from your Vrooma consultant. {{1}} Reply here to continue.` | `Hi Rahul, this is Anita from Vrooma Hazratganj. The Model H ZX automatic is available for a test drive this week. When suits you?` |
+
+   Approval usually takes minutes to a day. Then map them (one line in Vercel / `.env.local`):
+   `WHATSAPP_TEMPLATES={"lead_acknowledgement":{"name":"lead_acknowledgement","language":"en"},"booking_confirmation":{"name":"booking_confirmation","language":"en"},"booking_cancellation":{"name":"booking_cancellation","language":"en"},"consultant_reply":{"name":"consultant_reply","language":"en"}}`
+   The app sends the whole message text as `{{1}}` (line breaks are flattened, text is cut at 800 characters).
    Unmapped template names go out as plain text, which Meta only delivers inside the 24-hour window.
+   Other messages (reassignment alerts, data-request receipts, newsletter, deletion notice, chat-reply notice) are
+   email only and need no template.
 
 Check it: `pnpm whatsapp:smoke +919876543210` sends Meta's `hello_world` template. The recipient must be verified under
 WhatsApp > API Setup > "To". Use a System User token, because the temporary token expires in 24 hours.

@@ -52,6 +52,20 @@ describe("WhatsApp provider (SMS removed)", () => {
     expect(sent.template.components[0].parameters[0].text).toBe("Booked for 5 pm");
   });
 
+  it("flattens line breaks in the template variable (Meta rejects newlines and long space runs)", async () => {
+    process.env.WHATSAPP_TOKEN = "tok";
+    process.env.WHATSAPP_PHONE_ID = "123";
+    process.env.WHATSAPP_TEMPLATES = JSON.stringify({ consultant_reply: { name: "consultant_reply", language: "en" } });
+    fetchMock.mockResolvedValue(new Response("{}", { status: 200 }));
+
+    await deliverMessage("whatsapp", "+919876543210", "consultant_reply", "Hi Rahul,\n\nSlot is free.\t\tSee you    soon. " + "x".repeat(900));
+
+    const text = JSON.parse(fetchMock.mock.calls[0][1].body).template.components[0].parameters[0].text as string;
+    expect(text).not.toMatch(/[\n\t]| {2,}/);
+    expect(text.startsWith("Hi Rahul, Slot is free. See you soon.")).toBe(true);
+    expect(text.length).toBeLessThanOrEqual(800);
+  });
+
   it("throws on a provider error so the outbox retries instead of marking it sent", async () => {
     process.env.WHATSAPP_TOKEN = "tok";
     process.env.WHATSAPP_PHONE_ID = "123";
