@@ -43,3 +43,28 @@ run** (the Admin Overview, System tab, shows each missing job in red as "not sch
 - `/api/cron/data-retention`, `/api/cron/finalize-deletions`: DPDP retention and the 7-day account-deletion queue.
 
 Manual trigger for testing: `curl -H "Authorization: Bearer $CRON_SECRET" https://YOUR-APP-DOMAIN/api/cron/outbox`
+
+
+## Is the app actually receiving the HTTP jobs?
+
+pg_cron marks an HTTP job `succeeded` as soon as pg_net has *sent* the request. The app can still answer 401 or 404 and
+nothing runs. Since migration `0038` each call that reaches `/api/cron/outbox` or `/api/cron/automations` (after the
+secret check) records a heartbeat in `cron_heartbeats`. The admin System page and `pnpm check:cron` report
+"scheduled, but the app has never received it" when there is none.
+
+If you see that, check in this order:
+
+| What you see (`select created, status_code, left(content::text,200) from net._http_response order by created desc limit 20;`) | Cause | Fix |
+|---|---|---|
+| 401, short JSON | `CRON_SECRET` on the deployment differs from Vault `cron_secret` | Make them identical |
+| 401/403 with an HTML page, or a redirect to Vercel login | Vercel deployment protection on Preview | Use an unprotected URL for the DEV `app_url` |
+| 307/308/404 | `app_url` has a trailing slash or points at an old deployment | Exact public origin, no trailing slash |
+| no rows | `pg_net` or the Vault secrets are missing | `select private.ensure_cron_jobs();` and read the notice |
+
+## Outbox safety rules (all environments)
+
+- Time-sensitive messages (acknowledgements, SLA and escalation alerts, reminders, outcome prompts) older than 24 hours
+  are marked `skipped` ("stale") instead of being sent late. Confirmations, cancellations, data-rights notices and
+  consultant replies are always sent.
+- Outside production, `OUTBOX_ALLOWLIST` (addresses or `@domains`) restricts who can ever be contacted; other
+  recipients are marked `skipped`. Production ignores it. Set it on DEV and Preview.

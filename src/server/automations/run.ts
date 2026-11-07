@@ -1,6 +1,7 @@
 import { enqueueOnce } from "@/server/automations/enqueue";
 import { planEscalations, selectWaiting } from "@/server/automations/escalations";
 import { planExpiryAlerts, selectExpiryInput } from "@/server/automations/expiry";
+import { planGarageReminders, selectGarageInput } from "@/server/automations/garage";
 import { planOutcomeReminders, selectUnmarkedBookings } from "@/server/automations/outcomes";
 import { planReminders, selectReminderBookings } from "@/server/automations/reminders";
 import type { OutboxRow, RuleResult } from "@/server/automations/types";
@@ -14,6 +15,13 @@ const RULES: Rule[] = [
   { name: "booking_reminders", plan: async (a, now) => planReminders(await selectReminderBookings(a, now), now) },
   { name: "booking_outcomes", plan: async (a, now) => planOutcomeReminders(await selectUnmarkedBookings(a, now)) },
   { name: "escalations", plan: async (a, now) => planEscalations(await selectWaiting(a, now)) },
+  {
+    name: "garage_reminders",
+    plan: async (a, now) => {
+      const { vehicles, consented, today } = await selectGarageInput(a, now);
+      return planGarageReminders(vehicles, consented, today);
+    },
+  },
   { name: "expiry_alerts", plan: async (a, now) => planExpiryAlerts(await selectExpiryInput(a, now), now) },
 ];
 

@@ -23,6 +23,26 @@ export const EXPECTED_JOBS = [
   "daily_dms_export",
 ];
 
+/** HTTP jobs that must be received by the app, and how stale (minutes) their last heartbeat may be. */
+export const HEARTBEAT_JOBS = { process_outbox_queue: ["outbox", 5], process_automations: ["automations", 15] };
+
+/**
+ * pg_cron reports an HTTP job as "succeeded" once the request is sent, even if the app answered 401/404. The app
+ * records a heartbeat whenever an authorised call arrives (migration 0038). Pure so it can be unit tested.
+ * @param {string[]} scheduledJobs jobs that exist  @param {{job:string,last_received_at:string}[]} heartbeats
+ */
+export function evaluateHeartbeats(scheduledJobs, heartbeats, now = new Date()) {
+  const byJob = new Map(heartbeats.map((h) => [h.job, h.last_received_at]));
+  const notReceiving = [];
+  for (const [jobName, [key, maxAgeMin]] of Object.entries(HEARTBEAT_JOBS)) {
+    if (!scheduledJobs.includes(jobName)) continue;
+    const last = byJob.get(key);
+    if (!last) notReceiving.push(`${jobName} (never received)`);
+    else if (now.getTime() - new Date(last).getTime() > maxAgeMin * 60_000) notReceiving.push(`${jobName} (last received ${last})`);
+  }
+  return { notReceiving, ok: notReceiving.length === 0 };
+}
+
 /** Pure so it can be unit tested. rows: [{ jobname, active, last_run_at, last_status }] */
 export function evaluateCronStatus(rows) {
   const byName = new Map(rows.map((r) => [r.jobname, r]));
@@ -56,6 +76,21 @@ async function main() {
   }
 
   const result = evaluateCronStatus(data ?? []);
+  const hb = await supabase.from("cron_heartbeats").select("job, last_received_at");
+  let heartbeatOk = true;
+  if (hb.error) {
+    console.warn(`
+Heartbeats unavailable (apply migration 0038): ${hb.error.message}`);
+  } else {
+    const heart = evaluateHeartbeats((data ?? []).map((r) => r.jobname), hb.data ?? []);
+    heartbeatOk = heart.ok;
+    if (!heart.ok) {
+      console.error(`
+Scheduled, but the app is NOT receiving: ${heart.notReceiving.join(", ")}`);
+      console.error("Likely causes: CRON_SECRET differs from the Vault cron_secret, app_url is wrong or has a trailing slash,");
+      console.error("or Vercel deployment protection blocks the call. See docs/backend/CRON_SETUP.md.");
+    }
+  }
   if (result.missing.length) {
     console.error(`\nMissing jobs: ${result.missing.join(", ")}`);
     console.error("Add the Vault secrets app_url and cron_secret, then run: select private.ensure_cron_jobs();");
@@ -64,8 +99,9 @@ async function main() {
   if (result.inactive.length) console.error(`Inactive jobs: ${result.inactive.join(", ")}`);
   if (result.failing.length) console.error(`Last run failed: ${result.failing.join(", ")}`);
   if (result.neverRan.length && result.ok) console.log(`\nNot run yet (normal right after scheduling): ${result.neverRan.join(", ")}`);
-  console.log(result.ok ? "\nAll expected jobs are scheduled." : "\nCron is NOT fully set up.");
-  process.exitCode = result.ok ? 0 : 1;
+  const allOk = result.ok && heartbeatOk;
+  console.log(allOk ? "\nAll expected jobs are scheduled and reaching the app." : "\nCron is NOT fully set up.");
+  process.exitCode = allOk ? 0 : 1;
 }
 
 if (import.meta.url === new URL(process.argv[1], "file://").href || process.argv[1]?.endsWith("check-cron.mjs")) {

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { authorizeCron } from "@/lib/cron-auth";
-import { resolveRecipient } from "@/server/automations/alerts";
+import { isRecipientAllowed, isStaleTimeSensitive, resolveRecipient } from "@/server/automations/alerts";
+import { recordHeartbeat } from "@/server/automations/heartbeat";
 import { deliverMessage, type DeliveryChannel } from "@/server/services/message-providers";
 
 const BACKOFF_MINUTES = [1, 5, 30, 120];
@@ -17,6 +18,7 @@ export async function GET(request: NextRequest) {
   if (denied) return denied;
 
   const admin = createAdminClient();
+  await recordHeartbeat(admin, "outbox");
   const now = new Date().toISOString();
   // A worker that crashed mid-send leaves rows in 'sending'; treat them as retryable after 10 minutes.
   const staleCutoff = new Date(Date.now() - 10 * 60 * 1000).toISOString();
@@ -24,7 +26,7 @@ export async function GET(request: NextRequest) {
   // 2. Fetch up to 50 eligible pending/retrying messages
   const { data: messages, error: fetchErr } = await admin
     .from("messages_outbox")
-    .select("id, channel, to_address, template, body, attempts, idempotency_key, status")
+    .select("id, channel, to_address, template, body, attempts, idempotency_key, status, created_at")
     .or(`status.in.(pending,failed),and(status.eq.sending,updated_at.lt.${staleCutoff})`)
     .lte("next_attempt_at", now)
     .lt("attempts", 5)
@@ -62,8 +64,29 @@ export async function GET(request: NextRequest) {
     // An error, or zero rows updated, means another worker claimed it first
     if (lockErr || !claimed || claimed.length === 0) continue;
 
+    // Do not send time-sensitive messages hours late, and keep non-production data away from real recipients.
+    const recipient = resolveRecipient(msg.to_address);
+    const skipReason = isStaleTimeSensitive(msg.template, msg.created_at)
+      ? "stale: too old to be useful, not sent"
+      : !isRecipientAllowed(recipient)
+        ? "recipient is not on the non-production allowlist (OUTBOX_ALLOWLIST)"
+        : null;
+    if (skipReason) {
+      await admin
+        .from("messages_outbox")
+        .update({
+          status: "skipped" as never,
+          attempts: msg.attempts + 1,
+          last_error: skipReason,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", msg.id);
+      skippedCount++;
+      continue;
+    }
+
     try {
-      const result = await deliverMessage(msg.channel as DeliveryChannel, resolveRecipient(msg.to_address), msg.template, msg.body);
+      const result = await deliverMessage(msg.channel as DeliveryChannel, recipient, msg.template, msg.body);
 
       if (result.status === "skipped") {
         // Nothing was sent (no provider for this channel). Record that honestly instead of "sent".

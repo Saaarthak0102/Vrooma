@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { setBookingOutcomeAction } from "@/server/actions/booking";
 import { BookingsOverview, bookingMatches, type BookingFilter } from "@/components/staff/BookingsOverview";
+import { ServiceVisitDialog, type ServiceVisitDetails } from "@/components/staff/ServiceVisitDialog";
 import { LogCallForm } from "@/components/staff/LogCallForm";
 import type { Booking } from "@/types/domain";
 
@@ -36,13 +37,18 @@ export function StaffBookingsClient({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [filter, setFilter] = useState<BookingFilter>(null);
 
-  const markOutcome = async (id: string, outcome: "completed" | "no_show") => {
+  const [serviceDialog, setServiceDialog] = useState<Booking | null>(null);
+
+  const markOutcome = async (id: string, outcome: "completed" | "no_show", serviceVisit?: ServiceVisitDetails | null) => {
     if (busyId) return;
     setBusyId(id);
     try {
-      const res = await setBookingOutcomeAction(id, outcome);
+      const res = await setBookingOutcomeAction(id, outcome, serviceVisit ?? undefined);
       if (res.ok) {
         toast.success(outcome === "completed" ? "Marked as attended." : "Marked as no-show.");
+        if (res.data.serviceHistory === "recorded") toast.success("Added to the owner's service history.");
+        else if (res.data.serviceHistory === "skipped" && res.data.serviceNote) toast.message(`Service history not saved: ${res.data.serviceNote}`);
+        setServiceDialog(null);
         router.refresh();
       } else {
         toast.error(res.error.message || "Could not update the booking.");
@@ -119,7 +125,7 @@ export function StaffBookingsClient({
               size="sm"
               className="h-8 px-2.5 text-xs"
               disabled={busyId === b.id}
-              onClick={() => markOutcome(b.id, "completed")}
+              onClick={() => (b.kind === "service" ? setServiceDialog(b) : markOutcome(b.id, "completed"))}
             >
               Attended
             </Button>
@@ -173,6 +179,13 @@ export function StaffBookingsClient({
 
   return (
     <div className="space-y-6">
+      <ServiceVisitDialog
+        open={Boolean(serviceDialog)}
+        busy={Boolean(busyId)}
+        label={serviceDialog ? `${serviceDialog.vehicle_info.model_name}${serviceDialog.vehicle_info.reg_no ? ` · ${serviceDialog.vehicle_info.reg_no}` : ""}` : ""}
+        onCancel={() => setServiceDialog(null)}
+        onSubmit={(details) => serviceDialog && markOutcome(serviceDialog.id, "completed", details)}
+      />
       <section aria-labelledby="bookings-heading" className="space-y-2">
         <h1 id="bookings-heading" className="text-lg font-black text-ink">
           Test drives &amp; service bookings

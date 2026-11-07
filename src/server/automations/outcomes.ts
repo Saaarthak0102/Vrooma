@@ -19,9 +19,14 @@ export interface UnmarkedBooking {
   leadId: string | null;
 }
 
+/** Booking outcomes are asked for between 1 and 24 hours after the slot, and at most this many per run. */
+export const OUTCOME_WINDOW = { afterMinutes: 60, maxAgeHours: 24, maxPerRun: 50 } as const;
+
 export function planOutcomeReminders(bookings: UnmarkedBooking[], env?: Record<string, string | undefined>): OutboxRow[] {
   const rows: OutboxRow[] = [];
-  for (const b of bookings) {
+  // Oldest first, capped: if many pile up at once they go out over several runs instead of one burst.
+  const batch = [...bookings].sort((a, b) => a.endedAt.localeCompare(b.endedAt)).slice(0, OUTCOME_WINDOW.maxPerRun);
+  for (const b of batch) {
     const to = b.ownerEmail || alertEmail(env) || "manager@vrooma.in";
     const what = b.kind === "test_drive" ? "test drive" : "service";
     rows.push({
@@ -41,8 +46,8 @@ export function planOutcomeReminders(bookings: UnmarkedBooking[], env?: Record<s
 }
 
 export async function selectUnmarkedBookings(admin: any, now: Date): Promise<UnmarkedBooking[]> {
-  const endedBefore = new Date(now.getTime() - 60 * 60_000).toISOString();
-  const endedAfter = new Date(now.getTime() - 7 * 24 * 3600_000).toISOString();
+  const endedBefore = new Date(now.getTime() - OUTCOME_WINDOW.afterMinutes * 60_000).toISOString();
+  const endedAfter = new Date(now.getTime() - OUTCOME_WINDOW.maxAgeHours * 3600_000).toISOString();
   const { data, error } = await admin
     .from("bookings")
     .select(
@@ -51,7 +56,7 @@ export async function selectUnmarkedBookings(admin: any, now: Date): Promise<Unm
     .eq("status", "confirmed")
     .lt("slots.ends_at", endedBefore)
     .gt("slots.ends_at", endedAfter)
-    .limit(200);
+    .limit(500);
   if (error) throw new Error(`outcome query failed: ${error.message}`);
 
   return (data ?? []).map((row: any) => ({

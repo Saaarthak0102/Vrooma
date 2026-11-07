@@ -11,6 +11,8 @@ import { getModelBySlug, listModels } from "@/server/repositories/models";
 import { listShowrooms, listWorkshops } from "@/server/repositories/showrooms";
 import { listSlots } from "@/server/repositories/slots";
 import { listUsedCars } from "@/server/repositories/used-cars";
+import { loadVehicleSummaries } from "@/server/services/garage";
+import type { VehicleSummary } from "@/lib/garage";
 
 /**
  * Read-only tools the buyer chatbot may call. They are the ONLY source of facts, prices and dates in an answer
@@ -35,6 +37,7 @@ export interface ChatToolDeps {
   listShowrooms: typeof listShowrooms;
   listWorkshops: typeof listWorkshops;
   listBookings: typeof listBookings;
+  listVehicles: (userId: string) => Promise<VehicleSummary[]>;
   now: () => Date;
 }
 
@@ -47,6 +50,7 @@ const realDeps: ChatToolDeps = {
   listShowrooms,
   listWorkshops,
   listBookings,
+  listVehicles: loadVehicleSummaries,
   now: () => new Date(),
 };
 
@@ -255,6 +259,30 @@ export function buildChatTools(ctx: { userId: string | null }, deps: ChatToolDep
             car: b.vehicle_info?.model_name ?? null,
           }));
         return { count: mine.length, bookings: mine, page: "/dashboard" };
+      },
+    }),
+    my_garage: tool({
+      description:
+        "The signed-in buyer's own cars: model, masked registration, last service, next service due, and insurance, PUC and warranty end dates. Use for 'when is my service due' or 'when does my insurance expire'.",
+      parameters: z.object({}),
+      execute: async () => {
+        const cars = await deps.listVehicles(userId);
+        return {
+          count: cars.length,
+          cars: cars.map((c) => ({
+            car: `${c.modelName}${c.variantName ? ` ${c.variantName}` : ""}`,
+            registration: c.regMasked,
+            odometerKm: c.odometerKm,
+            lastService: c.lastService?.servicedOn ?? null,
+            nextServiceDueOn: c.nextService?.dueOn ?? null,
+            nextServiceDueAtKm: c.nextService?.dueKm ?? null,
+            insuranceEnds: c.insuranceExpiry,
+            pucEnds: c.pucExpiry,
+            warrantyEnds: c.warrantyEnd,
+          })),
+          page: "/dashboard",
+          note: "Add or edit cars under My cars on the dashboard.",
+        };
       },
     }),
   };

@@ -14,6 +14,8 @@ export interface UserDataExport {
   savedItems: Array<Record<string, any>>;
   tradeInSubmissions: Array<Record<string, any>>;
   supportChats: Array<Record<string, any>>;
+  vehicles: Array<Record<string, any>>;
+  serviceHistory: Array<Record<string, any>>;
 }
 
 /**
@@ -32,6 +34,7 @@ export async function generateUserDataExportAction(): Promise<ActionResponse<Use
       { data: savedItems },
       { data: tradeIns },
       { data: chatRows },
+      { data: vehicleRows },
     ] = await Promise.all([
       admin.from("profiles").select("*").eq("id", user.id).single(),
       admin.from("consents").select("purpose, granted, policy_version, source, created_at").eq("user_id", user.id),
@@ -40,6 +43,11 @@ export async function generateUserDataExportAction(): Promise<ActionResponse<Use
       admin.from("saved_items").select("created_at, models:model_id(name), used_cars:used_car_id(model_name)").eq("user_id", user.id),
       admin.from("trade_in_requests").select("brand, model, year, km, condition, notes, created_at").eq("user_id", user.id),
       admin.from("chat_conversations").select("title, created_at, chat_messages(role, content, created_at)").eq("user_id", user.id),
+      // owner_vehicles / service_records are newer than the generated Supabase types.
+      (admin as any)
+        .from("owner_vehicles")
+        .select("reg_no_private, model_name, variant_name, purchase_date, bought_from_vrooma, odometer_km, insurance_expiry, puc_expiry, warranty_end, created_at, service_records(serviced_on, odometer_km, summary, next_due_on, next_due_km)")
+        .eq("user_id", user.id),
     ]);
 
     // Record formal export in data_requests table
@@ -71,6 +79,10 @@ export async function generateUserDataExportAction(): Promise<ActionResponse<Use
       savedItems: savedItems || [],
       tradeInSubmissions: tradeIns || [],
       supportChats: (chatRows as Array<Record<string, any>> | null) || [],
+      vehicles: ((vehicleRows as Array<Record<string, any>> | null) || []).map(({ service_records: _s, ...car }) => car),
+      serviceHistory: ((vehicleRows as Array<Record<string, any>> | null) || []).flatMap((v) =>
+        (v.service_records || []).map((r: Record<string, any>) => ({ vehicle: v.model_name, ...r })),
+      ),
     };
 
     return successResponse(exportPayload);

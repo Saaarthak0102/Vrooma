@@ -11,6 +11,7 @@ import { SavedVehiclesCard } from "./SavedVehiclesCard";
 import { DashboardActionTile } from "./DashboardActionTile";
 import { RecentChatsPanel } from "./RecentChatsPanel";
 import { DashboardViewAllPanel } from "./DashboardViewAllPanel";
+import { MyCarsSection } from "./MyCarsSection";
 import { DashboardMobileSheet } from "./DashboardMobileSheet";
 import { useTranslations } from "next-intl";
 import { Car, Wrench } from "lucide-react";
@@ -198,6 +199,8 @@ export function DashboardClientShell({
                 />
               </div>
             </div>
+
+            <MyCarsSection />
           </div>
 
           {/* Desktop In-Place Expanding Panel (Active when isDesktop) */}

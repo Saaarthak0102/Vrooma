@@ -10,6 +10,8 @@ const SUBJECTS: Record<string, string> = {
   consultant_reply: "Your Vrooma consultant replied",
   lead_closed_deletion: "Your enquiry was closed",
   newsletter_subscription_confirmed: "You are subscribed to Vrooma updates",
+  service_due: "Your car is due for service",
+  insurance_expiry: "A document for your car is about to expire",
   test_drive_reminder: "Reminder: your Vrooma test drive",
   service_reminder: "Reminder: your Vrooma service appointment",
   booking_outcome_needed: "Booking outcome needed",

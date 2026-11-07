@@ -25,3 +25,30 @@ describe("evaluateCronStatus", () => {
     expect(evaluateCronStatus(EXPECTED_JOBS.map((n: string) => row(n, { last_run_at: null, last_status: null }))).ok).toBe(true);
   });
 });
+
+import { evaluateHeartbeats } from "../scripts/check-cron.mjs";
+
+describe("evaluateHeartbeats", () => {
+  const now = new Date("2026-11-08T12:00:00Z");
+  const jobs = ["process_outbox_queue", "process_automations", "daily_dms_export"];
+
+  it("passes when both HTTP jobs reached the app recently", () => {
+    const r = evaluateHeartbeats(jobs, [
+      { job: "outbox", last_received_at: "2026-11-08T11:58:00Z" },
+      { job: "automations", last_received_at: "2026-11-08T11:50:00Z" },
+    ], now);
+    expect(r.ok).toBe(true);
+  });
+
+  it("flags a scheduled job whose calls never arrive (pg_cron says succeeded, the app answered 401)", () => {
+    const r = evaluateHeartbeats(jobs, [], now);
+    expect(r.ok).toBe(false);
+    expect(r.notReceiving).toEqual(["process_outbox_queue (never received)", "process_automations (never received)"]);
+  });
+
+  it("flags a stale heartbeat and ignores jobs that are not scheduled", () => {
+    const r = evaluateHeartbeats(["process_outbox_queue"], [{ job: "outbox", last_received_at: "2026-11-08T11:00:00Z" }], now);
+    expect(r.notReceiving).toEqual(["process_outbox_queue (last received 2026-11-08T11:00:00Z)"]);
+    expect(evaluateHeartbeats([], [], now).ok).toBe(true);
+  });
+});

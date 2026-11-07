@@ -39,17 +39,28 @@ export function planEscalations(items: WaitingItem[], env?: Record<string, strin
   return rows;
 }
 
+/**
+ * Only fresh items are escalated: an escalation is useful while someone can still act on it. A lead that has waited
+ * for hours already triggered the 5-minute SLA alert, and turning on this rule must not email about the backlog.
+ */
+export const ESCALATION_WINDOWS = {
+  leadAfterMinutes: 15,
+  chatAfterMinutes: 10,
+  maxAgeMinutes: 60,
+} as const;
+
 export async function selectWaiting(admin: any, now: Date): Promise<WaitingItem[]> {
   const items: WaitingItem[] = [];
-  const day = new Date(now.getTime() - 24 * 3600_000).toISOString();
+  const ago = (minutes: number) => new Date(now.getTime() - minutes * 60_000).toISOString();
+  const oldest = ago(ESCALATION_WINDOWS.maxAgeMinutes);
 
   const { data: leads, error: leadErr } = await admin
     .from("leads")
     .select("id, ref, name, created_at, assigned:assigned_to ( email )")
     .eq("status", "new")
     .is("first_contacted_at", null)
-    .lt("created_at", new Date(now.getTime() - 15 * 60_000).toISOString())
-    .gt("created_at", day)
+    .lt("created_at", ago(ESCALATION_WINDOWS.leadAfterMinutes))
+    .gt("created_at", oldest)
     .limit(200);
   if (leadErr) throw new Error(`escalation lead query failed: ${leadErr.message}`);
   for (const l of leads ?? []) {
@@ -67,8 +78,8 @@ export async function selectWaiting(admin: any, now: Date): Promise<WaitingItem[
     .select("id, handoff_at, lead:lead_id ( ref, name ), consultant:assigned_to ( email )")
     .eq("status", "waiting")
     .is("first_staff_reply_at", null)
-    .lt("handoff_at", new Date(now.getTime() - 10 * 60_000).toISOString())
-    .gt("handoff_at", day)
+    .lt("handoff_at", ago(ESCALATION_WINDOWS.chatAfterMinutes))
+    .gt("handoff_at", oldest)
     .limit(200);
   if (chatErr) throw new Error(`escalation chat query failed: ${chatErr.message}`);
   for (const c of chats ?? []) {

@@ -80,14 +80,16 @@ For reply drafts, `sendLeadReplyAction` writes `reply_sent_unedited` / `reply_se
 
 ## 4b. Date-driven triggers (no model involved)
 
-`/api/cron/automations` (every 5 minutes, migration `0037`) runs the rules in `src/server/automations/`. They only queue messages; the outbox job sends them. Each message has an idempotency key, so re-runs never duplicate. The consent gate for marketing-type messages is not built yet because none exist: it must be added before the first service-due, insurance-expiry or re-engagement message ships (P4/P6).
+`/api/cron/automations` (every 5 minutes, migration `0037`) runs the rules in `src/server/automations/`. They only queue messages; the outbox job sends them. Each message has an idempotency key, so re-runs never duplicate. The service-due and expiry reminders are gated on the owner's latest `service_contact` consent (the unticked "Send me service and insurance reminders" box under My cars; unticking appends a granted=false event and the next run stops). A general consent check in the outbox worker is still to do before any marketing-type message (P6 re-engagement) is added.
 
 | Rule | When | Goes to |
 |---|---|---|
 | Test drive / service reminder | 24 h and 3 h before the slot (skipped if booked inside that window) | Buyer: email + WhatsApp |
-| Booking outcome needed | Slot ended over 1 h ago, still `confirmed` (last 7 days) | Lead's consultant, else `ALERT_EMAIL` |
-| Lead uncontacted | New lead, no contact after 15 min | Consultant + `ALERT_EMAIL` |
-| Chat unanswered | Handoff with no staff reply after 10 min | Consultant + `ALERT_EMAIL` |
+| Booking outcome needed | Slot ended 1-24 h ago, still `confirmed`; at most 50 per run, oldest first | Lead's consultant, else `ALERT_EMAIL` |
+| Lead uncontacted | New lead, no contact after 15 min (only leads 15-60 min old are escalated, so enabling the rule never mails about a backlog) | Consultant + `ALERT_EMAIL` |
+| Chat unanswered | Handoff with no staff reply after 10 min (up to 60 min old) | Consultant + `ALERT_EMAIL` |
+| Service due (opt-in) | Latest service record's next due date is 14 and 3 days away | Owner with the `service_contact` consent ticked: email + WhatsApp |
+| Insurance / PUC / warranty ending (opt-in) | 30 and 7 days before the date on the car | Same owners |
 | Price rule expiring | Ended in the last 30 days or ends within 7, with no successor for the same city/model/variant/fuel | `ALERT_EMAIL` |
 | Offer ending | Within 3 days | `ALERT_EMAIL` |
 | DPDP request due | Within 5 days of the 30-day deadline | `ALERT_EMAIL` |

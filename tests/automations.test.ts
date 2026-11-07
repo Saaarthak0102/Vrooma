@@ -188,7 +188,7 @@ describe("runAutomations", () => {
   it("runs every rule and reports each one", async () => {
     const { admin } = fakeAdmin();
     const results = await runAutomations(admin, NOW);
-    expect(results.map((r) => r.rule)).toEqual(["booking_reminders", "booking_outcomes", "escalations", "expiry_alerts"]);
+    expect(results.map((r) => r.rule)).toEqual(["booking_reminders", "booking_outcomes", "escalations", "garage_reminders", "expiry_alerts"]);
     expect(results.every((r) => !r.error)).toBe(true);
   });
 
@@ -196,7 +196,7 @@ describe("runAutomations", () => {
     const { admin } = fakeAdmin("price_rules");
     const results = await runAutomations(admin, NOW);
     expect(results.find((r) => r.rule === "expiry_alerts")?.error).toContain("boom");
-    expect(results.filter((r) => !r.error)).toHaveLength(3);
+    expect(results.filter((r) => !r.error)).toHaveLength(4);
   });
 });
 
@@ -208,5 +208,108 @@ describe("migration 0037", () => {
     expect(sql.indexOf("cron.schedule('process_automations'")).toBeGreaterThan(sql.indexOf("IF NOT v_has_secrets"));
     // the older jobs are still managed by the same function
     for (const job of ["process_outbox_queue", "daily_dms_export", "eval_lead_sla_breaches"]) expect(sql).toContain(job);
+  });
+});
+
+// ---- Fixes after the DEV verification: fresh windows, caps, stale and non-production safety ----
+
+import { ESCALATION_WINDOWS, selectWaiting } from "@/server/automations/escalations";
+import { OUTCOME_WINDOW, selectUnmarkedBookings } from "@/server/automations/outcomes";
+import { isRecipientAllowed, isStaleTimeSensitive } from "@/server/automations/alerts";
+import { recordHeartbeat } from "@/server/automations/heartbeat";
+import { heartbeatState } from "@/lib/cron-heartbeat";
+
+/** Records every filter applied to a query so the time windows can be asserted without a database. */
+function recordingAdmin() {
+  const calls: { table: string; op: string; args: unknown[] }[] = [];
+  const admin = {
+    from(table: string) {
+      const chain: any = new Proxy(
+        {},
+        {
+          get: (_t, op: string) => {
+            if (op === "then") return (resolve: any) => resolve({ data: [], error: null });
+            return (...args: unknown[]) => (calls.push({ table, op, args }), chain);
+          },
+        },
+      );
+      return chain;
+    },
+  };
+  return { admin, calls };
+}
+
+describe("fresh windows (no first-run flood)", () => {
+  it("escalates only leads 15-60 minutes old and chats 10-60 minutes old", async () => {
+    const { admin, calls } = recordingAdmin();
+    await selectWaiting(admin, NOW);
+    const arg = (table: string, op: string, col: string) => calls.find((c) => c.table === table && c.op === op && c.args[0] === col)?.args[1];
+    const minutesAgo = (iso: unknown) => Math.round((NOW.getTime() - new Date(iso as string).getTime()) / 60_000);
+    expect(minutesAgo(arg("leads", "lt", "created_at"))).toBe(ESCALATION_WINDOWS.leadAfterMinutes);
+    expect(minutesAgo(arg("leads", "gt", "created_at"))).toBe(60);
+    expect(minutesAgo(arg("chat_conversations", "lt", "handoff_at"))).toBe(ESCALATION_WINDOWS.chatAfterMinutes);
+    expect(minutesAgo(arg("chat_conversations", "gt", "handoff_at"))).toBe(60);
+  });
+
+  it("asks for booking outcomes only 1-24 hours after the slot", async () => {
+    const { admin, calls } = recordingAdmin();
+    await selectUnmarkedBookings(admin, NOW);
+    const arg = (op: string) => calls.find((c) => c.op === op && c.args[0] === "slots.ends_at")?.args[1];
+    const hoursAgo = (iso: unknown) => (NOW.getTime() - new Date(iso as string).getTime()) / H;
+    expect(hoursAgo(arg("lt"))).toBe(1);
+    expect(hoursAgo(arg("gt"))).toBe(24);
+  });
+
+  it("queues at most 50 outcome reminders per run, oldest first, so a backlog drips out", () => {
+    const many = Array.from({ length: 80 }, (_, i) => ({
+      id: `b${i}`, ref: `BK-${i}`, kind: "test_drive" as const, endedAt: at(-2 - i / 100), buyer: null, place: "Hazratganj", ownerEmail: "r@vrooma.in", leadId: null,
+    }));
+    const rows = planOutcomeReminders(many);
+    expect(rows).toHaveLength(OUTCOME_WINDOW.maxPerRun);
+    expect(rows[0].idempotency_key).toBe("outcome:b79"); // the one that ended longest ago
+  });
+});
+
+describe("outbox safety", () => {
+  const old = new Date(NOW.getTime() - 25 * H).toISOString();
+  const fresh = new Date(NOW.getTime() - 2 * H).toISOString();
+
+  it("skips time-sensitive messages older than 24 h but never confirmations or consultant replies", () => {
+    expect(isStaleTimeSensitive("lead_acknowledgement", old, NOW)).toBe(true);
+    expect(isStaleTimeSensitive("sla_breach_alert", old, NOW)).toBe(true);
+    expect(isStaleTimeSensitive("test_drive_reminder", old, NOW)).toBe(true);
+    expect(isStaleTimeSensitive("lead_acknowledgement", fresh, NOW)).toBe(false);
+    for (const t of ["booking_confirmation", "booking_cancellation", "consultant_reply", "dpdp_erasure_request_received", "newsletter_subscription_confirmed"]) {
+      expect(isStaleTimeSensitive(t, old, NOW)).toBe(false);
+    }
+  });
+
+  it("enforces OUTBOX_ALLOWLIST outside production by address or @domain, and ignores it in production", () => {
+    const env = { APP_ENV: "development", OUTBOX_ALLOWLIST: "delivered@resend.dev, @vrooma.in" };
+    expect(isRecipientAllowed("delivered@resend.dev", env)).toBe(true);
+    expect(isRecipientAllowed("Someone@Vrooma.in", env)).toBe(true);
+    expect(isRecipientAllowed("buyer@lucknow.org", env)).toBe(false);
+    expect(isRecipientAllowed("evilvrooma.in", env)).toBe(false);
+    expect(isRecipientAllowed("buyer@lucknow.org", { APP_ENV: "development" })).toBe(true); // unset = unrestricted
+    expect(isRecipientAllowed("buyer@lucknow.org", { ...env, APP_ENV: "production" })).toBe(true);
+  });
+});
+
+describe("cron heartbeat", () => {
+  it("classifies a job as ok, stale or never received", () => {
+    expect(heartbeatState(new Date(NOW.getTime() - 2 * 60_000).toISOString(), 5, NOW)).toBe("ok");
+    expect(heartbeatState(new Date(NOW.getTime() - 9 * 60_000).toISOString(), 5, NOW)).toBe("stale");
+    expect(heartbeatState(null, 5, NOW)).toBe("never");
+  });
+
+  it("records an upsert keyed by job, and never throws when the table is missing or the write fails", async () => {
+    const seen: any[] = [];
+    const ok = { from: (t: string) => ({ upsert: async (row: any, opts: any) => (seen.push({ t, row, opts }), { error: null }) }) };
+    await recordHeartbeat(ok, "outbox");
+    expect(seen[0]).toMatchObject({ t: "cron_heartbeats", row: { job: "outbox" }, opts: { onConflict: "job" } });
+    const missing = { from: () => ({ upsert: async () => ({ error: { message: 'relation "cron_heartbeats" does not exist' } }) }) };
+    await expect(recordHeartbeat(missing, "automations")).resolves.toBeUndefined();
+    const boom = { from: () => ({ upsert: async () => { throw new Error("net down"); } }) };
+    await expect(recordHeartbeat(boom, "automations")).resolves.toBeUndefined();
   });
 });

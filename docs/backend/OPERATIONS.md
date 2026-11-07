@@ -249,6 +249,13 @@ All three are optional per environment. A channel with no keys never pretends to
    | `test_drive_reminder` | `Vrooma test drive reminder. {{1}} Reply here to change your slot.` | `Hi Asha, a reminder from Vrooma: your test drive for your Model H ZX is on Tue, 10 Nov, 11:00 am at Hazratganj. Booking TD-1042.` |
    | `service_reminder` | `Vrooma service reminder. {{1}} Reply here to change your slot.` | `Hi Asha, a reminder from Vrooma: your service appointment is on Tue, 10 Nov, 10:00 am at Transport Nagar. Booking SV-2031.` |
 
+   Two more for the owner reminders (P4). They are only sent to owners who ticked the reminders box under My cars:
+
+   | Name | Body | Sample for `{{1}}` |
+   |---|---|---|
+   | `service_due` | `Vrooma service reminder. {{1}} Reply here to book a slot.` | `Hi Asha, your Model H (UP32 ** **** 1234) is due for its service in 12 days (2026-11-20). Book a slot at vrooma.in/book/service in about a minute. To stop these reminders, untick the reminders box under My cars in your Vrooma dashboard.` |
+   | `insurance_expiry` | `Vrooma reminder. {{1}} Reply here if you need help.` | `Hi Asha, the insurance for your Model H (UP32 ** **** 1234) ends in 20 days (2026-11-28). Renew it on time to stay covered. To stop these reminders, untick the reminders box under My cars in your Vrooma dashboard.` |
+
    Add `"test_drive_reminder":{"name":"test_drive_reminder","language":"en"}` and the same for `service_reminder` to
    `WHATSAPP_TEMPLATES`. Until they are approved the WhatsApp reminder is sent as plain text, which Meta rejects outside
    the 24-hour window (the row retries, then goes `dead`); the email reminder is unaffected.

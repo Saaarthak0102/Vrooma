@@ -46,6 +46,9 @@ function deps(over: Partial<ChatToolDeps> = {}): ChatToolDeps {
       { ref: "BK-1", user_id: userId, kind: "test_drive", status: "confirmed", starts_at: "2026-11-12T05:30:00Z", showroom_or_workshop_name: "Hazratganj", vehicle_info: { model_name: "Model H" } },
       { ref: "BK-0", user_id: userId, kind: "service", status: "cancelled", starts_at: "2026-11-12T05:30:00Z", showroom_or_workshop_name: "Transport Nagar", vehicle_info: { model_name: "Model H" } },
     ]) as any,
+    listVehicles: (async () => [
+      { id: "v1", regMasked: "UP32 ** **** 1234", modelName: "Model H", variantName: "ZX", odometerKm: 18250, insuranceExpiry: "2026-12-01", pucExpiry: null, warrantyEnd: null, lastService: { servicedOn: "2026-05-20", odometerKm: 12000 }, nextService: { dueOn: "2026-11-20", dueKm: 22000 } },
+    ]) as any,
     now: () => new Date("2026-11-08T10:00:00Z"),
     ...over,
   };
@@ -55,6 +58,16 @@ describe("chat tools", () => {
   it("only offers my_bookings to a signed-in buyer", () => {
     expect(Object.keys(buildChatTools({ userId: null }, deps()))).not.toContain("my_bookings");
     expect(Object.keys(buildChatTools({ userId: "u1" }, deps()))).toContain("my_bookings");
+  });
+
+  it("my_garage is signed-in only, uses the session user, and exposes only the masked registration", async () => {
+    expect(Object.keys(buildChatTools({ userId: null }, deps()))).not.toContain("my_garage");
+    let asked: string | undefined;
+    const t: any = buildChatTools({ userId: "u-session" }, deps({ listVehicles: (async (u: string) => { asked = u; return deps().listVehicles(u); }) as any }));
+    const out: any = await t.my_garage.execute({}, opts);
+    expect(asked).toBe("u-session");
+    expect(out.cars[0]).toMatchObject({ car: "Model H ZX", registration: "UP32 ** **** 1234", nextServiceDueOn: "2026-11-20", insuranceEnds: "2026-12-01" });
+    expect(JSON.stringify(out)).not.toMatch(/UP32AB/);
   });
 
   it("search_new_cars returns ex-showroom prices as rupee text and a page link, never on-road", async () => {

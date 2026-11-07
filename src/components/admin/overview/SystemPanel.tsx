@@ -1,4 +1,5 @@
 import React from "react";
+import { HEARTBEAT_FOR_JOB, HEARTBEAT_MAX_AGE_MIN, heartbeatState } from "@/lib/cron-heartbeat";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -92,6 +93,14 @@ export async function SystemPanel() {
           : "Connect a telephony vendor (Exotel, Knowlarity...) and point it at /api/webhooks/calls. Staff can log calls by hand meanwhile.",
     },
   ];
+
+  // Heartbeats (migration 0038): when each HTTP job last actually reached the app. pg_cron says "succeeded" even
+  // when the app answers 401/404, so this is the real signal. Unavailable table = migration not applied yet.
+  const heartbeatResult = await (admin as any).from("cron_heartbeats").select("job, last_received_at");
+  const heartbeatsAvailable = !heartbeatResult.error;
+  const heartbeatByJob = new Map<string, string>(
+    ((heartbeatResult.data ?? []) as { job: string; last_received_at: string }[]).map((h) => [h.job, h.last_received_at]),
+  );
 
   // get_cron_status needs migration 0018; until it is applied show "status unavailable" rather than failing the page.
   const cronStatusAvailable = !cronStatusResult.error;
@@ -194,6 +203,19 @@ export async function SystemPanel() {
                   tone = "text-danger";
                 } else {
                   state = `last run ${formatRunTime(row.last_run_at)}`;
+                }
+                const heartbeatKey = HEARTBEAT_FOR_JOB[job.name];
+                if (cronStatusAvailable && row && heartbeatKey && heartbeatsAvailable) {
+                  const received = heartbeatByJob.get(heartbeatKey) ?? null;
+                  const hb = heartbeatState(received, HEARTBEAT_MAX_AGE_MIN[heartbeatKey]);
+                  if (hb !== "ok") {
+                    state = received
+                      ? `scheduled, but the app has not received it since ${formatRunTime(received)}`
+                      : "scheduled, but the app has never received it (check app_url and CRON_SECRET)";
+                    tone = "text-danger";
+                  } else {
+                    state = `${state} · received ${formatRunTime(received)}`;
+                  }
                 }
                 return (
                   <div

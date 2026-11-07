@@ -1,5 +1,7 @@
 "use server";
 
+import { serviceVisitSchema } from "@/lib/garage";
+import { recordServiceVisit } from "@/server/services/garage";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -416,10 +418,12 @@ export async function cancelBookingAction(
  */
 export async function setBookingOutcomeAction(
   bookingId: string,
-  outcome: "completed" | "no_show"
-): Promise<ActionResponse<{ bookingId: string; status: string }>> {
+  outcome: "completed" | "no_show",
+  /** Service bookings only: odometer and next due date, saved to the owner's service history. */
+  serviceVisit?: unknown
+): Promise<ActionResponse<{ bookingId: string; status: string; serviceHistory?: "recorded" | "skipped"; serviceNote?: string }>> {
   try {
-    await requireRole("consultant", "manager", "admin");
+    const { user: staff } = await requireRole("consultant", "manager", "admin");
     if (outcome !== "completed" && outcome !== "no_show") {
       return errorResponse("VALIDATION_FAILED", "Unknown outcome.");
     }
@@ -427,7 +431,7 @@ export async function setBookingOutcomeAction(
     const admin = createAdminClient();
     const { data: booking } = await admin
       .from("bookings")
-      .select("id, status, slots:slot_id(starts_at)")
+      .select("id, status, kind, user_id, vehicle_info, slots:slot_id(starts_at)")
       .eq("id", bookingId)
       .maybeSingle();
 
@@ -451,6 +455,30 @@ export async function setBookingOutcomeAction(
 
     if (error) return errorResponse("INTERNAL_ERROR", error.message);
     if (!updated) return errorResponse("CONFLICT", "This booking was just updated by someone else.");
+
+    // Attended service with details: add it to the buyer's service history (best effort, never blocks the outcome).
+    if (outcome === "completed" && booking.kind === "service" && serviceVisit) {
+      const parsed = serviceVisitSchema.safeParse(serviceVisit);
+      if (!parsed.success) {
+        return successResponse({ bookingId: updated.id, status: updated.status, serviceHistory: "skipped", serviceNote: parsed.error.issues[0]?.message });
+      }
+      try {
+        const res = await recordServiceVisit({
+          booking: { id: booking.id, user_id: booking.user_id, kind: booking.kind, vehicle_info: booking.vehicle_info, servicedAt: startsAt },
+          visit: parsed.data,
+          staffId: staff.id,
+        });
+        return successResponse({
+          bookingId: updated.id,
+          status: updated.status,
+          serviceHistory: res.recorded ? "recorded" : "skipped",
+          serviceNote: res.recorded ? undefined : res.reason,
+        });
+      } catch (e: any) {
+        console.warn(`[booking] service history not recorded for ${booking.id}: ${e?.message}`);
+        return successResponse({ bookingId: updated.id, status: updated.status, serviceHistory: "skipped", serviceNote: "Could not save the service history." });
+      }
+    }
 
     return successResponse({ bookingId: updated.id, status: updated.status });
   } catch (err: any) {
