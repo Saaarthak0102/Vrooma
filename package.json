@@ -14,6 +14,7 @@
     "check:layout": "node scripts/check-layout.mjs",
     "db:push": "node scripts/db-push.mjs",
     "db:lint": "node scripts/db-lint.mjs",
+    "seed:ai-demo": "node --experimental-strip-types scripts/seed-ai-demo.ts",
     "db:types": "supabase gen types typescript --project-id eobtzcwinjmimzisypca > src/types/database.types.ts",
     "rls:test": "vitest run tests/rls-matrix.test.ts",
     "check:buttons": "node scripts/check-buttons.mjs",

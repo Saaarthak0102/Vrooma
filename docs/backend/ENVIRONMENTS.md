@@ -85,3 +85,28 @@
 | `cloudflare` | `cf-connecting-ip` | ignored | only if the origin accepts Cloudflare traffic only |
 
 Assumption (cannot be proven in code): in `vercel` / `cloudflare` mode the origin is reachable only through that proxy. A client that can hit the origin directly could forge the header, so use `none` in that case. Values that are not valid IPs are discarded.
+
+## AI demo data (DEV only)
+
+`supabase/seed.sql` is catalog-only and is also what restores production, so demo rows never go in it. The AI features
+(lead briefings and the Next-steps agent, follow-up tasks, the garage and service reminders, digests, the price-band note,
+the AI audit log, escalations) need people, leads and dates to show anything, so they have their own DEV-only script:
+
+```
+pnpm seed:ai-demo -- --dry-run     # prints the row counts, writes nothing
+pnpm seed:ai-demo                  # inserts (safe to repeat; refreshes the relative dates)
+pnpm seed:ai-demo -- --reset       # removes only its own rows, then re-seeds
+```
+
+(Set `SUPABASE_PROJECT_REF=eobtzcwinjmimzisypca` in the environment, as for `seed-dev-users.ts`.)
+
+- **Safety:** refuses anything but the DEV project; production and the old project ref are blocked; production env flags are blocked.
+- **Needs:** the dev users (`scripts/seed-dev-users.ts`), `supabase/seed.sql`, and migrations 0034-0040 applied. It names any that are missing.
+- **Touches only its own rows:** every id starts with `5eed`. It does not edit models, variants, used cars, showrooms, price rules, offers, profiles or the outbox, and it does not write `cron_heartbeats`.
+- **Dates are relative to now**, so reminders, escalations, stale leads and expiry chips are live. Run it again to refresh them.
+- **What you get:** 29 leads with timelines and a mix of saved/empty AI briefings (including a discount-seeking buyer, quiet leads, a waiting chat),
+  follow-up tasks, bookings for the dev buyer (tomorrow, in 2.5 h, completed, no-show, stuck "confirmed"), two cars in the buyer's garage with
+  service history and near/expired dates, three chats, consents (marketing left off), 19 past used-car sales for the price band,
+  service-desk calls, and an AI audit log. Everything belongs to the existing dev personas.
+- Seeded follow-up tasks use the same keys as the automations, so the 5-minute job will not create duplicates of them.
+
