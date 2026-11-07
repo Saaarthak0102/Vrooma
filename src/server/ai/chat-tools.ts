@@ -280,8 +280,8 @@ export function buildChatTools(ctx: { userId: string | null }, deps: ChatToolDep
             pucEnds: c.pucExpiry,
             warrantyEnds: c.warrantyEnd,
           })),
-          page: "/dashboard",
-          note: "Add or edit cars under My cars on the dashboard.",
+          page: "/profile",
+          note: "Add or edit cars under My cars on the Profile page.",
         };
       },
     }),

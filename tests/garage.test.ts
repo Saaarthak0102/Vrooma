@@ -87,7 +87,7 @@ describe("service and expiry reminders", () => {
     expect(rows).toEqual([]);
     const all = planGarageReminders([car({ nextServiceOn: "2026-11-10", insuranceExpiry: "2026-11-12" })], yes, today);
     for (const r of all) {
-      expect(r.body).toContain("untick the reminders box under My cars");
+      expect(r.body).toContain("untick the reminders box under My cars on your Vrooma profile page");
       expect(findForbiddenDiscountWord(r.body)).toBeNull();
       expect(r.body).not.toContain("UP32AB1234");
     }

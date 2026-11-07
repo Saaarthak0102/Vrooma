@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ExternalLink, Eye, ShieldAlert, Sparkles } from "lucide-react";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,7 @@ export function StockDrawer({ car, onClose }: { car: StockRow | null; onClose: (
   const [band, setBand] = useState<PriceBand | null | undefined>(undefined);
   const [bandError, setBandError] = useState<string | null>(null);
   const [bandNote, setBandNote] = useState<string | null>(null);
+  const [bandNoteLoading, setBandNoteLoading] = useState(false);
   const [card, setCard] = useState<Scorecard>({});
   const [reg, setReg] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -45,6 +47,7 @@ export function StockDrawer({ car, onClose }: { car: StockRow | null; onClose: (
     setBand(undefined);
     setBandError(null);
     setBandNote(null);
+    setBandNoteLoading(false);
     if (!car) return;
     setPrice(String(car.price));
     setCard(readScorecard(car.inspection));
@@ -59,8 +62,10 @@ export function StockDrawer({ car, onClose }: { car: StockRow | null; onClose: (
       else setBandError(res.error?.message ?? "Price band unavailable.");
       // The explanation arrives separately so the numbers never wait for the model.
       if (res.ok && res.data) {
+        setBandNoteLoading(true);
         const note = await getPriceBandNoteAction({ model_name: car.model_name, year: car.year, km: car.km, fuel: car.fuel });
         if (note.ok) setBandNote(note.data);
+        setBandNoteLoading(false);
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -127,7 +132,21 @@ export function StockDrawer({ car, onClose }: { car: StockRow | null; onClose: (
                   <p className="text-[11px] text-ink-soft">
                     Median {formatINR(band.median)} · {band.confidence} confidence · {band.rationale}
                   </p>
-                  {bandNote && <p className="pt-1 text-[11px] italic text-ink-soft">{bandNote}</p>}
+                  {bandNoteLoading && (
+                    <div className="space-y-1.5 pt-2" aria-busy="true" aria-label="Writing an explanation">
+                      <Skeleton className="h-3 w-full" />
+                      <Skeleton className="h-3 w-2/3" />
+                    </div>
+                  )}
+                  {bandNote && (
+                    <div className="fade-up-item mt-2 flex gap-2 rounded-lg border border-accent/20 bg-accent-soft/40 p-2.5">
+                      <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent-ink" />
+                      <div className="space-y-0.5">
+                        <p className="text-[11px] leading-relaxed text-ink">{bandNote}</p>
+                        <p className="text-[10px] text-ink-mute">Explained from your past sales. The price is still yours to set.</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 

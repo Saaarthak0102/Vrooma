@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { MessageSquare, X, Send, Bot } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { TypingDots } from "@/components/chat/TypingDots";
 import { ChatText } from "@/components/chat/ChatText";
 import { stopLenis, startLenis } from "@/components/motion/SmoothScrollProvider";
 
@@ -321,7 +322,7 @@ export function ChatWidget() {
 
           {/* Handoff status */}
           {live && (
-            <div role="status" className="border-b border-border bg-accent-subtle px-4 py-2 text-[11px] font-semibold text-ink">
+            <div role="status" className="border-b border-border bg-accent-soft px-4 py-2 text-[11px] font-semibold text-ink">
               {status === "waiting"
                 ? `Waiting for ${consultantName ?? "a consultant"} to reply…`
                 : `Chatting with ${consultantName ?? "your consultant"}`}
@@ -340,13 +341,13 @@ export function ChatWidget() {
                   {m.text}
                 </p>
               ) : (
-                <div key={m.id} className={`flex flex-col ${m.sender === "user" ? "items-end" : "items-start"}`}>
+                <div key={m.id} className={`flex flex-col ${m.sender === "user" ? "items-end" : "items-start fade-up-item"}`}>
                   <div
                     className={`max-w-[85%] whitespace-pre-line rounded-2xl p-3 leading-relaxed ${
                       m.sender === "user"
                         ? "bg-dark text-white rounded-br-none"
                         : m.sender === "consultant"
-                          ? "bg-accent-subtle border border-accent/30 text-ink shadow-sm rounded-bl-none"
+                          ? "bg-accent-soft border border-accent/30 text-ink shadow-sm rounded-bl-none"
                           : "bg-white border border-border text-ink shadow-sm rounded-bl-none"
                     }`}
                   >
@@ -358,6 +359,13 @@ export function ChatWidget() {
                   </span>
                 </div>
               )
+            )}
+            {sending && status === "bot" && (
+              <div className="fade-up-item flex flex-col items-start">
+                <div className="rounded-2xl rounded-bl-none border border-border bg-white px-3 py-2 shadow-sm">
+                  <TypingDots />
+                </div>
+              </div>
             )}
             <div ref={messagesEndRef} />
           </div>

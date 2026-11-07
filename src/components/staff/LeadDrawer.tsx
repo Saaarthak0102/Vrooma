@@ -155,6 +155,7 @@ export function LeadDrawer({ leadId, viewerRole, onClose, onLeadChanged }: LeadD
               summary={lead.ai_summary}
               customerName={lead.name}
               profile={(lead.ai_profile as LeadAiProfile | null) ?? null}
+              generatedAt={lead.ai_generated_at ?? null}
               refreshing={refreshing}
               onRefresh={() => void refreshBriefing(lead.id)}
             />

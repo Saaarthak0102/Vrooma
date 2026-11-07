@@ -218,12 +218,17 @@ export async function SystemPanel() {
                     state = `${state} · received ${formatRunTime(received)}`;
                   }
                 }
+                // A status dot beside the words, so a problem is visible at a glance and not by colour alone.
+                const dot = tone === "text-danger" ? "bg-danger" : !cronStatusAvailable ? "bg-ink-mute" : "bg-ok";
                 return (
                   <div
                     key={job.name}
-                    className="flex items-center justify-between gap-3 p-2.5 rounded-lg bg-stone-50 border border-border/80 text-xs"
+                    className="flex items-center justify-between gap-3 p-2.5 rounded-lg bg-stone-50 border border-border/80 text-xs transition-colors [@media(hover:hover)_and_(pointer:fine)]:hover:border-black/20"
                   >
-                    <span className="font-medium text-ink">{job.label}</span>
+                    <span className="flex min-w-0 items-center gap-2 font-medium text-ink">
+                      <span aria-hidden className={`h-1.5 w-1.5 shrink-0 rounded-full ${dot}`} />
+                      <span className="truncate">{job.label}</span>
+                    </span>
                     <span className={`text-[11px] font-mono text-right ${tone}`}>{state}</span>
                   </div>
                 );

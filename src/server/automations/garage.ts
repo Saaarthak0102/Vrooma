@@ -30,7 +30,7 @@ export interface GarageVehicle {
 }
 
 const REAL_EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
-const OPT_OUT = "To stop these reminders, untick the reminders box under My cars in your Vrooma dashboard.";
+const OPT_OUT = "To stop these reminders, untick the reminders box under My cars on your Vrooma profile page.";
 
 interface Window {
   key: string;

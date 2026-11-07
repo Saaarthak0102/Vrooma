@@ -43,9 +43,44 @@ function escapeHtml(text: string): string {
     .replace(/'/g, "&#39;");
 }
 
+/**
+ * Plain-text body to HTML. Lines starting with "- " become a tidy bullet list and blank lines separate paragraphs;
+ * everything is escaped first. Bodies without bullets render exactly as before (line breaks kept).
+ */
+export function renderBody(body: string): string {
+  const lines = escapeHtml(body).split(/\r?\n/);
+  if (!lines.some((l) => l.startsWith("- "))) return lines.join("<br>");
+
+  const out: string[] = [];
+  let list: string[] = [];
+  const flush = () => {
+    if (list.length) {
+      out.push(`<ul style="margin:8px 0;padding-left:20px;">${list.map((i) => `<li style="margin:4px 0;">${i}</li>`).join("")}</ul>`);
+      list = [];
+    }
+  };
+  let blanks = 0;
+  for (const line of lines) {
+    if (line.startsWith("- ")) {
+      blanks = 0;
+      list.push(line.slice(2));
+    } else if (line.trim() === "") {
+      flush();
+      blanks += 1;
+      if (blanks === 1) out.push('<div style="height:8px;"></div>');
+    } else {
+      flush();
+      blanks = 0;
+      out.push(`<div>${line}</div>`);
+    }
+  }
+  flush();
+  return out.join("");
+}
+
 export function renderEmail(template: string, body: string): { subject: string; html: string; text: string } {
   const subject = emailSubject(template);
-  const content = escapeHtml(body).replace(/\r?\n/g, "<br>");
+  const content = renderBody(body);
   const html = `<!doctype html>
 <html lang="en"><body style="margin:0;background:#FAFAF9;font-family:Arial,Helvetica,sans-serif;color:#1C1917;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:24px 12px;">

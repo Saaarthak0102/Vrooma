@@ -71,6 +71,25 @@ export function daysUntil(date: string, today: string): number {
   return Math.round((Date.parse(`${date}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / 86_400_000);
 }
 
+export type ExpiryTone = "ok" | "warn" | "danger";
+
+/** Colour of a date chip: expired is danger, within 30 days is warn, otherwise fine. */
+export function expiryTone(daysLeft: number): ExpiryTone {
+  return daysLeft < 0 ? "danger" : daysLeft <= 30 ? "warn" : "ok";
+}
+
+/**
+ * How far through the service interval a car is: 0 on the day of the last service, 1 on (or past) the next due
+ * date. Null when either date is unknown, so the screen shows no bar rather than a made-up one.
+ */
+export function serviceProgress(lastOn: string | null, nextOn: string | null, today: string): number | null {
+  if (!lastOn || !nextOn) return null;
+  const total = daysUntil(nextOn, lastOn);
+  if (total <= 0) return 1;
+  const elapsed = daysUntil(today, lastOn);
+  return Math.min(1, Math.max(0, elapsed / total));
+}
+
 export interface VehicleSummary {
   id: string;
   regMasked: string;

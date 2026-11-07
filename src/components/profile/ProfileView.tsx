@@ -1,5 +1,6 @@
 "use client";
 
+import { MyCarsSection } from "@/components/dashboard/MyCarsSection";
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useTranslations } from "next-intl";
@@ -332,6 +333,9 @@ export function ProfileView() {
               </Button>
             </div>
           </div>
+
+          {/* Owner garage: service and insurance dates, with the reminder opt-in */}
+          <MyCarsSection />
         </div>
 
         {/* Change Email Dialog */}

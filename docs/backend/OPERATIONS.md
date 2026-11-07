@@ -253,8 +253,8 @@ All three are optional per environment. A channel with no keys never pretends to
 
    | Name | Body | Sample for `{{1}}` |
    |---|---|---|
-   | `service_due` | `Vrooma service reminder. {{1}} Reply here to book a slot.` | `Hi Asha, your Model H (UP32 ** **** 1234) is due for its service in 12 days (2026-11-20). Book a slot at vrooma.in/book/service in about a minute. To stop these reminders, untick the reminders box under My cars in your Vrooma dashboard.` |
-   | `insurance_expiry` | `Vrooma reminder. {{1}} Reply here if you need help.` | `Hi Asha, the insurance for your Model H (UP32 ** **** 1234) ends in 20 days (2026-11-28). Renew it on time to stay covered. To stop these reminders, untick the reminders box under My cars in your Vrooma dashboard.` |
+   | `service_due` | `Vrooma service reminder. {{1}} Reply here to book a slot.` | `Hi Asha, your Model H (UP32 ** **** 1234) is due for its service in 12 days (2026-11-20). Book a slot at vrooma.in/book/service in about a minute. To stop these reminders, untick the reminders box under My cars on your Vrooma profile page.` |
+   | `insurance_expiry` | `Vrooma reminder. {{1}} Reply here if you need help.` | `Hi Asha, the insurance for your Model H (UP32 ** **** 1234) ends in 20 days (2026-11-28). Renew it on time to stay covered. To stop these reminders, untick the reminders box under My cars on your Vrooma profile page.` |
 
    Add `"test_drive_reminder":{"name":"test_drive_reminder","language":"en"}` and the same for `service_reminder` to
    `WHATSAPP_TEMPLATES`. Until they are approved the WhatsApp reminder is sent as plain text, which Meta rejects outside

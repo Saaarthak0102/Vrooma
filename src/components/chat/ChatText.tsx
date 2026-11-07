@@ -19,7 +19,7 @@ export function ChatText({ text }: { text: string }) {
     <>
       {parts.map((part, i) =>
         i % 2 === 1 ? (
-          <Link key={i} href={part} className="font-bold text-accent-ink underline underline-offset-2">
+          <Link key={i} href={part} className="mx-0.5 inline-flex items-center rounded-pill border border-accent/20 bg-accent-soft px-2 py-0.5 align-baseline text-[11px] font-bold text-accent-ink transition-colors [@media(hover:hover)_and_(pointer:fine)]:hover:bg-accent/20">
             {part}
           </Link>
         ) : (

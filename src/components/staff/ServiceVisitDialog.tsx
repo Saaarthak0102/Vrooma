@@ -52,6 +52,20 @@ export function ServiceVisitDialog({
   // Suggest the usual interval once the odometer is known; staff can overwrite either field.
   const suggestion = valid ? suggestNextService(istToday(), km) : null;
 
+  const inMonths = (months: number) => {
+    const d = new Date(`${istToday()}T00:00:00Z`);
+    d.setUTCMonth(d.getUTCMonth() + months);
+    return d.toISOString().slice(0, 10);
+  };
+  const dateValue = nextDueOn || suggestion?.nextDueOn || "";
+  const kmValue = nextDueKm || (suggestion ? String(suggestion.nextDueKm) : "");
+  const quickDates: [string, string][] = [
+    ["3 months", inMonths(3)],
+    ["6 months", inMonths(6)],
+    ["12 months", inMonths(12)],
+  ];
+  const quickKm = valid ? [5_000, 10_000, 15_000] : [];
+
   return (
     <Dialog open={open} onOpenChange={(o) => !o && !busy && onCancel()}>
       <DialogContent className="sm:max-w-md">
@@ -63,29 +77,63 @@ export function ServiceVisitDialog({
         <div className="space-y-3 text-sm">
           <label className="block space-y-1">
             <span className="text-xs font-semibold text-ink">Odometer reading (km)</span>
-            <Input inputMode="numeric" value={odometer} onChange={(e) => setOdometer(e.target.value.replace(/\D/g, ""))} placeholder="e.g. 18250" />
+            <Input inputMode="numeric" className="h-11" value={odometer} onChange={(e) => setOdometer(e.target.value.replace(/\D/g, ""))} placeholder="e.g. 18250" />
           </label>
           <div className="grid grid-cols-2 gap-3">
             <label className="block space-y-1">
               <span className="text-xs font-semibold text-ink">Next service on</span>
-              <Input type="date" value={nextDueOn || suggestion?.nextDueOn || ""} onChange={(e) => setNextDueOn(e.target.value)} />
+              <Input type="date" className="h-11" value={dateValue} onChange={(e) => setNextDueOn(e.target.value)} />
             </label>
             <label className="block space-y-1">
               <span className="text-xs font-semibold text-ink">or at (km)</span>
-              <Input inputMode="numeric" value={nextDueKm || (suggestion ? String(suggestion.nextDueKm) : "")} onChange={(e) => setNextDueKm(e.target.value.replace(/\D/g, ""))} />
+              <Input inputMode="numeric" className="h-11" value={kmValue} onChange={(e) => setNextDueKm(e.target.value.replace(/\D/g, ""))} />
             </label>
+          </div>
+          <div className="space-y-1.5" aria-label="Quick picks for the next service">
+            <div className="flex flex-wrap gap-1.5">
+              {quickDates.map(([text, date]) => (
+                <Button
+                  key={text}
+                  type="button"
+                  size="sm"
+                  shape="pill"
+                  variant={dateValue === date ? "primary" : "outline"}
+                  className="h-11 px-3 text-xs"
+                  onClick={() => setNextDueOn(date)}
+                >
+                  In {text}
+                </Button>
+              ))}
+              {quickKm.map((add) => (
+                <Button
+                  key={add}
+                  type="button"
+                  size="sm"
+                  shape="pill"
+                  variant={kmValue === String(km + add) ? "primary" : "outline"}
+                  className="h-11 px-3 text-xs"
+                  onClick={() => setNextDueKm(String(km + add))}
+                >
+                  +{add.toLocaleString("en-IN")} km
+                </Button>
+              ))}
+            </div>
+            <p className="text-[11px] text-ink-mute">The owner is reminded 14 and 3 days before this date, if they opted in.</p>
           </div>
           <label className="block space-y-1">
             <span className="text-xs font-semibold text-ink">Work done (optional)</span>
-            <Input maxLength={300} value={summary} onChange={(e) => setSummary(e.target.value)} placeholder="e.g. Periodic service, brake pads replaced" />
+            <Input maxLength={300} className="h-11" value={summary} onChange={(e) => setSummary(e.target.value)} placeholder="e.g. Periodic service, brake pads replaced" />
           </label>
         </div>
 
         <DialogFooter className="gap-2 sm:justify-between">
-          <Button variant="ghost" disabled={busy} onClick={() => onSubmit(null)}>
+          <Button variant="ghost" className="h-11" disabled={busy} onClick={() => onSubmit(null)}>
             Attended without details
           </Button>
           <Button
+            className="h-11"
+            status={busy ? "loading" : "idle"}
+            loadingText="Saving…"
             disabled={!valid || busy}
             onClick={() =>
               onSubmit({

@@ -54,6 +54,7 @@ export const SITE_PATH_PREFIXES = [
   "/showrooms",
   "/contact",
   "/dashboard",
+  "/profile",
   "/legal",
 ] as const;
 
