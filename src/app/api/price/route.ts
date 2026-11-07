@@ -29,6 +29,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ ok: true, data: result }, { headers: { "Cache-Control": "private, no-store" } });
   } catch (err: any) {
-    return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
+    console.error("[api/price] failed:", err?.message);
+    return NextResponse.json({ ok: false, error: "Something went wrong. Please try again." }, { status: 500 });
   }
 }

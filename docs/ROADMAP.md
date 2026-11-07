@@ -42,22 +42,22 @@
 - [ ] Connect live Supabase project and execute database migrations `0001` through `0007`.
 - [ ] Implement Supabase client repository queries in `src/server/repositories/*`.
 - [x] Wire admin mutations (done; 0 `notWired()` placeholders remain):
-  - [ ] Model & variant creation/editing.
-  - [ ] City price rule updates.
-  - [ ] Used car stock intake with 140-point inspection JSON.
-  - [ ] Showroom and bay capacity management.
-  - [ ] Lead auto-assignment rules.
+  - [x] Model & variant creation/editing.
+  - [x] City price rule updates.
+  - [x] Used car stock intake with 140-point inspection JSON.
+  - [x] Showroom and bay capacity management.
+  - [x] Lead auto-assignment rules.
 
 ---
 
 ## Day 4: Buyer Authentication & Booking Fulfillment
-- [ ] Configure Supabase Auth (Email OTP only; Google was removed).
+- [x] Configure Supabase Auth (Email OTP only; Google was removed).
 - [ ] Wire customer dashboard mutations (retiring Day 4 `notWired()` placeholders):
-  - [ ] Test drive cancellation and rescheduling.
-  - [ ] Saved cars wishlist toggling.
-  - [ ] Mark booking attended from staff calendar.
-- [ ] Implement real-time lead inbox synchronization via Supabase Realtime WebSocket subscriptions.
-- [ ] Deploy SLA escalation cron job (`/api/cron/sla`).
+  - [x] Test drive cancellation (rescheduling was removed on purpose: cancel and rebook).
+  - [x] Saved cars wishlist toggling.
+  - [x] Mark booking attended from staff calendar.
+- [x] Implement real-time lead inbox synchronization via Supabase Realtime WebSocket subscriptions.
+- [x] Deploy SLA escalation cron job (`/api/cron/sla`).
 
 ---
 
@@ -66,11 +66,21 @@
   - [ ] Live streaming AI buyer summary extraction.
   - [ ] First-reply draft generation with hard discount guardrails.
   - [ ] Historical regression model for used car resale price bands.
-- [ ] Wire transactional notifications via Resend API (customer test drive confirmation & WhatsApp simulation).
-- [ ] Implement Phase 2 high-fidelity animated landing page:
-  - [ ] Lenis inertial smooth scroll.
-  - [ ] GSAP canvas 3D car turnstile scene (`HeroScene`).
-  - [ ] Pinned scroll-scrub showroom orbit and transparent pricing layers.
-- [ ] Final wiring check: Verify `pnpm check:wiring` outputs 100% wired (0 placeholders left).
+- [x] Transactional email through Resend (HTML template; WhatsApp/SMS have no provider and are recorded as `skipped`, see docs/backend/CRON_SETUP.md).
+- [x] Implement Phase 2 high-fidelity animated landing page:
+  - [x] Lenis inertial smooth scroll.
+  - [x] GSAP canvas 3D car turnstile scene (`HeroScene`).
+  - [x] Pinned scroll-scrub showroom orbit and transparent pricing layers.
+- [x] Final wiring check: Verify `pnpm check:wiring` outputs 100% wired (0 placeholders left).
 - [ ] End-to-end performance audit, Core Web Vitals verification, and Vercel production deployment.
 
+
+
+---
+
+## Still open (owner or later phase)
+- [ ] AI: live LLM for buyer summary, first-reply draft, used-car price band, and the support chat bot (all rule/template based today).
+- [ ] Real WhatsApp / SMS provider (needs an account and approved templates).
+- [ ] Set the Vault secrets so the HTTP cron jobs run (docs/backend/CRON_SETUP.md), on DEV and PROD.
+- [ ] Promote migrations 0028-0032 to PROD after approval.
+- [ ] Core Web Vitals / Lighthouse run on the deployed site.

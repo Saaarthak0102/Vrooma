@@ -36,7 +36,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ ok: true, data: result });
   } catch (err: any) {
-    return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
+    console.error("[api/leads/import] failed:", err?.message);
+    return NextResponse.json({ ok: false, error: "Something went wrong. Please try again." }, { status: 500 });
   }
 }
 

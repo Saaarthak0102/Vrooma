@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { OutboxMessage } from "@/types/domain";
+import { renderEmail } from "@/server/services/email-template";
 
 export interface SendMessageParams {
   channel: "whatsapp" | "sms" | "email";
@@ -20,7 +21,7 @@ export async function dispatchMessage(params: SendMessageParams): Promise<Outbox
     template: params.template,
     body: params.body,
     lead_id: params.leadId ?? null,
-    status: "sent",
+    status: "queued",
     created_at: new Date().toISOString(),
   };
 
@@ -47,7 +48,11 @@ export async function dispatchMessage(params: SendMessageParams): Promise<Outbox
  * Sends email via Resend if RESEND_API_KEY is configured, else simulates transmission in DEV only.
  * In production (APP_ENV=production), missing credentials strictly throw to mark message failed with backoff.
  */
-export async function sendEmail(to: string, template: string, body: string): Promise<void> {
+export async function sendEmail(
+  to: string,
+  template: string,
+  body: string
+): Promise<{ status: "sent" } | { status: "skipped"; reason: string }> {
   const resendApiKey = process.env.RESEND_API_KEY;
   const isProd = process.env.APP_ENV === "production";
 
@@ -55,11 +60,12 @@ export async function sendEmail(to: string, template: string, body: string): Pro
     if (isProd) {
       throw new Error("Missing RESEND_API_KEY in production. Email transmission aborted.");
     }
-    // Simulated delivery for dev / CI environments only
-    console.info(`[Outbox Worker Simulated Email] To: ${to} | Template: ${template}`);
-    return;
+    // Dev / CI only: nothing is sent, and the row is recorded as skipped rather than delivered.
+    console.info(`[Outbox] Email not sent (no RESEND_API_KEY) To: ${to} | Template: ${template}`);
+    return { status: "skipped", reason: "RESEND_API_KEY is not set." };
   }
 
+  const rendered = renderEmail(template, body);
   const fromAddress = process.env.EMAIL_FROM || "Vrooma Lucknow <notifications@vrooma.in>";
 
   const res = await fetch("https://api.resend.com/emails", {
@@ -71,8 +77,9 @@ export async function sendEmail(to: string, template: string, body: string): Pro
     body: JSON.stringify({
       from: fromAddress,
       to: [to],
-      subject: `Vrooma Dealership Notification: ${template.replace(/_/g, " ")}`,
-      text: body,
+      subject: rendered.subject,
+      html: rendered.html,
+      text: rendered.text,
     }),
   });
 
@@ -80,4 +87,5 @@ export async function sendEmail(to: string, template: string, body: string): Pro
     const errText = await res.text();
     throw new Error(`Resend API error (${res.status}): ${errText}`);
   }
+  return { status: "sent" };
 }

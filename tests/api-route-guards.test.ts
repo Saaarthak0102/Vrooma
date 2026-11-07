@@ -46,7 +46,14 @@ describe("unauthenticated callers are refused", () => {
   });
 
   it("POST /api/me/delete", async () => {
-    expect((await deletePost()).status).toBe(401);
+    expect((await deletePost(json("/api/me/delete", "POST", {}))).status).toBe(401);
+  });
+
+  it("cookie-authenticated POSTs refuse cross-site requests before doing anything", async () => {
+    const res = await deletePost(json("/api/me/delete", "POST", {}, { "sec-fetch-site": "cross-site" }));
+    expect(res.status).toBe(403);
+    const res2 = await deletePost(json("/api/me/delete", "POST", {}, { origin: "https://evil.example", host: "vrooma.in" }));
+    expect(res2.status).toBe(403);
   });
 
   it("POST /api/outbox/send needs the cron secret or an admin session", async () => {

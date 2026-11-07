@@ -1,6 +1,6 @@
 /**
- * /used-cars lists the client's sample stock; the detail page used to read only the database, so cars
- * missing from it (e.g. UC-1210) gave a 404. The repository now falls back to the sample stock.
+ * /used-cars and the detail page both read the database. The old sample-stock fallback was removed, so a car
+ * that is not in the database is a 404 and a database error is surfaced.
  */
 import { describe, it, expect, vi } from "vitest";
 import fs from "node:fs";
@@ -21,20 +21,17 @@ vi.mock("@/server/cache", () => ({ cachedQuery: (fn: () => unknown) => fn }));
 
 import { getUsedCarByStockId } from "@/server/repositories/used-cars";
 
-describe("getUsedCarByStockId sample-stock fallback", () => {
-  it("opens a listed car that is not in the database, without the private registration", async () => {
+describe("getUsedCarByStockId reads only the database", () => {
+  it("a car that is not in the database is not found (no sample-stock fallback)", async () => {
     state.row = null;
     state.error = null;
-    const car = await getUsedCarByStockId("uc-1210");
-    expect(car?.stock_id).toBe("UC-1210");
-    expect(car).not.toHaveProperty("reg_no_private");
-    expect(car?.reg_no_masked).toContain("1820");
+    expect(await getUsedCarByStockId("uc-1210")).toBeNull();
   });
 
-  it("falls back when the database query errors", async () => {
+  it("a database error is raised, not hidden behind sample data", async () => {
     state.row = null;
     state.error = { message: "boom" };
-    expect((await getUsedCarByStockId("UC-1195"))?.stock_id).toBe("UC-1195");
+    await expect(getUsedCarByStockId("UC-1195")).rejects.toThrow(/Failed to fetch used car/);
   });
 
   it("the database row wins when it exists", async () => {

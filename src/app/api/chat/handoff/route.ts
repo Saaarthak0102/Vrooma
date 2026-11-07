@@ -4,6 +4,9 @@ import { getViewer } from "@/server/auth/viewer";
 import { findOwnedConversation } from "@/server/repositories/chats";
 import { requestHandoff } from "@/server/services/chat-handoff";
 import { normalizeIndianPhone } from "@/lib/phone";
+import { getTrustedClientIp } from "@/lib/network";
+import { rateLimit } from "@/server/security/rate-limit";
+import { guardOrigin } from "@/server/auth/api-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -19,20 +22,11 @@ const schema = z.object({
   consent: z.literal(true, { errorMap: () => ({ message: "Consent is required so a consultant can contact you." }) }),
 });
 
-const hits = new Map<string, { count: number; resetAt: number }>();
-function allow(key: string): boolean {
-  const now = Date.now();
-  const h = hits.get(key);
-  if (!h || now > h.resetAt) {
-    hits.set(key, { count: 1, resetAt: now + 60_000 });
-    return true;
-  }
-  h.count += 1;
-  return h.count <= 5;
-}
-
 /** Contact details from the chat's inline form (guests, or buyers without a saved mobile number). */
 export async function POST(request: NextRequest) {
+  const blocked = guardOrigin(request);
+  if (blocked) return blocked;
+
   try {
     const parsed = schema.safeParse(await request.json());
     if (!parsed.success) {
@@ -44,8 +38,8 @@ export async function POST(request: NextRequest) {
     const input = parsed.data;
 
     const viewer = await getViewer();
-    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
-    if (!allow(viewer.user?.id ?? `ip_${ip}`)) {
+    const ip = getTrustedClientIp(request);
+    if (!(await rateLimit(`chat_handoff_${viewer.user?.id ?? `ip_${ip}`}`, 5, 60))) {
       return NextResponse.json({ ok: false, error: "Too many attempts. Please wait a minute." }, { status: 429 });
     }
 

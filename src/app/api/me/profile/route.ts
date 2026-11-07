@@ -15,7 +15,8 @@ export async function GET() {
     }
     return NextResponse.json({ ok: true, data: user });
   } catch (err: any) {
-    return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
+    console.error("[api/me/profile] failed:", err?.message);
+    return NextResponse.json({ ok: false, error: "Something went wrong. Please try again." }, { status: 500 });
   }
 }
 
@@ -45,6 +46,7 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({ ok: true, data: updated });
   } catch (err: any) {
-    return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
+    console.error("[api/me/profile] failed:", err?.message);
+    return NextResponse.json({ ok: false, error: "Something went wrong. Please try again." }, { status: 500 });
   }
 }

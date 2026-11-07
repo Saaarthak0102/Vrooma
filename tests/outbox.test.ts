@@ -22,13 +22,13 @@ describe("Outbox Worker & Email Delivery Integrity", () => {
     ).rejects.toThrow(/Missing RESEND_API_KEY in production/);
   });
 
-  it("allows simulated delivery in development/test environments when key is absent", async () => {
+  it("reports skipped (never sent) in development/test environments when key is absent", async () => {
     process.env.APP_ENV = "development";
     delete process.env.RESEND_API_KEY;
 
     await expect(
       sendEmail("customer@example.com", "test_drive_booking", "Your test drive is booked.")
-    ).resolves.toBeUndefined();
+    ).resolves.toMatchObject({ status: "skipped" });
   });
 });
 

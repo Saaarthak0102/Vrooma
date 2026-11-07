@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { DataGrid, type GridColumn } from "@/components/grid/DataGrid";
 import { Badge } from "@/components/ui/badge";
 import { updateWorkshopBaysAction } from "@/server/actions/admin-network";
+import { NetworkAddDialog, type NetworkOptions } from "@/components/admin/team/NetworkAddDialog";
 import type { DemoCar, Showroom, Workshop } from "@/types/domain";
 
 /** Bays are the capacity behind service booking, so they are editable right in the table. */
@@ -50,10 +51,12 @@ export function NetworkPanel({
   showrooms,
   workshops,
   demoCars,
+  options,
 }: {
   showrooms: Showroom[];
   workshops: Workshop[];
   demoCars: DemoCar[];
+  options: NetworkOptions;
 }) {
   const showroomName = (id: string) => showrooms.find((s) => s.id === id)?.name ?? "-";
 
@@ -88,15 +91,24 @@ export function NetworkPanel({
   return (
     <div className="space-y-6">
       <section className="space-y-2" aria-labelledby="showrooms-h">
-        <h2 id="showrooms-h" className="text-sm font-black text-ink">Showrooms</h2>
+        <div className="flex items-center justify-between gap-2">
+          <h2 id="showrooms-h" className="text-sm font-black text-ink">Showrooms</h2>
+          <NetworkAddDialog kind="showroom" options={options} />
+        </div>
         <DataGrid columns={showroomColumns} rows={showrooms} rowKey={(s) => s.id} exportName="showrooms" />
       </section>
       <section className="space-y-2" aria-labelledby="workshops-h">
-        <h2 id="workshops-h" className="text-sm font-black text-ink">Workshops and bay capacity</h2>
+        <div className="flex items-center justify-between gap-2">
+          <h2 id="workshops-h" className="text-sm font-black text-ink">Workshops and bay capacity</h2>
+          <NetworkAddDialog kind="workshop" options={options} />
+        </div>
         <DataGrid columns={workshopColumns} rows={workshops} rowKey={(w) => w.id} exportName="workshops" />
       </section>
       <section className="space-y-2" aria-labelledby="demo-h">
-        <h2 id="demo-h" className="text-sm font-black text-ink">Demo cars</h2>
+        <div className="flex items-center justify-between gap-2">
+          <h2 id="demo-h" className="text-sm font-black text-ink">Demo cars</h2>
+          <NetworkAddDialog kind="demo" options={options} />
+        </div>
         <DataGrid columns={demoColumns} rows={demoCars} rowKey={(d) => d.id} exportName="demo-cars" />
       </section>
     </div>

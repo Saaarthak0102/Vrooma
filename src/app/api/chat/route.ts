@@ -14,27 +14,16 @@ import {
 } from "@/server/repositories/chats";
 import { requestHandoff } from "@/server/services/chat-handoff";
 import { normalizeIndianPhone } from "@/lib/phone";
+import { getTrustedClientIp } from "@/lib/network";
+import { rateLimit } from "@/server/security/rate-limit";
+import { guardOrigin } from "@/server/auth/api-guard";
 
 export const dynamic = "force-dynamic";
 
 const MAX_MESSAGE_LENGTH = 1000;
 
-// Best-effort throttle (per server instance): stops a single client from flooding the chat endpoint.
-const chatHits = new Map<string, { count: number; resetAt: number }>();
-const CHAT_WINDOW_MS = 60_000;
-const CHAT_MAX_PER_WINDOW = 20;
+const CHAT_MAX_PER_MINUTE = 20;
 const MAX_MESSAGES_PER_CONVERSATION = 200;
-
-function allowChat(key: string): boolean {
-  const now = Date.now();
-  const hit = chatHits.get(key);
-  if (!hit || now > hit.resetAt) {
-    chatHits.set(key, { count: 1, resetAt: now + CHAT_WINDOW_MS });
-    return true;
-  }
-  hit.count += 1;
-  return hit.count <= CHAT_MAX_PER_WINDOW;
-}
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -54,6 +43,9 @@ function view(conv: ChatConversation) {
  * Body: { message?, action?: "solved" | "connect", conversationId?, guestToken? }
  */
 export async function POST(request: NextRequest) {
+  const blocked = guardOrigin(request);
+  if (blocked) return blocked;
+
   try {
     const body = await request.json();
     const action = body?.action === "solved" || body?.action === "connect" ? (body.action as "solved" | "connect") : null;
@@ -63,9 +55,9 @@ export async function POST(request: NextRequest) {
     }
 
     const viewer = await getViewer();
-    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+    const ip = getTrustedClientIp(request);
     const throttleKey = viewer.user?.id ?? `ip_${ip}`;
-    if (!allowChat(throttleKey)) {
+    if (!(await rateLimit(`chat_${throttleKey}`, CHAT_MAX_PER_MINUTE, 60))) {
       return NextResponse.json(
         { ok: false, error: "You are sending messages too quickly. Please wait a moment." },
         { status: 429, headers: { "Retry-After": "60" } }

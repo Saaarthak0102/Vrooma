@@ -11,7 +11,8 @@ export async function GET(request: NextRequest) {
     const models = await listModels({ search, bodyType, fuel });
     return NextResponse.json({ ok: true, data: models });
   } catch (err: any) {
-    return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
+    console.error("[api/cars/search] failed:", err?.message);
+    return NextResponse.json({ ok: false, error: "Something went wrong. Please try again." }, { status: 500 });
   }
 }
 

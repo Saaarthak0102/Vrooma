@@ -1,8 +1,9 @@
 import "server-only";
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { AppError } from "@/lib/errors";
 import { requireRole, requireUser } from "@/server/auth/viewer";
 import { authorizeCron } from "@/lib/cron-auth";
+import { verifyRequestOrigin } from "@/lib/security";
 import type { Profile, Role } from "@/types/domain";
 
 export type GuardResult =
@@ -46,4 +47,13 @@ export async function guardCronOrAdmin(request: Request): Promise<NextResponse |
   }
   const session = await guardRole("admin");
   return session.ok ? null : session.response;
+}
+
+/**
+ * CSRF guard for cookie-authenticated mutating routes: rejects cross-site requests (Sec-Fetch-Site / Origin).
+ * Same-origin browsers and server-to-server callers (no Origin header) pass. Returns null when allowed.
+ */
+export function guardOrigin(request: NextRequest): NextResponse | null {
+  if (verifyRequestOrigin(request)) return null;
+  return NextResponse.json({ ok: false, error: "Cross-site request blocked." }, { status: 403 });
 }

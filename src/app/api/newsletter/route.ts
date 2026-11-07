@@ -3,6 +3,8 @@ import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { recordConsent, generateUnsubscribeToken } from "@/server/privacy/consent";
 import { getTrustedClientIp } from "@/lib/network";
+import { rateLimit } from "@/server/security/rate-limit";
+import { guardOrigin } from "@/server/auth/api-guard";
 import { env } from "@/lib/env";
 
 const GENERIC_SUCCESS_MESSAGE = "Successfully subscribed to verified showroom updates.";
@@ -20,29 +22,19 @@ const newsletterSchema = z.object({
   botCheck: z.string().optional(), // Honeypot trap
 });
 
-// Sliding window rate limiter for IPs and emails
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
-const RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const MAX_REQUESTS_PER_WINDOW = 5;
 
-function isRateLimited(identifier: string): boolean {
-  const now = Date.now();
-  const entry = rateLimitMap.get(identifier);
-  if (!entry || now > entry.resetAt) {
-    rateLimitMap.set(identifier, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
-    return false;
-  }
-  if (entry.count >= MAX_REQUESTS_PER_WINDOW) {
-    return true;
-  }
-  entry.count += 1;
-  return false;
+async function isRateLimited(identifier: string): Promise<boolean> {
+  return !(await rateLimit(`newsletter_${identifier}`, MAX_REQUESTS_PER_WINDOW, 60));
 }
 
 export async function POST(request: NextRequest) {
+  const blocked = guardOrigin(request);
+  if (blocked) return blocked;
+
   try {
     const clientId = getTrustedClientIp(request);
-    if (clientId && isRateLimited(`ip:${clientId}`)) {
+    if (clientId && (await isRateLimited(`ip:${clientId}`))) {
       return NextResponse.json(
         { ok: false, error: "Too many subscription requests. Please try again later." },
         { status: 429 }
@@ -78,7 +70,7 @@ export async function POST(request: NextRequest) {
 
     const email = parsed.data.email.toLowerCase().trim();
 
-    if (isRateLimited(`email:${email}`)) {
+    if (await isRateLimited(`email:${email}`)) {
       return NextResponse.json(
         { ok: false, error: "Too many requests for this email. Please try again later." },
         { status: 429 }
@@ -182,7 +174,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (err: any) {
     return NextResponse.json(
-      { ok: false, error: err?.message || "An unexpected error occurred" },
+      { ok: false, error: "An unexpected error occurred. Please try again." },
       { status: 500 }
     );
   }

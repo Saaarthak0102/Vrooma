@@ -107,6 +107,7 @@ export interface Model {
   min_price?: number;
   max_price?: number;
   variants?: Variant[];
+  updated_at?: string;
 }
 
 export interface PriceRule {
@@ -300,7 +301,7 @@ export interface OutboxMessage {
   template: string;
   body: string;
   lead_id?: string | null;
-  status: "queued" | "sent" | "failed";
+  status: "queued" | "sent" | "failed" | "skipped";
   created_at: string;
 }
 

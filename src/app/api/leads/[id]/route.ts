@@ -60,6 +60,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const updated = await getLeadById(id);
     return NextResponse.json({ ok: true, data: updated });
   } catch (err: any) {
-    return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
+    console.error("[api/leads/[id]] failed:", err?.message);
+    return NextResponse.json({ ok: false, error: "Something went wrong. Please try again." }, { status: 500 });
   }
 }

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { recordConsent } from "@/server/privacy/consent";
-import { guardUser } from "@/server/auth/api-guard";
+import { guardUser, guardOrigin } from "@/server/auth/api-guard";
 import { getTrustedClientIp } from "@/lib/network";
 
 const bodySchema = z.object({
@@ -15,6 +15,9 @@ const bodySchema = z.object({
  * Terms/privacy consent is captured at onboarding, not here.
  */
 export async function POST(request: NextRequest) {
+  const blocked = guardOrigin(request);
+  if (blocked) return blocked;
+
   const session = await guardUser();
   if (!session.ok) return session.response;
 
@@ -34,6 +37,7 @@ export async function POST(request: NextRequest) {
     });
     return NextResponse.json({ ok: true, data: { consentId: id, recordedAt: new Date().toISOString() } });
   } catch (err: any) {
-    return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
+    console.error("[api/consent] failed:", err?.message);
+    return NextResponse.json({ ok: false, error: "Something went wrong. Please try again." }, { status: 500 });
   }
 }

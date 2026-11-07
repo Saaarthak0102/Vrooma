@@ -5,7 +5,7 @@
 
 Vrooma transforms the traditional car buying and servicing experience by replacing sluggish Excel tracking and phone-only bookings with real-time on-road pricing, self-service test drive & workshop bay scheduling, an auto-assigned lead desk with 5-minute SLA countdown timers, and an executive revenue leakage monitor recovering **₹2.11 crore** in annual lost opportunities.
 
-**Stack:** Next.js 15 (App Router) · React 19 · TypeScript (strict) · Tailwind CSS · Radix UI · Supabase (Postgres, Auth, Storage, Realtime, `pg_cron`) · `next-intl` (EN/HI) · Vitest.
+**Stack:** Next.js 15 (App Router) · React 19 · TypeScript (strict) · Tailwind CSS · Radix UI · Supabase (Postgres, Auth, Storage, Realtime, `pg_cron`) · `next-intl` (English text catalogue only) · Vitest.
 
 **Status:** Frontend Phases 1–2 and backend Phases 0–6 are complete (auth, schema, data layer, bookings & leads, account privacy, hardening). Live LLM streaming in the lead copilot and real WhatsApp/SMS delivery are still to come. See [`docs/backend/STATUS.md`](./docs/backend/STATUS.md).
 
@@ -153,7 +153,7 @@ Staff sign-ins always land in their console (no public header or footer there). 
 - **Source of Truth:** Full architectural specification and golden rules are in [`context.md`](./context.md).
 - **Zero Dead Buttons:** Enforced via `notWired()` and audited in [`docs/WIRING.md`](./docs/WIRING.md).
 - **DPDP Act 2023 Compliance:** Registration numbers masked publicly (full value only via `get_used_car_reg` for authorised staff), explicit unticked consent boxes, self-serve data download and erasure (`/api/me/delete`, 7-day cooling-off, then anonymisation).
-- **Bilingual Support:** English and Hindi across all views via `next-intl`.
+- **English only:** one text catalogue (`messages/en.json`) read through `next-intl`; no language switcher.
 - **Pure Arithmetic Engines:** Road tax, EMI amortisation and SLA timers are isolated pure functions with unit tests.
 - **Server-side safeguards:** API guards (`src/server/auth/api-guard.ts`), timing-safe cron auth (`src/lib/cron-auth.ts`), CSP and security headers, trusted-proxy IP resolution, rate limiting and idempotency keys. See [`docs/backend/SECURITY.md`](./docs/backend/SECURITY.md).
 - **CI:** `.github/workflows/ci.yml` runs env check, typecheck, lint, tests and build, plus a database-backed job (lead lifecycle, RLS matrix, booking engine).

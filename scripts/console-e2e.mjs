@@ -8,7 +8,7 @@
  * Everything it creates is prefixed "E2E" and removed at the end.
  *
  *   node scripts/console-e2e.mjs                       # all groups
- *   node scripts/console-e2e.mjs --only=consultant     # consultant | manager | admin | chat | cross
+ *   node scripts/console-e2e.mjs --only=consultant     # consultant | manager | admin | chat | platform | cross
  *   TEST_URL=http://localhost:3000 node scripts/console-e2e.mjs
  */
 import fs from "node:fs";
@@ -1159,6 +1159,198 @@ async function chatGroup(browser) {
   await consultant.context.close();
 }
 
+/* ================== platform: real catalog, price gate, outbox, DMS export, security, admin network ================== */
+
+function cookieHeader(session) {
+  return session.cookies.map((c) => `${c.name}=${c.value}`).join("; ");
+}
+
+async function platformGroup(browser) {
+  currentGroup = "platform";
+  console.log("\n== Platform (catalog, price gate, outbox, export, security) ==");
+  const cronSecret = env.CRON_SECRET || "vrooma-cron-secret-local";
+
+  await check("public pages load (booking, EMI, trade-in, showrooms, offers) and robots hides account pages", async () => {
+    for (const p of ["/book/test-drive", "/book/service", "/emi-calculator", "/trade-in", "/showrooms", "/offers", "/contact"]) {
+      const res = await fetch(`${baseUrl}${p}`, { redirect: "manual" });
+      assert(res.status === 200, `${p} returned ${res.status}`);
+    }
+    const robots = await (await fetch(`${baseUrl}/robots.txt`)).text();
+    assert(/Disallow: \/profile/.test(robots) && /Disallow: \/onboarding/.test(robots), "robots.txt does not hide /profile and /onboarding");
+  });
+
+  await check("/used-cars lists only cars that exist in the database (no sample data)", async () => {
+    const html = await (await fetch(`${baseUrl}/used-cars`)).text();
+    const shown = new Set(html.match(/UC-\d{3,5}/g) ?? []);
+    assert(shown.size > 0, "no used cars were rendered");
+    const { data } = await db.from("used_cars").select("stock_id");
+    const real = new Set((data ?? []).map((r) => r.stock_id));
+    for (const id of shown) assert(real.has(id), `${id} is on the page but not in the database`);
+  });
+
+  await check("/cars lists only models that exist in the database", async () => {
+    const html = await (await fetch(`${baseUrl}/cars`)).text();
+    const slugs = new Set([...html.matchAll(/href="\/cars\/([a-z0-9-]+)"/g)].map((m) => m[1]));
+    assert(slugs.size > 0, "no models were rendered");
+    const { data } = await db.from("models").select("slug");
+    const real = new Set((data ?? []).map((r) => r.slug));
+    for (const s of slugs) assert(real.has(s), `/cars/${s} is linked but not in the database`);
+  });
+
+  await check("on-road price is gated: anonymous gets the teaser only, a signed-in buyer gets the breakup", async () => {
+    const { data: variants } = await db.from("variants").select("id").limit(1);
+    const variantId = variants?.[0]?.id;
+    assert(variantId, "no variant to price");
+    const anon = await (await fetch(`${baseUrl}/api/price?variantId=${variantId}&city=lucknow`)).json();
+    assert(anon.ok && anon.data.tier === "teaser", `anonymous tier was ${anon?.data?.tier}`);
+    assert(!anon.data.breakup, "anonymous response leaked the breakup");
+    const session = await sessionCookies(EMAIL.buyer);
+    const authed = await (await fetch(`${baseUrl}/api/price?variantId=${variantId}&city=lucknow`, { headers: { cookie: cookieHeader(session) } })).json();
+    assert(authed.ok && authed.data.tier === "full", `signed-in tier was ${authed?.data?.tier}`);
+    assert(authed.data.breakup, "signed-in response has no breakup");
+  });
+
+  await check("cross-site POSTs to cookie-authenticated and public write endpoints are refused", async () => {
+    for (const p of ["/api/chat", "/api/leads", "/api/trade-in/upload-urls", "/api/newsletter", "/api/me/delete"]) {
+      const res = await fetch(`${baseUrl}${p}`, {
+        method: "POST",
+        headers: { "content-type": "application/json", "sec-fetch-site": "cross-site", origin: "https://evil.example" },
+        body: "{}",
+      });
+      assert(res.status === 403, `${p} returned ${res.status} for a cross-site request`);
+    }
+  });
+
+  await check("the rate limiter counts in the database (shared across instances)", async () => {
+    const key = `e2e_rl_${E2E}`;
+    cleanups.push(async () => {
+      await db.from("rate_limits").delete().eq("key", key);
+    });
+    const answers = [];
+    for (let i = 0; i < 3; i++) answers.push((await db.rpc("check_rate_limit", { p_key: key, p_limit: 2, p_window_seconds: 60 })).data);
+    assert(answers.join() === "true,true,false", `expected true,true,false but got ${answers.join()}`);
+  });
+
+  await check("newsletter subscribe stores consent, and the unsubscribe link withdraws it", async () => {
+    const email = `${E2E.toLowerCase()}-news@example.com`;
+    cleanups.push(async () => {
+      await db.from("newsletter_subscribers").delete().eq("email", email);
+      await db.from("consents").delete().eq("subject_email", email);
+    });
+    const res = await fetch(`${baseUrl}/api/newsletter`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email, consent: true }),
+    });
+    assert(res.status === 200, `subscribe returned ${res.status}`);
+    const sub = await eventually(async () => (await db.from("newsletter_subscribers").select("unsubscribe_token, unsubscribed_at").eq("email", email).maybeSingle()).data, "subscriber row");
+    assert(!sub.unsubscribed_at, "new subscriber should be active");
+    const page = await fetch(`${baseUrl}/unsubscribe/${encodeURIComponent(sub.unsubscribe_token)}`);
+    assert(page.status === 200, `unsubscribe page returned ${page.status}`);
+    await eventually(async () => (await db.from("newsletter_subscribers").select("unsubscribed_at").eq("email", email).single()).data?.unsubscribed_at, "unsubscribed_at set");
+  });
+
+  await check("outbox worker records WhatsApp as skipped (never sent) when no provider is connected", async () => {
+    const key = `e2e_outbox_${E2E}`;
+    const { data: row, error } = await db
+      .from("messages_outbox")
+      // created_at in the past so the worker (oldest first, 50 per run) reaches this row even if DEV has a backlog.
+      .insert({ channel: "whatsapp", to_address: "+919876500999", template: "e2e_probe", body: "e2e probe", status: "pending", idempotency_key: key, created_at: "2000-01-01T00:00:00Z" })
+      .select("id")
+      .single();
+    assert(!error, `insert failed: ${error?.message}`);
+    cleanups.push(async () => {
+      await db.from("messages_outbox").delete().eq("id", row.id);
+    });
+    const res = await fetch(`${baseUrl}/api/cron/outbox`, { headers: { authorization: `Bearer ${cronSecret}` } });
+    assert(res.status === 200, `worker returned ${res.status}`);
+    const after = await eventually(async () => {
+      const { data } = await db.from("messages_outbox").select("status, last_error").eq("id", row.id).single();
+      return data && data.status !== "pending" && data.status !== "sending" ? data : null;
+    }, "outbox row processed");
+    assert(after.status === "skipped", `status was ${after.status}, expected skipped`);
+    assert(/provider/i.test(after.last_error || ""), "skipped row should say why");
+  });
+
+  await check("daily DMS export is stored in the private bucket and recorded in the audit log", async () => {
+    const date = "2020-01-02";
+    const file = `vrooma-dms-${date}.csv`;
+    cleanups.push(async () => {
+      await db.storage.from("dms-exports").remove([file]);
+      await db.from("audit_log").delete().eq("table_name", "dms_export").eq("record_id", date);
+    });
+    const denied = await fetch(`${baseUrl}/api/cron/dms-export?date=${date}`);
+    assert(denied.status === 401, `unauthenticated call returned ${denied.status}`);
+    const res = await fetch(`${baseUrl}/api/cron/dms-export?date=${date}`, { headers: { authorization: `Bearer ${cronSecret}` } });
+    assert(res.status === 200, `export returned ${res.status}`);
+    const { data: blob, error } = await db.storage.from("dms-exports").download(file);
+    assert(!error && blob, `file not in bucket: ${error?.message}`);
+    const text = await blob.text();
+    assert(text.startsWith("RECORD_TYPE,REFERENCE"), "CSV header missing");
+    const pub = await fetch(`${env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/dms-exports/${file}`);
+    assert(pub.status >= 400, "export must not be publicly readable");
+  });
+
+  const admin = await newPage(browser, await sessionCookies(EMAIL.admin));
+  const ap = admin.page;
+
+  await check("admin can add a showroom, a workshop and a demo car from Showrooms & bays", async () => {
+    const showroomName = `${E2E} Showroom`;
+    const workshopName = `${E2E} Workshop`;
+    cleanups.push(async () => {
+      const { data: sr } = await db.from("showrooms").select("id").eq("name", showroomName);
+      for (const s of sr ?? []) {
+        await db.from("demo_cars").delete().eq("showroom_id", s.id);
+        await db.from("showrooms").delete().eq("id", s.id);
+      }
+      await db.from("workshops").delete().eq("name", workshopName);
+    });
+    assert((await open(ap, "/admin/team?tab=network")) === 200, "expected HTTP 200");
+
+    await ap.getByRole("button", { name: "Add showroom" }).click();
+    const dlg = ap.getByRole("dialog");
+    await dlg.getByPlaceholder("Aliganj Showroom").fill(showroomName);
+    await dlg.getByPlaceholder("Street, area, city").fill("1 Test Road, Lucknow");
+    await dlg.getByPlaceholder("+91 522 400 0000").fill("+91 522 400 0000");
+    await dlg.getByRole("button", { name: "Save" }).click();
+    const sr = await eventually(async () => (await db.from("showrooms").select("id, is_active").eq("name", showroomName).maybeSingle()).data, "showroom row");
+    assert(sr.is_active, "new showroom should be active");
+    await ap.getByText(showroomName).first().waitFor();
+
+    await ap.getByRole("button", { name: "Add workshop" }).click();
+    const dlg2 = ap.getByRole("dialog");
+    await dlg2.getByPlaceholder("Alambagh Service Hub").fill(workshopName);
+    await dlg2.getByPlaceholder("Street, area, city").fill("2 Test Road, Lucknow");
+    await dlg2.getByPlaceholder("+91 522 400 0000").fill("+91 522 400 0001");
+    await dlg2.getByRole("spinbutton").fill("6");
+    await dlg2.getByRole("button", { name: "Save" }).click();
+    const wk = await eventually(async () => (await db.from("workshops").select("id, bays").eq("name", workshopName).maybeSingle()).data, "workshop row");
+    assert(wk.bays === 6, `bays were ${wk.bays}`);
+
+    await ap.getByRole("button", { name: "Add demo car" }).click();
+    const dlg3 = ap.getByRole("dialog");
+    await dlg3.getByRole("combobox", { name: "Showroom" }).selectOption({ label: showroomName });
+    await dlg3.getByPlaceholder("UP32 ** 1234").fill(`${E2E} 01`);
+    await dlg3.getByRole("button", { name: "Save" }).click();
+    await eventually(async () => (await db.from("demo_cars").select("id").eq("showroom_id", sr.id).maybeSingle()).data, "demo car row");
+  });
+
+  await check("a validation error is shown in the dialog and nothing is saved", async () => {
+    await open(ap, "/admin/team?tab=network");
+    await ap.getByRole("button", { name: "Add workshop" }).click();
+    const dlg = ap.getByRole("dialog");
+    await dlg.getByPlaceholder("Alambagh Service Hub").fill(`${E2E} Bad`);
+    await dlg.getByPlaceholder("Street, area, city").fill("3 Test Road");
+    await dlg.getByPlaceholder("+91 522 400 0000").fill("abc");
+    await dlg.getByRole("button", { name: "Save" }).click();
+    await dlg.getByRole("alert").filter({ hasText: /valid phone number/i }).waitFor();
+    const { data } = await db.from("workshops").select("id").eq("name", `${E2E} Bad`);
+    assert(!data?.length, "an invalid workshop was saved");
+  });
+
+  await admin.context.close();
+}
+
 /* ================================== runner ================================== */
 
 async function main() {
@@ -1170,6 +1362,7 @@ async function main() {
     if (!only || only === "admin") await adminGroup(browser);
     if (!only || only === "chat") await chatGroup(browser);
     if (!only || only === "cross") await crossGroup(browser);
+    if (!only || only === "platform") await platformGroup(browser);
   } finally {
     await browser.close();
     for (const fn of cleanups.reverse()) {

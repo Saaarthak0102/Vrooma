@@ -173,7 +173,7 @@ export function InspectedUsed({ data }: InspectedUsedProps) {
                       {usedSample?.year ?? 2022} · {usedSample?.owners ?? 1} owner(s) · {usedSample?.km?.toLocaleString("en-IN") ?? "41,200"} km
                     </p>
                     <span className="text-base sm:text-lg font-black text-ink block pt-0.5">
-                      {usedSample?.price ? formatINR(usedSample.price) : "₹8,45,000"}
+                      {usedSample?.price ? formatINR(usedSample.price) : "Ask for price"}
                     </span>
                   </div>
 
@@ -276,7 +276,7 @@ export function InspectedUsed({ data }: InspectedUsedProps) {
                   {usedSample?.year ?? 2022} · {usedSample?.owners ?? 1} owner(s) · {usedSample?.km?.toLocaleString("en-IN") ?? "41,200"} km
                 </span>
                 <span className="text-sm sm:text-base font-black text-ink block mt-1">
-                  {usedSample?.price ? formatINR(usedSample.price) : "₹8,45,000"}
+                  {usedSample?.price ? formatINR(usedSample.price) : "Ask for price"}
                 </span>
               </div>
               <Link

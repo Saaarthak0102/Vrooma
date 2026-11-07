@@ -92,6 +92,7 @@ async function queryActiveModels(limit: number = 50): Promise<Model[]> {
     is_active: row.is_active,
     is_featured: row.is_featured,
     created_at: row.created_at,
+    updated_at: row.updated_at,
   }));
 
   if (models.length === 0) return [];

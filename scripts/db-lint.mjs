@@ -18,6 +18,14 @@
 import fs from "node:fs";
 import path from "node:path";
 
+/** Applied migrations that predate the BEGIN/COMMIT rule. Do not add new files here. */
+const LEGACY_NO_TX = new Set([
+  "0020_remove_reschedule.sql",
+  "0021_chat_history.sql",
+  "0022_lock_lead_updates.sql",
+  "0026_seed_used_cars_sample.sql",
+]);
+
 const MIGRATIONS_DIR = path.resolve(process.cwd(), "supabase/migrations");
 const SEED_FILE = path.resolve(process.cwd(), "supabase/seed.sql");
 
@@ -113,11 +121,15 @@ function lint() {
     const firstCommand = linesWithoutComments[0] || "";
     const lastCommand = linesWithoutComments[linesWithoutComments.length - 1] || "";
 
-    if (!firstCommand.toUpperCase().startsWith("BEGIN;")) {
+    // Already applied to DEV before this rule was enforced; applied migrations are never edited (forward-fix only).
+    // The Supabase CLI runs each file in a single transaction anyway. New migrations must carry BEGIN/COMMIT.
+    const legacyNoTx = LEGACY_NO_TX.has(file);
+
+    if (!legacyNoTx && !firstCommand.toUpperCase().startsWith("BEGIN;")) {
       console.error(`❌ ${file}: Migration must begin with 'BEGIN;'`);
       errors++;
     }
-    if (!lastCommand.toUpperCase().endsWith("COMMIT;")) {
+    if (!legacyNoTx && !lastCommand.toUpperCase().endsWith("COMMIT;")) {
       console.error(`❌ ${file}: Migration must end with 'COMMIT;'`);
       errors++;
     }

@@ -12,6 +12,8 @@ import {
   type ChatMessage,
 } from "@/server/repositories/chats";
 import { resolveConversation } from "@/server/services/chat-handoff";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { env } from "@/lib/env";
 
 const MAX_REPLY_LENGTH = 1000;
 
@@ -77,6 +79,10 @@ export async function sendChatReplyAction(id: string, text: string): Promise<Act
     const [message] = await insertMessages(id, [{ role: "consultant", content, senderId: allowed.userId }]);
     if (!message) return errorResponse("INTERNAL_ERROR", "Could not send the reply.");
 
+    // Tell the buyer by email (the one real channel), at most once per 10 minutes per chat, so a back-and-forth
+    // does not flood their inbox. The on-site chat box shows every message regardless.
+    await notifyBuyerOfReply(allowed.conv, content);
+
     const patch: Record<string, unknown> = { status: "live" };
     if (!allowed.conv.first_staff_reply_at) patch.first_staff_reply_at = new Date().toISOString();
     await updateConversation(id, patch);
@@ -95,5 +101,41 @@ export async function resolveChatAction(id: string): Promise<ActionResponse<{ id
     return successResponse({ id });
   } catch (err: any) {
     return errorResponse("INTERNAL_ERROR", err?.message || "Could not close the chat.");
+  }
+}
+
+async function notifyBuyerOfReply(conv: ChatConversation, content: string): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    let email: string | null = null;
+    if (conv.user_id) {
+      const { data } = await admin.from("profiles").select("email").eq("id", conv.user_id).maybeSingle();
+      email = data?.email ?? null;
+    }
+    if (!email && conv.lead_id) {
+      const { data } = await admin.from("leads").select("email").eq("id", conv.lead_id).maybeSingle();
+      email = data?.email ?? null;
+    }
+    if (!email) return;
+
+    const window = Math.floor(Date.now() / (10 * 60 * 1000));
+    const name = conv.assigned_name ?? "Your consultant";
+    const preview = content.length > 300 ? `${content.slice(0, 297)}...` : content;
+    await admin.from("messages_outbox").insert({
+      channel: "email",
+      to_address: email,
+      template: "consultant_reply",
+      body: `${name} replied to your chat:
+
+"${preview}"
+
+Open the chat on ${env.NEXT_PUBLIC_SITE_URL} to reply.`,
+      lead_id: conv.lead_id,
+      status: "pending",
+      idempotency_key: `chat_reply_${conv.id}_${window}`,
+    });
+  } catch (err: any) {
+    // A failed notification must never fail the reply itself (a duplicate key just means one was already queued).
+    console.warn(`[staff-chat] Reply notification not queued: ${err?.message}`);
   }
 }

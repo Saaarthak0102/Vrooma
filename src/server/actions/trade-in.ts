@@ -70,7 +70,7 @@ export async function getTradeInUploadUrlsAction(
 
       if (error || !data) {
         console.warn(`[trade-in] Failed to generate signed upload URL for ${file.name}: ${error?.message}`);
-        return errorResponse("INTERNAL_ERROR", `Failed to generate upload URL: ${error?.message || "Storage error"}`);
+        return errorResponse("INTERNAL_ERROR", "Could not prepare the photo upload. Please try again.");
       }
 
       results.push({

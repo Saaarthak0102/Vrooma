@@ -1,5 +1,6 @@
 import React from "react";
 import { requireRole } from "@/server/auth/viewer";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { TabLinks, pickTab, type TabLinkItem } from "@/components/layout/TabLinks";
 import { listUsers } from "@/server/repositories/users";
 import { listShowrooms, listWorkshops } from "@/server/repositories/showrooms";
@@ -42,8 +43,19 @@ export default async function TeamPage({
       </div>
     );
   } else if (tab === "network") {
-    const [showrooms, workshops, demoCars] = await Promise.all([listShowrooms(), listWorkshops(), listDemoCars()]);
-    body = <NetworkPanel showrooms={showrooms} workshops={workshops} demoCars={demoCars} />;
+    const [showrooms, workshops, demoCars, models, citiesRes] = await Promise.all([
+      listShowrooms(),
+      listWorkshops(),
+      listDemoCars(),
+      listModels(),
+      createAdminClient().from("cities").select("id, name").order("name", { ascending: true }),
+    ]);
+    const options = {
+      cities: (citiesRes.data ?? []).map((c) => ({ id: c.id, name: c.name })),
+      showrooms: showrooms.map((s) => ({ id: s.id, name: s.name })),
+      variants: models.flatMap((m) => (m.variants ?? []).map((v) => ({ id: v.id, label: `${m.name} ${v.name}` }))),
+    };
+    body = <NetworkPanel showrooms={showrooms} workshops={workshops} demoCars={demoCars} options={options} />;
   } else if (tab === "routing") {
     const [rules, pool, showrooms, models, load] = await Promise.all([
       listRoutingRules(),

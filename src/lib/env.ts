@@ -105,6 +105,14 @@ export function validateRuntimeEnv() {
       missing.push("SUPABASE_SECRET_KEY");
     }
     if (!(process.env.CRON_SECRET || parsedData.CRON_SECRET)) missing.push("CRON_SECRET");
+    if (!(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || parsedData.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)) {
+      missing.push("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY");
+    }
+    // Without a mail key every email would fail and retry to "dead"; better to refuse to start.
+    if (!(process.env.RESEND_API_KEY || parsedData.RESEND_API_KEY)) missing.push("RESEND_API_KEY");
+    if (!process.env.TRUSTED_PROXY) {
+      console.warn("⚠️ [env] TRUSTED_PROXY is not set: rate limits will share one bucket for all clients. Set vercel, cloudflare or none.");
+    }
     if (missing.length > 0) {
       throw new Error(`FATAL CONFIG ERROR: missing required production environment variables: ${missing.join(", ")}`);
     }

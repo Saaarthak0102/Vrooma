@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { authorizeCron } from "@/lib/cron-auth";
-import { sendEmail } from "@/server/services/outbox";
+import { deliverMessage, type DeliveryChannel } from "@/server/services/message-providers";
 
 const BACKOFF_MINUTES = [1, 5, 30, 120];
 
@@ -37,11 +37,12 @@ export async function GET(request: NextRequest) {
   if (!messages || messages.length === 0) {
     return NextResponse.json({
       ok: true,
-      data: { processed: 0, sent: 0, failed: 0, dead: 0 },
+      data: { processed: 0, sent: 0, skipped: 0, failed: 0, dead: 0 },
     });
   }
 
   let sentCount = 0;
+  let skippedCount = 0;
   let failedCount = 0;
   let deadCount = 0;
 
@@ -61,11 +62,22 @@ export async function GET(request: NextRequest) {
     if (lockErr || !claimed || claimed.length === 0) continue;
 
     try {
-      if (msg.channel === "email") {
-        await sendEmail(msg.to_address, msg.template, msg.body);
-      } else {
-        // WhatsApp / SMS templates queued and recorded as dispatched in Phase 4
-        console.info(`[Outbox Worker Simulated ${msg.channel.toUpperCase()}] To: ${msg.to_address}`);
+      const result = await deliverMessage(msg.channel as DeliveryChannel, msg.to_address, msg.template, msg.body);
+
+      if (result.status === "skipped") {
+        // Nothing was sent (no provider for this channel). Record that honestly instead of "sent".
+        await admin
+          .from("messages_outbox")
+          .update({
+            // "skipped" exists after migration 0030; the generated DB types predate it.
+            status: "skipped" as never,
+            attempts: msg.attempts + 1,
+            last_error: result.reason,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", msg.id);
+        skippedCount++;
+        continue;
       }
 
       // Mark success. The message is already delivered at this point, so a failed bookkeeping write must be
@@ -135,6 +147,7 @@ export async function GET(request: NextRequest) {
     data: {
       processed: messages.length,
       sent: sentCount,
+      skipped: skippedCount,
       failed: failedCount,
       dead: deadCount,
     },

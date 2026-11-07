@@ -2,27 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { createLeadSchema } from "@/lib/validation/lead";
 import { createLead, listLeads } from "@/server/repositories/leads";
 import { getTrustedClientIp } from "@/lib/network";
-import { guardRole } from "@/server/auth/api-guard";
+import { guardRole, guardOrigin } from "@/server/auth/api-guard";
+import { rateLimit } from "@/server/security/rate-limit";
 import { recordConsent } from "@/server/privacy/consent";
 
-const leadRateLimitMap = new Map<string, { count: number; resetAt: number }>();
-const RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const MAX_LEADS_PER_IP_MINUTE = 10;
 const MAX_LEADS_PER_PHONE_MINUTE = 5;
-
-function checkRateLimit(key: string, limit: number): boolean {
-  const now = Date.now();
-  const entry = leadRateLimitMap.get(key);
-  if (!entry || now > entry.resetAt) {
-    leadRateLimitMap.set(key, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
-    return true; // Allowed
-  }
-  if (entry.count >= limit) {
-    return false; // Exceeded
-  }
-  entry.count += 1;
-  return true;
-}
 
 export async function GET(request: NextRequest) {
   // Staff only. Consultants see their own leads; managers and admins see all.
@@ -43,11 +28,15 @@ export async function GET(request: NextRequest) {
     });
     return NextResponse.json({ ok: true, data: leads });
   } catch (err: any) {
-    return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
+    console.error("[api/leads] failed:", err?.message);
+    return NextResponse.json({ ok: false, error: "Something went wrong. Please try again." }, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
+  const blocked = guardOrigin(request);
+  if (blocked) return blocked;
+
   try {
     const body = await request.json();
 
@@ -61,7 +50,7 @@ export async function POST(request: NextRequest) {
 
     // 2. IP Rate Limiting
     const ip = getTrustedClientIp(request);
-    if (!checkRateLimit(`ip_${ip}`, MAX_LEADS_PER_IP_MINUTE)) {
+    if (!(await rateLimit(`lead_ip_${ip}`, MAX_LEADS_PER_IP_MINUTE, 60))) {
       return NextResponse.json(
         { ok: false, error: "Too many enquiry requests from this network. Please wait a moment." },
         {
@@ -83,7 +72,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 4. Phone Rate Limiting
-    if (!checkRateLimit(`phone_${parsed.data.phone}`, MAX_LEADS_PER_PHONE_MINUTE)) {
+    if (!(await rateLimit(`lead_phone_${parsed.data.phone}`, MAX_LEADS_PER_PHONE_MINUTE, 60))) {
       return NextResponse.json(
         { ok: false, error: "Too many enquiry attempts for this phone number. Please wait a moment." },
         {

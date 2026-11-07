@@ -161,3 +161,110 @@ export async function setUserActiveAction(userId: string, active: boolean): Prom
     return errorResponse("INTERNAL_ERROR", err?.message || "Could not update the account.");
   }
 }
+
+/* ------------------------------ network: create showrooms, workshops, demo cars ------------------------------ */
+
+const PHONE_RE = /^[0-9+()\-\s]{7,20}$/;
+
+function cleanText(value: unknown, max: number): string {
+  return typeof value === "string" ? value.trim().replace(/\s+/g, " ").slice(0, max) : "";
+}
+
+/** Add a showroom. Slots, routing rules and demo cars are attached afterwards from the other tabs. */
+export async function createShowroomAction(input: {
+  cityId: string;
+  name: string;
+  address: string;
+  phone: string;
+}): Promise<ActionResponse<{ id: string }>> {
+  try {
+    await requireRole("admin");
+    const name = cleanText(input?.name, 80);
+    const address = cleanText(input?.address, 200);
+    const phone = cleanText(input?.phone, 20);
+    if (name.length < 3) return errorResponse("VALIDATION_FAILED", "Enter the showroom name (at least 3 characters).");
+    if (address.length < 5) return errorResponse("VALIDATION_FAILED", "Enter the full address.");
+    if (!PHONE_RE.test(phone)) return errorResponse("VALIDATION_FAILED", "Enter a valid phone number.");
+    if (!input?.cityId) return errorResponse("VALIDATION_FAILED", "Choose a city.");
+
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from("showrooms")
+      // lat/lng are nullable in the database (map pins are optional); the generated types predate that.
+      .insert({ city_id: input.cityId, name, address, phone, is_active: true } as never)
+      .select("id")
+      .single();
+    if (error || !data) return errorResponse("INTERNAL_ERROR", "Could not add the showroom. Check the city and try again.");
+
+    safeRevalidatePath("/admin/team");
+    safeRevalidatePath("/showrooms");
+    return successResponse({ id: data.id });
+  } catch (err: any) {
+    return errorResponse("INTERNAL_ERROR", err?.message || "Could not add the showroom.");
+  }
+}
+
+/** Add a service workshop with its bay capacity (the capacity behind service booking). */
+export async function createWorkshopAction(input: {
+  cityId: string;
+  name: string;
+  address: string;
+  phone: string;
+  bays: number;
+}): Promise<ActionResponse<{ id: string }>> {
+  try {
+    await requireRole("admin");
+    const name = cleanText(input?.name, 80);
+    const address = cleanText(input?.address, 200);
+    const phone = cleanText(input?.phone, 20);
+    const bays = Number(input?.bays);
+    if (name.length < 3) return errorResponse("VALIDATION_FAILED", "Enter the workshop name (at least 3 characters).");
+    if (address.length < 5) return errorResponse("VALIDATION_FAILED", "Enter the full address.");
+    if (!PHONE_RE.test(phone)) return errorResponse("VALIDATION_FAILED", "Enter a valid phone number.");
+    if (!Number.isInteger(bays) || bays < 1 || bays > 50) return errorResponse("VALIDATION_FAILED", "Bays must be a whole number from 1 to 50.");
+    if (!input?.cityId) return errorResponse("VALIDATION_FAILED", "Choose a city.");
+
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from("workshops")
+      .insert({ city_id: input.cityId, name, address, phone, bays, is_active: true })
+      .select("id")
+      .single();
+    if (error || !data) return errorResponse("INTERNAL_ERROR", "Could not add the workshop. Check the city and try again.");
+
+    safeRevalidatePath("/admin/team");
+    safeRevalidatePath("/showrooms");
+    safeRevalidatePath("/book/service");
+    return successResponse({ id: data.id });
+  } catch (err: any) {
+    return errorResponse("INTERNAL_ERROR", err?.message || "Could not add the workshop.");
+  }
+}
+
+/** Add a demo car for a showroom (what buyers pick when booking a test drive). */
+export async function createDemoCarAction(input: {
+  showroomId: string;
+  variantId: string;
+  regLabel: string;
+}): Promise<ActionResponse<{ id: string }>> {
+  try {
+    await requireRole("admin");
+    const regLabel = cleanText(input?.regLabel, 40);
+    if (regLabel.length < 3) return errorResponse("VALIDATION_FAILED", "Enter a plate label, for example UP32 ** 1234.");
+    if (!input?.showroomId || !input?.variantId) return errorResponse("VALIDATION_FAILED", "Choose a showroom and a variant.");
+
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from("demo_cars")
+      .insert({ showroom_id: input.showroomId, variant_id: input.variantId, reg_label: regLabel, is_active: true })
+      .select("id")
+      .single();
+    if (error || !data) return errorResponse("INTERNAL_ERROR", "Could not add the demo car. Check the showroom and variant.");
+
+    safeRevalidatePath("/admin/team");
+    safeRevalidatePath("/book/test-drive");
+    return successResponse({ id: data.id });
+  } catch (err: any) {
+    return errorResponse("INTERNAL_ERROR", err?.message || "Could not add the demo car.");
+  }
+}

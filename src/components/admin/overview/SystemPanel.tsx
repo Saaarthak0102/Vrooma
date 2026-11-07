@@ -21,6 +21,7 @@ const EXPECTED_JOBS: { name: string; label: string; needsVault?: boolean }[] = [
   { name: "process_outbox_queue", label: "Outbox processing (every minute)", needsVault: true },
   { name: "daily_data_retention", label: "Data retention (daily)", needsVault: true },
   { name: "daily_finalize_deletions", label: "Finalise deletions (daily)", needsVault: true },
+  { name: "daily_dms_export", label: "DMS daily CSV export (00:15 IST)", needsVault: true },
   { name: "daily_slot_generation", label: "Slot generation (daily)" },
   { name: "purge_expired_idempotency", label: "Purge idempotency keys (daily)" },
   { name: "purge_stale_rate_limits", label: "Purge rate limits (daily)" },
@@ -44,6 +45,7 @@ export async function SystemPanel() {
     { count: pendingOutbox },
     { count: deadOutbox },
     { count: sentOutbox },
+    { count: skippedOutbox },
     { count: breachedLeads },
     { count: pendingDataRequests },
     { data: recentCronLogs },
@@ -53,6 +55,8 @@ export async function SystemPanel() {
     admin.from("messages_outbox").select("*", { count: "exact", head: true }).eq("status", "pending"),
     admin.from("messages_outbox").select("*", { count: "exact", head: true }).eq("status", "dead"),
     admin.from("messages_outbox").select("*", { count: "exact", head: true }).eq("status", "sent"),
+    // "skipped" exists after migration 0030; the generated DB types predate it.
+    admin.from("messages_outbox").select("*", { count: "exact", head: true }).eq("status", "skipped" as never),
     admin.from("leads").select("*", { count: "exact", head: true }).gt("sla_breached_at", "1970-01-01"),
     admin.from("data_requests").select("*", { count: "exact", head: true }).eq("status", "received"),
     admin.from("audit_log").select("action, new_values, created_at").ilike("action", "%CRON%").order("created_at", { ascending: false }).limit(6),
@@ -78,7 +82,9 @@ export async function SystemPanel() {
               <Mail className="h-4 w-4 text-ink-soft" />
             </div>
             <div className="text-2xl font-bold text-ink">{pendingOutbox || 0}</div>
-            <p className="text-[11px] text-ink-mute">{sentOutbox || 0} dispatched successfully</p>
+            <p className="text-[11px] text-ink-mute">
+              {sentOutbox || 0} delivered{(skippedOutbox || 0) > 0 ? ` · ${skippedOutbox} skipped (no provider)` : ""}
+            </p>
           </Card>
 
           <Card className={`p-4 space-y-2 ${hasDeadLetters ? "border-danger bg-danger/5" : ""}`}>

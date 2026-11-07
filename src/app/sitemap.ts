@@ -44,7 +44,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       if (model?.slug) {
         entries.push({
           url: `${baseUrl}/cars/${model.slug}`,
-          lastModified: new Date(),
+          lastModified: new Date(model.updated_at ?? model.created_at ?? Date.now()),
           changeFrequency: "daily",
           priority: 0.9,
         });
@@ -55,7 +55,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       if (car?.stock_id && car.status !== "sold") {
         entries.push({
           url: `${baseUrl}/used-cars/${car.stock_id}`,
-          lastModified: new Date(),
+          lastModified: new Date(car.updated_at ?? car.created_at ?? Date.now()),
           changeFrequency: "daily",
           priority: 0.8,
         });

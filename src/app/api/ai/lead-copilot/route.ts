@@ -22,6 +22,7 @@ export async function POST(request: NextRequest) {
     const result = await generateLeadCopilot(lead);
     return NextResponse.json({ ok: true, data: result });
   } catch (err: any) {
-    return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
+    console.error("[api/ai/lead-copilot] failed:", err?.message);
+    return NextResponse.json({ ok: false, error: "Something went wrong. Please try again." }, { status: 500 });
   }
 }

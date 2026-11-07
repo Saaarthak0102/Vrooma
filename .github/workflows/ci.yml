@@ -46,6 +46,9 @@ jobs:
           APP_ENV: production
           SKIP_ENV_VALIDATION: 1
 
+      - name: Lint database migrations
+        run: pnpm db:lint
+
       - name: Typecheck TypeScript
         run: pnpm typecheck
 

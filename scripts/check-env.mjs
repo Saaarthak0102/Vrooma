@@ -87,6 +87,32 @@ if ((appEnv === "production" || nodeEnv === "production") && allowDevLogin) {
   process.exit(1);
 }
 
+// 3. A production target must carry every required variable (values come from the hosting platform's env).
+// CI sets SKIP_ENV_VALIDATION=1 (it only proves the dev-login backdoor is off); a real deploy check leaves it unset.
+if (appEnv === "production" && process.env.SKIP_ENV_VALIDATION !== "1") {
+  const get = (k) => process.env[k] ?? fileEnv[k] ?? "";
+  const required = [
+    "NEXT_PUBLIC_SITE_URL",
+    "NEXT_PUBLIC_SUPABASE_URL",
+    "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
+    "SUPABASE_SECRET_KEY",
+    "CRON_SECRET",
+    "RESEND_API_KEY",
+    "TRUSTED_PROXY",
+  ];
+  const missing = required.filter((k) => !get(k));
+  if (/localhost|127\.0\.0\.1/.test(get("NEXT_PUBLIC_SITE_URL"))) missing.push("NEXT_PUBLIC_SITE_URL (must not be localhost)");
+  if (!process.env.SUPABASE_PROD_REF) {
+    console.warn(" SUPABASE_PROD_REF is not set: the production-ref guard above used its built-in default.");
+  }
+  if (missing.length > 0) {
+    console.error("\n❌ MISSING PRODUCTION ENVIRONMENT VARIABLES:");
+    for (const k of missing) console.error(` - ${k}`);
+    console.error("");
+    process.exit(1);
+  }
+}
+
 console.log("\n✅ Security check passed: Production environment is secure.\n");
 process.exit(0);
 
