@@ -11,6 +11,9 @@ const envSchema = z.object({
   ALLOW_DEV_LOGIN: z.string().optional().default("false"),
   RESEND_API_KEY: z.string().optional().default(""),
   AI_PROVIDER_API_KEY: z.string().optional().default(""),
+  AI_MODEL_FAST: z.string().optional().default("claude-haiku-5-5"),
+  AI_MODEL_SMART: z.string().optional().default("claude-sonnet-5-5"),
+  AI_DAILY_CALL_CAP: z.coerce.number().int().positive().optional().default(5000),
   CRON_SECRET: z.string().optional().default(""),
   CALLS_WEBHOOK_SECRET: z.string().optional().default(""),
 });
@@ -38,6 +41,9 @@ const rawEnv = {
   ALLOW_DEV_LOGIN: process.env.ALLOW_DEV_LOGIN ?? "false",
   RESEND_API_KEY: process.env.RESEND_API_KEY,
   AI_PROVIDER_API_KEY: process.env.AI_PROVIDER_API_KEY,
+  AI_MODEL_FAST: process.env.AI_MODEL_FAST || undefined,
+  AI_MODEL_SMART: process.env.AI_MODEL_SMART || undefined,
+  AI_DAILY_CALL_CAP: process.env.AI_DAILY_CALL_CAP || undefined,
   CRON_SECRET: process.env.CRON_SECRET,
   CALLS_WEBHOOK_SECRET: process.env.CALLS_WEBHOOK_SECRET,
 };
@@ -70,6 +76,9 @@ if (skipValidation) {
       ALLOW_DEV_LOGIN: rawEnv.ALLOW_DEV_LOGIN || "false",
       RESEND_API_KEY: rawEnv.RESEND_API_KEY || "",
       AI_PROVIDER_API_KEY: rawEnv.AI_PROVIDER_API_KEY || "",
+      AI_MODEL_FAST: rawEnv.AI_MODEL_FAST || "claude-haiku-5-5",
+      AI_MODEL_SMART: rawEnv.AI_MODEL_SMART || "claude-sonnet-5-5",
+      AI_DAILY_CALL_CAP: Number(rawEnv.AI_DAILY_CALL_CAP) > 0 ? Number(rawEnv.AI_DAILY_CALL_CAP) : 5000,
       CRON_SECRET: rawEnv.CRON_SECRET || "",
       CALLS_WEBHOOK_SECRET: rawEnv.CALLS_WEBHOOK_SECRET || "",
     };

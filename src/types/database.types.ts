@@ -23,6 +23,13 @@ export type Database = {
           lead_id: string | null
           prompt: string | null
           response: string | null
+          feature: string | null
+          input_hash: string | null
+          input_tokens: number | null
+          model: string | null
+          output_tokens: number | null
+          status: string
+          user_id: string | null
         }
         Insert: {
           action: string
@@ -32,6 +39,13 @@ export type Database = {
           lead_id?: string | null
           prompt?: string | null
           response?: string | null
+          feature?: string | null
+          input_hash?: string | null
+          input_tokens?: number | null
+          model?: string | null
+          output_tokens?: number | null
+          status?: string
+          user_id?: string | null
         }
         Update: {
           action?: string
@@ -41,8 +55,22 @@ export type Database = {
           lead_id?: string | null
           prompt?: string | null
           response?: string | null
+          feature?: string | null
+          input_hash?: string | null
+          input_tokens?: number | null
+          model?: string | null
+          output_tokens?: number | null
+          status?: string
+          user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "ai_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ai_logs_lead_id_fkey"
             columns: ["lead_id"]

@@ -129,3 +129,14 @@
 - **Date:** 2026-11-07
 - **Context:** `src/types/db.ts` (hand-written) let code write columns that do not exist: trade-in `fuel`/`transmission`, offers `updated_at`, CSV import `row_count`. Each failed at runtime only.
 - **Decision:** `tests/types-match-schema.test.ts` compares both type files table by table. Trade-in submissions no longer write or invent fuel/transmission (the form never asks for them). Banners store `/` when no link is given; price rules require a model or variant (the database already did).
+
+## ADR: AI goes live through one guarded runner, with rule-based fallbacks
+
+- **Date:** 2026-11-08
+- **Context:** Until now nothing called an LLM: the chatbot, lead summary and draft were rule-based, and the Vercel AI SDK integration was deferred. The brief needs real summaries and drafts, a chatbot that answers from the catalog, and one domain agent, without ever quoting discounts or inventing prices.
+- **Decision:** Claude through the Vercel AI SDK (`@ai-sdk/anthropic`). Haiku-class for the chatbot and digests, Sonnet-class for lead summaries, replies and the Lead Desk Agent. All calls go through `runAi()` (`src/server/ai/`): daily call cap, timeout, output guards (discount words, registration numbers, ungrounded prices), audit row in `ai_logs`, and the existing rule-based answer as fallback, so the site works with no key or when the provider is down.
+- **Agent:** the Lead Desk Agent only *proposes* (reply, slot, status change, reassignment, task). A consultant approves, and the existing guarded server actions execute. It never negotiates; a discount request becomes "escalate to manager".
+- **Prices:** the model never computes or invents a price. On-road prices come from `src/lib/price-engine.ts` / the admin tables, the used-car band from `src/lib/price-band.ts` (manager only); the model may only explain those numbers.
+- **Privacy (DPDP):** buyer free text goes to a third-party processor. Only first name and the enquiry content are sent: no phone, email or full registration number. **Owner action:** add the processor to `/legal/privacy` before the first live AI feature ships.
+- **Plan:** phases P0-P6 (foundation, lead summaries, chatbot, date triggers, garage and service records, Lead Desk Agent, digests).
+

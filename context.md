@@ -292,4 +292,4 @@ Interactive 3D flip cards are deployed exclusively on the three main catalog rou
   - Apply `0033`/`0034` on DEV, then promote `0028`-`0034` to PROD (`docs/backend/PROD_PROMOTION.md`).
   - Add the Vault secrets (`app_url`, `cron_secret`) so the HTTP cron jobs are scheduled (`docs/backend/CRON_SETUP.md`, verify with `pnpm check:cron`).
   - Accounts and keys: Resend (domain + `RESEND_API_KEY`), WhatsApp Cloud API (in progress), telephony vendor for `/api/webhooks/calls` (secret set, no vendor yet; the admin System page shows "not connected").
-  - Production Vercel AI SDK integration for live LLM streaming in lead copilots (deliberately deferred).
+  - AI layer in progress (ADR 2026-11-08 in `docs/DECISIONS.md`, `docs/AI.md` section 5): P0 foundation is code complete (`src/server/ai/` runner, guards, audit log, migration `0035`, `@ai-sdk/anthropic`). Apply `0035` on DEV, set `AI_PROVIDER_API_KEY`. Next: P1 real lead summary and draft, P2 chatbot with tools, P3 date triggers (reminders, no-show, price-rule and offer expiry), P4 owner garage and service records, P5 Lead Desk Agent, P6 digests.
