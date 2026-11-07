@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { getViewer } from "@/server/auth/viewer";
 import { buildBotReply, CLOSING_REPLIES, detectIntent, type QuickReply } from "@/server/ai/support-bot";
+import { answerChat, type ChatHistoryLine } from "@/server/ai/chat-answer";
 import {
   countMessages,
   createConversation,
@@ -37,7 +38,7 @@ function view(conv: ChatConversation) {
 
 /**
  * Buyer chat turn.
- * - status "bot": the rule-based assistant answers and ends with "solved, or connect to a consultant?".
+ * - status "bot": the AI assistant (rule-based bot as fallback) answers and ends with "solved, or connect to a consultant?".
  * - "waiting" / "live": the buyer's message is stored for the consultant; no bot reply.
  * - "resolved": a fresh conversation starts.
  * Body: { message?, action?: "solved" | "connect", conversationId?, guestToken? }
@@ -157,7 +158,13 @@ export async function POST(request: NextRequest) {
       return respond({ reply, quickReplies: [], needsContact: true });
     }
 
-    const bot = buildBotReply(message);
+    // The model (with catalog tools) answers when AI is on; otherwise, or if its answer breaks a guard, the
+    // rule-based bot does. The buyer's message is already stored, so it is the last line of the history.
+    const history: ChatHistoryLine[] = (await listMessages(conv.id))
+      .filter((m) => m.role === "user" || m.role === "assistant")
+      .slice(-10, -1)
+      .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
+    const bot = message ? await answerChat(message, history, { userId }) : buildBotReply(message);
     await store([{ role: "assistant", content: bot.reply }]);
     return respond({ reply: bot.reply, quickReplies: bot.quickReplies, needsContact: false });
   } catch (err: any) {

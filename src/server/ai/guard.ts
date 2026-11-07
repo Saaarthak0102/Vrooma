@@ -11,7 +11,13 @@ import { findForbiddenDiscountWord } from "@/lib/validation/discount";
  *    (the price engine / EMI calculator / catalog), otherwise the caller falls back to the rule-based answer.
  */
 
-export type GuardReason = "empty" | "too_long" | "discount" | "registration_number" | "ungrounded_amount";
+export type GuardReason =
+  | "empty"
+  | "too_long"
+  | "discount"
+  | "registration_number"
+  | "ungrounded_amount"
+  | "disallowed_link";
 
 export interface GuardResult {
   ok: boolean;
@@ -32,6 +38,35 @@ export interface GuardOptions {
    * "asked for a discount". Never set this for anything that can reach a buyer or be sent as a reply.
    */
   skipDiscountCheck?: boolean;
+  /** Buyer-facing text: only links to our own pages (SITE_PATHS) are allowed; any URL or other path is rejected. */
+  checkLinks?: boolean;
+}
+
+/** Site sections the assistant may point buyers to. Anything else it writes as a link is treated as invented. */
+export const SITE_PATH_PREFIXES = [
+  "/cars",
+  "/used-cars",
+  "/book/test-drive",
+  "/book/service",
+  "/emi-calculator",
+  "/trade-in",
+  "/offers",
+  "/showrooms",
+  "/contact",
+  "/dashboard",
+  "/legal",
+] as const;
+
+/** First link in the text that is not an allowed site page, or null. */
+export function findDisallowedLink(text: string): string | null {
+  const external = /(?:https?:\/\/|www\.)\S+/i.exec(text);
+  if (external) return external[0];
+  for (const m of text.matchAll(/(?<![\w/.])(\/[a-z][a-z0-9\-/]*)/gi)) {
+    const path = m[1].replace(/\/+$/, "");
+    const ok = SITE_PATH_PREFIXES.some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
+    if (!ok) return m[1];
+  }
+  return null;
 }
 
 /** Indian registration number (state, RTO, series, four digits). Upper-case on purpose: masked forms have `*`. */
@@ -141,6 +176,11 @@ export function guardAiText(text: string, options: GuardOptions = {}): GuardResu
   if (forbidden) return { ok: false, reason: "discount", detail: forbidden };
 
   if (containsRegistrationNumber(trimmed)) return { ok: false, reason: "registration_number" };
+
+  if (options.checkLinks) {
+    const link = findDisallowedLink(trimmed);
+    if (link) return { ok: false, reason: "disallowed_link", detail: link };
+  }
 
   if (options.groundingSources !== undefined) {
     const ungrounded = findUngroundedAmounts(trimmed, options.groundingSources);

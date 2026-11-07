@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { MessageSquare, X, Send, Bot } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ChatText } from "@/components/chat/ChatText";
 import { stopLenis, startLenis } from "@/components/motion/SmoothScrollProvider";
 
 interface Message {
@@ -349,7 +350,7 @@ export function ChatWidget() {
                           : "bg-white border border-border text-ink shadow-sm rounded-bl-none"
                     }`}
                   >
-                    {m.text}
+                    {m.sender === "bot" ? <ChatText text={m.text} /> : m.text}
                   </div>
                   <span className="text-[10px] text-ink-mute mt-1 px-1">
                     {m.sender === "consultant" ? `${consultantName ?? "Consultant"} · ` : ""}
