@@ -83,7 +83,9 @@ export async function runWithFallback<T>(options: AiRunOptions<T>, deps: AiRunDe
   }
 
   const blockedBy = deps.gate?.check(deps.now());
-  if (blockedBy) return fallback("fallback", blockedBy === "cooldown" ? "rate_limited" : "throttled");
+  if (blockedBy) {
+    return fallback("fallback", blockedBy === "throttled" ? "throttled" : deps.gate?.cause() === "unavailable" ? "unavailable" : "rate_limited");
+  }
 
   const { model, id: modelId } = deps.resolveModel(options.tier);
   const base: Omit<AiLogEntry, "status"> = {
@@ -109,6 +111,7 @@ export async function runWithFallback<T>(options: AiRunOptions<T>, deps: AiRunDe
     const latencyMs = deps.now() - startedAt;
     const responseText = result.responseText ?? describe(result.value);
 
+    deps.gate?.succeeded(); // the model answered; whether we then accept the answer is a separate question
     const verdict = options.guard ? options.guard(result.value) : ({ ok: true } as GuardResult);
     if (!verdict.ok) {
       await deps.log({
@@ -133,6 +136,7 @@ export async function runWithFallback<T>(options: AiRunOptions<T>, deps: AiRunDe
       return fallback("fallback", "rate_limited");
     }
     const timedOut = err?.message === "ai_timeout" || err?.name === "AbortError";
+    deps.gate?.failed(deps.now());
     await deps.log({
       ...base,
       status: "error",

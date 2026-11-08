@@ -22,10 +22,10 @@ Vrooma integrates generative AI to solve dealership operational bottlenecks whil
 - The profile columns (migration `0036`) are read separately from the main lead queries, so deploying before the migration is applied only hides the profile; it never breaks the Lead Desk.
 
 ### Lead Desk Agent (`src/server/ai/lead-agent.ts`, `src/lib/lead-agent.ts`)
-- Opened from **Next steps** in the lead drawer ("Suggest next steps"; 10 runs a minute per person). Smart model with up to 6 tool steps.
-- **It cannot act.** Its tools are two lookups (`get_open_slots`, `get_consultant_load`) and six `propose_*` tools that only record a suggestion after validating it against real data: a slot id must be one returned by `get_open_slots` (the label comes from our data), a consultant id must be real and not the current owner, **won and lost can never be proposed**, and a reply must pass the same strict guard as first-reply drafts (no discount, no rupee amount, no registration number, under 420 characters). Invalid proposals are returned to the model as errors so it can correct them. One per kind, three at most.
+- Opened from **Next steps** in the lead drawer ("Suggest next steps"; 10 runs a minute per person). **One request**: the lead's facts, the open test-drive slots and the consultants' workload go in the prompt, and the model answers with up to three flat suggestions. No tools.
+- **It cannot act.** Every suggestion is checked against real data by `validateProposal` before it is shown: a slot id must be one we offered (the label comes from our data), a consultant must exist and not already own the lead, **won and lost can never be proposed**, and a reply must pass the same strict guard as first-reply drafts (no discount, no rupee amount, no registration number, under 420 characters). Invalid suggestions are dropped; one per kind, three at most; if none survive, rule-based suggestions are shown.
 - **Approval is the consultant's click**, and each kind goes through an existing path: *reply* and *offer a slot* only fill the editable reply box (nothing is sent or booked); *move the stage* calls `updateLeadStatusAction`; *reassign* calls `reassignLeadAction`; *follow-up* creates a `lead_tasks` row; *ask a manager* creates a task and emails `ALERT_EMAIL`.
-- A buyer asking for a discount is never answered by the agent: it proposes asking a manager.
+- A buyer asking for a discount is never answered by the agent: it suggests asking a manager.
 - With AI off, capped, slow or blocked, deterministic suggestions of the same shape are shown, labelled "Rule-based".
 
 ### Digests, saved-car emails and the marketing gate
@@ -36,11 +36,11 @@ Vrooma integrates generative AI to solve dealership operational bottlenecks whil
 ### Follow-up automations (no model)
 Part of `/api/cron/automations`, creating `lead_tasks` (migration `0040`) and an email to the lead's consultant: stage unchanged for 3-14 days with no timeline activity (alert mailbox told at 7+ days); a test drive marked attended 3-48 h ago ("follow up while it is fresh"); a test drive marked no-show in the last 48 h ("offer to rebook"). Only leads that are still open; 50 per run; keys make re-runs add nothing.
 
-### Buyer chatbot (`src/server/ai/chat-answer.ts`, `chat-tools.ts`)
-- Fast model with up to 4 tool steps. The existing flow is unchanged: handoff, "solved" and greetings never reach the model, and every answer still ends with the closing question and the two quick replies.
-- **Tools (read-only):** `search_new_cars`, `get_model_details`, `search_used_cars`, `calculate_emi` (the site's EMI calculator; assumes 9.5% and says so when the buyer gives no rate), `list_offers`, `list_open_slots`, `list_locations`, and, for a signed-in buyer only, `my_bookings` (user id comes from the session, never from the model).
-- **Deliberately not offered:** on-road prices (the breakup stays behind the lead gate; the bot gives ex-showroom and points to the model page), inspection reports, valuations, lead data, anything that writes.
-- **Guards on the answer:** discount filter, no registration number, rupee amounts must appear in a tool result (`12.45 lakh` is accepted for `₹12,45,000`, `12 lakh` is not), links only to site sections in `SITE_PATH_PREFIXES` (any URL or invented path is rejected), 900 characters max. Any failure uses the rule-based answer instead. Prompt-injection phrases skip the model entirely.
+### Buyer chatbot (`src/server/ai/chat-answer.ts`, `chat-facts.ts`)
+- **One request per turn.** The server gathers the facts first and sends them with the question; the model never calls tools. The existing flow is unchanged: handoff, "solved" and greetings never reach the model, and every answer still ends with the closing question and the two quick replies.
+- **The fact pack** (`buildChatFacts`): all new cars and variants with ex-showroom prices as rupee text, live offers, and, depending on what was asked, certified used cars (masked registration only), the next free test-drive or service slots, showroom and workshop details, **EMI figures computed by the server** with the site's calculator (from the amount and tenure the buyer typed, else 80% of a named car over 3/5/7 years, else a Rs 10 lakh example, always with the assumed-rate note), and, for a signed-in buyer only, their own bookings and cars (from the session's user id, never from the message).
+- **Deliberately not offered:** on-road prices (the breakup stays behind the lead gate; the bot gives ex-showroom and points to the model page), inspection reports, valuations, lead data.
+- **Guards on the answer:** discount filter, no registration number, every rupee amount must appear in the fact pack (`12.45 lakh` is accepted for `12,45,000`, `12 lakh` is not), links only to site sections in `SITE_PATH_PREFIXES`, 900 characters max. Any failure uses the rule-based answer instead. Prompt-injection phrases skip the model entirely.
 - The widget turns allowed page paths in bot messages into real links (`ChatText.tsx`).
 
 ---
@@ -132,12 +132,22 @@ Every AI feature is called through `runAi()` (`index.ts` -> `runner.ts`), so the
 - **Grounding**: every rupee amount in buyer-facing text must appear in a tool result (price engine, EMI calculator, catalog). `groundingSources: []` forbids any amount, which is how first-reply drafts are checked.
 - **Prompt injection**: `looksLikePromptInjection` short-circuits to the fallback; `wrapUntrusted` fences buyer text so it is treated as data; `sanitizeUserText` strips control characters.
 
-**Provider and models.** `AI_PROVIDER` is `google` (Gemini, works with a free AI Studio key; the default) or `anthropic` (Claude). `AI_MODEL_FAST` (chatbot, handoff brief, digest note, price-band note) and `AI_MODEL_SMART` (lead briefing, Lead Desk Agent) override the provider defaults; run `pnpm ai:smoke` to see which models a key can call and to test plain text, structured output and a tool call on each. Model names and free-tier access change, so the defaults are only a starting point.
+**Provider and models.** `AI_PROVIDER` is `google` (Gemini, works with a free AI Studio key; the default) or `anthropic` (Claude). `AI_MODEL_FAST` (chatbot, handoff brief, digest note, price-band note) and `AI_MODEL_SMART` (lead briefing, Lead Desk Agent) override the provider defaults, which for Gemini are Google's own `gemini-flash-lite-latest` and `gemini-flash-latest` aliases. **Do not choose a model by its name or its version number:** the list a key returns contains models it cannot call (Gemini 2.5 is listed but retired for new keys), the newest models are often overloaded (one took 172 s to say OK), and Pro models have no free quota. Run `pnpm ai:smoke`: it tries the flash and flash-lite candidates, picks the fastest that answer, tests plain text, structured output and a chat-sized prompt on them, and prints the two lines to put in `.env.local`. Gemini 3 models reject the thinking-off setting that 2.5 uses, so it is only sent to 2.5 ids.
 
 **Small quotas (free keys).**
 - A 429 / `RESOURCE_EXHAUSTED` from the API pauses model calls for the time the API asks (default 60 s); features answer from their rule-based path meanwhile and the audit log records `fallback` with `[rate_limited]` (it does not count against `AI_DAILY_CALL_CAP`).
 - `AI_MAX_RPM` is an optional ceiling on model calls per minute; set it a little under the key's limit. Calls fail fast (no hidden SDK retries).
-- A buyer-chat turn can make several requests (one per tool step): `AI_CHAT_MAX_STEPS` (default 3) limits that.
+- A buyer-chat turn is one request. The price-band note is remembered for a day per band, and lead briefings are only rewritten when the lead changed.
+- **Circuit breaker:** two failed calls in a row (timeout, high demand, any error) pause model calls for 30 s, so an overloaded model costs one slow request instead of one for every buyer message.
 - `AI_DAILY_CALL_CAP` is per feature; keep the sum under the key's daily limit.
 
 **Personal data and the provider.** Every buyer- or staff-typed text is passed through `redactPii()` before it reaches a model: phone numbers, emails, vehicle registration numbers, PAN and Aadhaar-style numbers become `[phone]`, `[email]`, `[reg]`, `[id]`. The model gets the buyer's first name and what they asked for. On Google's free tier the provider may use prompts to improve its services and reviewers may read them; the privacy page (section 6) and a line under the chat box say so. Removing `AI_PROVIDER_API_KEY` switches every feature back to rule-based answers at once.
+
+---
+
+## Future scope (not built; no code or stubs exist for these)
+
+- **Model-driven tool calling** in the chatbot and the Lead Desk Agent (the model choosing its own lookups and proposals step by step). Gemini 3 needs thought signatures passed back between tool steps, which the AI library version this project uses (v4 with `@ai-sdk/google` 1.x) does not do, and every tool step is another request against a small free quota. It needs either upgrading the AI library to the current major version or running on a Claude / paid key. Until then the server gathers the facts and asks once.
+- **Pro-class models** for lead briefings and the agent (no free quota).
+- **Letting the chatbot look up anything on its own**, beyond the fixed fact pack.
+

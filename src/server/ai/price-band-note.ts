@@ -53,9 +53,22 @@ export interface BandNoteOptions {
   runner?: <T>(options: AiRunOptions<T>) => Promise<AiRunResult<T>>;
 }
 
+/**
+ * The same band always gets the same explanation, so a successful note is kept for a day. Reopening a drawer then
+ * costs no model request, which matters on a small free quota. Failures are not cached, so the next open retries.
+ */
+const NOTE_TTL_MS = 24 * 3600_000;
+const noteCache = new Map<string, { note: string; at: number }>();
+export function clearBandNoteCache(): void {
+  noteCache.clear();
+}
+
 /** The explanation, or null when AI is off / capped / blocked (the screen already shows the band's own rationale). */
 export async function explainPriceBand(subject: BandNoteSubject, band: PriceBand, options: BandNoteOptions = {}): Promise<string | null> {
   const facts = describeBand(subject, band);
+  const cacheKey = hashInput(facts);
+  const cached = noteCache.get(cacheKey);
+  if (cached && Date.now() - cached.at < NOTE_TTL_MS) return cached.note;
   const generate =
     options.generate ??
     (async ({ model, signal, system, prompt }) => {
@@ -78,5 +91,9 @@ export async function explainPriceBand(subject: BandNoteSubject, band: PriceBand
     guard: (note) => guardBandNote(note, facts),
     fallback: () => "",
   });
-  return outcome.source === "ai" && outcome.value ? outcome.value : null;
+  if (outcome.source === "ai" && outcome.value) {
+    noteCache.set(cacheKey, { note: outcome.value, at: Date.now() });
+    return outcome.value;
+  }
+  return null;
 }

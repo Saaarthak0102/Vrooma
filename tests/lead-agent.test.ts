@@ -9,14 +9,12 @@ import {
   type AgentProposal,
   type ProposalContext,
 } from "@/lib/lead-agent";
-import { buildAgentTools, suggestNextSteps } from "@/server/ai/lead-agent";
+import { SuggestionSchema, suggestNextSteps, toProposals, type RawSuggestion } from "@/server/ai/lead-agent";
 import type { LeadAiInput } from "@/server/ai/lead-context";
 import { FOLLOWUP_LIMITS, planFollowUps, type BookingFollowUp, type StaleLead } from "@/server/automations/followups";
 import { runWithFallback, type AiRunDeps, type AiRunOptions } from "@/server/ai/runner";
 import type { AiLogEntry } from "@/server/ai/types";
 import { findForbiddenDiscountWord } from "@/lib/validation/discount";
-
-const opts = { toolCallId: "t", messages: [] } as any;
 
 const ctx: ProposalContext = {
   slots: [
@@ -114,33 +112,63 @@ describe("ruleBasedProposals (fallback)", () => {
   });
 });
 
-describe("agent tools", () => {
-  const make = () => {
-    const collected: AgentProposal[] = [];
-    return { collected, tools: buildAgentTools({ ctx, collected }) as any };
-  };
+const raw = (over: Partial<RawSuggestion> = {}): RawSuggestion => ({
+  kind: "task", reason: "New lead, the 5-minute SLA applies", text: null, slotId: null, status: null, consultantId: null, title: null, dueInHours: null, ...over,
+});
 
-  it("exposes only read-only lookups and propose_* tools, no way to send or change anything", () => {
-    const names = Object.keys(make().tools).sort();
-    expect(names).toEqual(["get_consultant_load", "get_open_slots", "propose_escalate", "propose_offer_slot", "propose_reassign", "propose_reply", "propose_status_change", "propose_task"]);
+describe("toProposals (the model's flat suggestions, checked against real data)", () => {
+  it("keeps valid suggestions of every kind, with labels and names taken from our data", () => {
+    const out = toProposals(
+      [
+        raw({ kind: "task", title: "Call now", dueInHours: 0 }),
+        raw({ kind: "reply", text: "Namaste Asha, happy to help with the Model H ZX. Would a test drive this week suit you?" }),
+        raw({ kind: "offer_slot", slotId: "s2" }),
+      ],
+      ctx,
+    );
+    expect(out.map((p) => p.kind)).toEqual(["task", "reply", "offer_slot"]);
+    expect(out[2]).toMatchObject({ slotId: "s2", label: "Tue, 10 Nov, 4:00 pm at Hazratganj" });
+    const reassign = toProposals([raw({ kind: "reassign", consultantId: "c2", reason: "lighter load" })], ctx);
+    expect(reassign[0]).toMatchObject({ consultantId: "c2", consultantName: "Anita Verma" });
   });
 
-  it("lookups return our data", async () => {
-    const { tools } = make();
-    expect((await tools.get_open_slots.execute({}, opts)).slots).toHaveLength(2);
-    expect((await tools.get_consultant_load.execute({}, opts)).consultants[1]).toMatchObject({ id: "c2", openLeads: 3 });
+  it("drops anything with a missing field or that breaks a rule", () => {
+    const out = toProposals(
+      [
+        raw({ kind: "task", title: null }), // no title
+        raw({ kind: "reply", text: null }), // no text
+        raw({ kind: "reply", text: "Namaste Asha, I can give you a discount if you visit today, shall we fix a time?" }),
+        raw({ kind: "reply", text: "Namaste Asha, the Model H ZX is ₹12,45,000, shall we fix a visit this week?" }),
+        raw({ kind: "offer_slot", slotId: "made-up" }),
+        raw({ kind: "reassign", consultantId: "c1" }), // already the owner
+        raw({ kind: "reassign", consultantId: "ghost" }),
+        raw({ kind: "status_change", status: null }),
+      ],
+      ctx,
+    );
+    expect(out).toEqual([]);
   });
 
-  it("records valid proposals, rejects invalid ones with an error, one per kind, three at most", async () => {
-    const { tools, collected } = make();
-    expect(await tools.propose_offer_slot.execute({ slotId: "nope", reason: "because" }, opts)).toMatchObject({ accepted: false });
-    expect(await tools.propose_reply.execute({ text: "Namaste Asha, I can offer a discount today, shall we fix a time?", reason: "because" }, opts)).toMatchObject({ accepted: false });
-    expect(await tools.propose_task.execute({ title: "Call now", dueInHours: 0, reason: "SLA" }, opts)).toEqual({ accepted: true });
-    expect(await tools.propose_task.execute({ title: "Call again", dueInHours: 1, reason: "SLA" }, opts)).toMatchObject({ accepted: false });
-    await tools.propose_offer_slot.execute({ slotId: "s1", reason: "next slot" }, opts);
-    await tools.propose_escalate.execute({ reason: "asked about price" }, opts);
-    expect(await tools.propose_status_change.execute({ status: "contacted", reason: "spoke today" }, opts)).toMatchObject({ accepted: false });
-    expect(collected.map((p) => p.kind)).toEqual(["task", "offer_slot", "escalate"]);
+  it("keeps one per kind and at most three, in the model's order", () => {
+    const out = toProposals(
+      [raw({ kind: "task", title: "Call now", dueInHours: 0 }), raw({ kind: "task", title: "Again", dueInHours: 1 }), raw({ kind: "escalate" }), raw({ kind: "offer_slot", slotId: "s1" }), raw({ kind: "status_change", status: "contacted" })],
+      ctx,
+    );
+    expect(out.map((p) => p.kind)).toEqual(["task", "escalate", "offer_slot"]);
+  });
+
+  it("clamps a task's due time and defaults a missing one to a day", () => {
+    expect(toProposals([raw({ kind: "task", title: "Call now", dueInHours: 9999 })], ctx)[0]).toMatchObject({ dueInHours: 168 });
+    expect(toProposals([raw({ kind: "task", title: "Call now", dueInHours: null })], ctx)[0]).toMatchObject({ dueInHours: 24 });
+  });
+});
+
+describe("SuggestionSchema", () => {
+  it("accepts null fields and rejects an unknown kind, a status of won, or too many suggestions", () => {
+    expect(SuggestionSchema.safeParse({ proposals: [raw()] }).success).toBe(true);
+    expect(SuggestionSchema.safeParse({ proposals: [raw({ kind: "send_money" as never })] }).success).toBe(false);
+    expect(SuggestionSchema.safeParse({ proposals: [raw({ kind: "status_change", status: "won" as never })] }).success).toBe(false);
+    expect(SuggestionSchema.safeParse({ proposals: Array.from({ length: 5 }, () => raw()) }).success).toBe(false);
   });
 });
 
@@ -157,31 +185,35 @@ function fakeRunner(enabled = true) {
   return { logs, runner: <T,>(o: AiRunOptions<T>) => runWithFallback(o, deps) };
 }
 
-describe("suggestNextSteps", () => {
-  it("returns the proposals the model recorded through the tools", async () => {
+describe("suggestNextSteps (one request, no tools)", () => {
+  it("sends the lead, the open slots and the workload in a single prompt and returns the validated suggestions", async () => {
     const { runner, logs } = fakeRunner();
+    let seen: Record<string, unknown> = {};
     const out = await suggestNextSteps(lead(), ctx, {
       runner,
-      generate: async ({ tools }) => {
-        const t = tools as any;
-        await t.propose_task.execute({ title: "Call now", dueInHours: 0, reason: "New lead, SLA running" }, opts);
-        await t.propose_offer_slot.execute({ slotId: "s2", reason: "Buyer wants this week" }, opts);
-        return { usage: { promptTokens: 900, completionTokens: 120 } };
+      generate: async (args) => {
+        seen = args as never;
+        return {
+          object: { proposals: [raw({ kind: "task", title: "Call now", dueInHours: 0 }), raw({ kind: "offer_slot", slotId: "s2", reason: "Buyer wants this week" })] },
+          usage: { promptTokens: 900, completionTokens: 120 },
+        };
       },
     });
     expect(out.source).toBe("ai");
     expect(out.proposals.map((p) => p.kind)).toEqual(["task", "offer_slot"]);
+    expect(Object.keys(seen)).not.toContain("tools");
+    expect(String(seen.prompt)).toContain("s1 | Tue, 10 Nov, 11:00 am at Hazratganj");
+    expect(String(seen.prompt)).toContain("c2 | Anita Verma | 3 open leads");
+    expect(String(seen.prompt)).toContain("CURRENT OWNER");
+    expect(String(seen.prompt)).toContain("Buyer first name: Asha");
     expect(logs[0]).toMatchObject({ feature: "lead_agent", status: "ok", usage: { inputTokens: 900, outputTokens: 120 } });
   });
 
-  it("falls back to rule-based suggestions when the model proposes nothing usable", async () => {
+  it("falls back to rule-based suggestions when nothing the model says survives validation", async () => {
     const { runner, logs } = fakeRunner();
     const out = await suggestNextSteps(lead(), ctx, {
       runner,
-      generate: async ({ tools }) => {
-        await (tools as any).propose_status_change.execute({ status: "won", reason: "they will buy" }, opts);
-        return {};
-      },
+      generate: async () => ({ object: { proposals: [raw({ kind: "reply", text: "Namaste Asha, I can offer a discount today, shall we fix a time?" })] } }),
     });
     expect(out).toMatchObject({ source: "fallback", reason: "empty" });
     expect(out.proposals[0].kind).toBe("task");
@@ -191,7 +223,7 @@ describe("suggestNextSteps", () => {
   it("uses the rule-based suggestions without calling the model when AI is off", async () => {
     const { runner } = fakeRunner(false);
     let called = false;
-    const out = await suggestNextSteps(lead(), ctx, { runner, generate: async () => ((called = true), {}) });
+    const out = await suggestNextSteps(lead(), ctx, { runner, generate: async () => ((called = true), { object: { proposals: [] } }) });
     expect(called).toBe(false);
     expect(out).toMatchObject({ source: "fallback", reason: "disabled" });
   });

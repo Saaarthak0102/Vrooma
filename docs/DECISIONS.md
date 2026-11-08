@@ -147,3 +147,9 @@
 - **Consequences:** free keys have small per-minute and per-day quotas, so the runner pauses model calls after a 429 (`rate-gate.ts`), supports a per-minute ceiling, fails fast instead of retrying, and limits chat tool steps. The site never depends on the model: every feature has a rule-based path.
 - **Data:** the owner chose to run the free tier in production. On that tier Google may use prompts and responses to improve its products and reviewers may read them. Mitigations: `redactPii()` removes phone numbers, emails, registration numbers and ID numbers from every text sent; only the first name and the enquiry content go out; the privacy page (section 6) and the chat box disclose it; the key can be removed at any time. **Owner/legal action:** approve the wording of privacy section 6 and the chat notice before launch. A paid-tier key (no training on prompts) is a one-line change if this decision is revisited.
 
+## ADR addendum: no model-driven tool calls while on a free Gemini key
+
+- **Date:** 2026-11-08
+- **Context:** the first real smoke tests on the free key showed Gemini 2.5 retired for new keys, Gemini 3 flash models overloaded or very slow, Pro models without free quota, and Gemini 3 tool calls failing with a missing thought_signature error under the AI library version in use.
+- **Decision:** the chatbot and the Lead Desk Agent make **one** request each; the server gathers the facts (catalog, prices, server-computed EMI, open slots, workload) first. The tool-calling code was removed, not kept as a dead path. Models are chosen by trying them (`pnpm ai:smoke`), and a circuit breaker pauses calls after two failures in a row. Model-driven tool calling is recorded as future scope in `docs/AI.md`.
+

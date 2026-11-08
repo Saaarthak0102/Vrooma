@@ -20,11 +20,13 @@ import type { AiTier } from "@/server/ai/types";
 export type AiProvider = "google" | "anthropic";
 
 /**
- * Used when AI_MODEL_FAST / AI_MODEL_SMART are not set. Model names and free-tier access change over time, so run
- * `pnpm ai:smoke`: it lists what your key can call and recommends a pair to put in the env.
+ * Used when AI_MODEL_FAST / AI_MODEL_SMART are not set. Google keeps retiring model names for new keys (2.5 is
+ * already gone), so the Gemini defaults are Google's own "-latest" aliases, which always point at a current model.
+ * An alias can change behaviour or be briefly overloaded: run `pnpm ai:smoke` and pin the names it recommends in
+ * .env.local for steadier results.
  */
 export const DEFAULT_MODELS: Record<AiProvider, Record<AiTier, string>> = {
-  google: { fast: "gemini-2.5-flash-lite", smart: "gemini-2.5-flash" },
+  google: { fast: "gemini-flash-lite-latest", smart: "gemini-flash-latest" },
   anthropic: { fast: "claude-haiku-5-5", smart: "claude-sonnet-5-5" },
 };
 
@@ -58,14 +60,20 @@ export function resolveModel(tier: AiTier): { model: LanguageModel; id: string }
 }
 
 /**
- * Per-call extras for generateText / generateObject. On Gemini the fast tier turns "thinking" off: it adds seconds
- * of latency and counts against the quota, and these tasks (short answers, summaries, extraction) do not need it.
+ * Gemini's "thinking" can be switched off with thinkingBudget: 0, but only the 2.5 family understands that setting.
+ * Newer models reject it with "invalid argument" (this broke every call to gemini-3.5-flash-lite), so it is sent to
+ * 2.5 models only and nothing extra is sent to any other model. Pure, so it is unit tested.
  */
-export function providerOptionsFor(tier: AiTier): Record<string, Record<string, unknown>> | undefined {
-  if (env.AI_PROVIDER === "google" && tier === "fast") {
+export function thinkingOptionsFor(provider: AiProvider, modelId: string, tier: AiTier): Record<string, Record<string, unknown>> | undefined {
+  if (provider === "google" && tier === "fast" && /^gemini-2\.5-/.test(modelId)) {
     return { google: { thinkingConfig: { thinkingBudget: 0 } } };
   }
   return undefined;
+}
+
+/** Per-call extras for generateText / generateObject for the model currently configured for this tier. */
+export function providerOptionsFor(tier: AiTier): Record<string, Record<string, unknown>> | undefined {
+  return thinkingOptionsFor(env.AI_PROVIDER, modelIdFor(tier), tier);
 }
 
 /** Per-call wall-clock budget. Buyer chat must feel instant; staff features can wait a little longer. */

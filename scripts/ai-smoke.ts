@@ -1,52 +1,68 @@
 /**
  * scripts/ai-smoke.ts   (pnpm ai:smoke)
  *
- * First thing to run after putting an API key in .env.local. It does NOT start the app and does NOT touch the
- * database. For the configured provider (AI_PROVIDER, default google) it:
- *   1. lists the models the key can call and recommends a fast and a smart one (Gemini),
- *   2. runs, for each of the two models, the three kinds of call the app makes: plain text, structured output
- *      (what lead briefings use) and a tool call (what the chatbot and agent use),
- *   3. prints latency and token counts and exits non-zero if anything failed.
+ * First thing to run after putting an API key in .env.local. It does not start the app and does not touch the
+ * database. It chooses the models by TRYING them, because the model list is not trustworthy: it contains models the
+ * key cannot call (Gemini 2.5 is listed but retired for new keys), and the newest model is often overloaded.
  *
- * The key is read from AI_PROVIDER_API_KEY and is never printed. Calls are tiny (about six requests in total), but a
- * free key has a small per-minute limit: if you see a rate-limit message, wait a minute and run it again.
+ *   1. lists the models the key can see,
+ *   2. sends one tiny request to each candidate (flash and flash-lite models only; never pro, preview, image, tts,
+ *      live or computer-use models) with a time limit, and records which answered and how fast,
+ *   3. on the fastest working fast model and smart model, runs the three kinds of request the app makes: plain text,
+ *      structured output (what lead briefings and the Next-steps agent use) and a chat-sized prompt with a facts
+ *      block (what the chatbot uses),
+ *   4. prints the two lines to put in .env.local.
  *
- * Usage:  pnpm ai:smoke            (uses AI_MODEL_FAST / AI_MODEL_SMART if set, else the recommendation)
+ * The key is read from AI_PROVIDER_API_KEY and is never printed. Requests are spaced out to stay under a free key's
+ * per-minute limit, so a full run takes one to two minutes.
+ *
+ * Usage:  pnpm ai:smoke
+ *         pnpm ai:smoke -- --models gemini-3.5-flash,gemini-3.1-flash-lite     (try exactly these)
  */
 
 import fs from "node:fs";
 import path from "node:path";
-import { createAnthropic } from "@ai-sdk/anthropic";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
-import { generateObject, generateText, tool } from "ai";
+import { generateObject, generateText } from "ai";
 import { z } from "zod";
 
-export interface ListedModel {
-  name: string;
-  methods: string[];
+// ------------------------------------------------------------------------------------------------------------------
+// Pure helpers (unit tested)
+// ------------------------------------------------------------------------------------------------------------------
+
+/** Tried in this order. Names are only candidates: each one is probed before it is recommended. */
+export const FAST_CANDIDATES = ["gemini-3.1-flash-lite", "gemini-3.5-flash-lite", "gemini-flash-lite-latest"];
+export const SMART_CANDIDATES = ["gemini-3.5-flash", "gemini-3.6-flash", "gemini-3.7-flash", "gemini-3.8-flash", "gemini-flash-latest"];
+
+/** Kinds of model a free key either cannot use or should not depend on. */
+const EXCLUDED = /(pro|preview|exp|image|tts|live|computer|robotics|transcribe|omni|nano|banana|embedding|aqa|audio|customtools|argon)/i;
+
+export function usableCandidate(name: string): boolean {
+  return /^gemini-/.test(name) && !EXCLUDED.test(name);
 }
 
-/**
- * Picks the newest STABLE flash-lite (fast) and flash (smart) from a model list. Previews, experiments, image,
- * audio, live and embedding models are skipped, because they are not what a free key should depend on.
- * Pure, so it is unit tested.
- */
-export function recommendModels(models: ListedModel[]): { fast: string | null; smart: string | null } {
-  const usable = models
-    .filter((m) => m.methods.includes("generateContent"))
-    .map((m) => m.name.replace(/^models\//, ""));
-  const newest = (pattern: RegExp): string | null => {
-    const matches = usable
-      .map((name) => ({ name, m: pattern.exec(name) }))
-      .filter((x): x is { name: string; m: RegExpExecArray } => Boolean(x.m))
-      .sort((a, b) => Number(b.m[1]) - Number(a.m[1]));
-    return matches[0]?.name ?? null;
-  };
-  return {
-    fast: newest(/^gemini-(\d+(?:\.\d+)?)-flash-lite$/),
-    smart: newest(/^gemini-(\d+(?:\.\d+)?)-flash$/),
-  };
+/** The wanted names that the key lists, in the wanted order, minus excluded kinds. */
+export function filterCandidates(listed: string[], wanted: string[]): string[] {
+  const have = new Set(listed.map((n) => n.replace(/^models\//, "")));
+  return wanted.filter((w) => have.has(w) && usableCandidate(w));
 }
+
+export interface Probe {
+  model: string;
+  ok: boolean;
+  ms: number;
+  note: string;
+}
+
+/** The fastest probe that passed among `pool` (falls back to the fastest passing probe overall). */
+export function pickBest(probes: Probe[], pool: string[]): string | null {
+  const passed = probes.filter((p) => p.ok).sort((a, b) => a.ms - b.ms);
+  return passed.find((p) => pool.includes(p.model))?.model ?? passed[0]?.model ?? null;
+}
+
+// ------------------------------------------------------------------------------------------------------------------
+// Runner
+// ------------------------------------------------------------------------------------------------------------------
 
 function loadEnv() {
   for (const file of [".env.local", ".env"]) {
@@ -65,17 +81,38 @@ function loadEnv() {
   }
 }
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const PACE_MS = 4_000;
+const TIMEOUT_MS = 30_000;
+const PROBE_TIMEOUT_MS = 20_000;
 const ms = (t: number) => `${Math.round(t)} ms`;
-const tok = (u?: { promptTokens?: number; completionTokens?: number }) => (u ? `${u.promptTokens ?? "?"} in / ${u.completionTokens ?? "?"} out tokens` : "tokens unknown");
+const tok = (u?: { promptTokens?: number; completionTokens?: number }) => (u ? `${u.promptTokens ?? "?"} in / ${u.completionTokens ?? "?"} out tokens` : "");
 
-function explain(err: any): string {
+/** The API's own words, not a summary of them. */
+function describeError(err: any): string {
   const msg = String(err?.message ?? err);
-  if (err?.statusCode === 429 || /429|RESOURCE_EXHAUSTED|quota/i.test(msg)) {
-    return `RATE LIMITED (${msg.slice(0, 120)}). Wait a minute and run again, and check the limits on your key's usage page.`;
+  let body = "";
+  if (typeof err?.responseBody === "string") {
+    try {
+      const j = JSON.parse(err.responseBody);
+      body = j?.error?.message ? ` | ${j.error.status ?? ""} ${j.error.message}` : ` | ${err.responseBody}`;
+    } catch {
+      body = ` | ${err.responseBody}`;
+    }
   }
-  if (err?.statusCode === 400 || /API key|API_KEY_INVALID/i.test(msg)) return `REJECTED (${msg.slice(0, 160)}). Check the key and the model name.`;
-  if (err?.statusCode === 404 || /not found|not supported/i.test(msg)) return `MODEL NOT AVAILABLE to this key (${msg.slice(0, 120)}). Pick another from the list above.`;
-  return msg.slice(0, 220);
+  const timedOut = err?.name === "TimeoutError" || err?.name === "AbortError" || /aborted|timeout/i.test(msg);
+  const hint = timedOut
+    ? "NO ANSWER IN TIME (the model is probably overloaded right now)"
+    : err?.statusCode === 429 || /429|RESOURCE_EXHAUSTED|quota/i.test(msg)
+      ? "RATE LIMITED or no free quota for this model"
+      : err?.statusCode === 404 || /no longer available|not found/i.test(msg)
+        ? "NOT AVAILABLE to this key"
+        : err?.statusCode === 503 || /high demand|overloaded|UNAVAILABLE/i.test(msg)
+          ? "OVERLOADED right now"
+          : err?.statusCode === 400
+            ? "REJECTED by the API"
+            : "FAILED";
+  return `${hint}: ${msg}${body}`.replace(/\s+/g, " ").slice(0, 420);
 }
 
 async function main() {
@@ -87,100 +124,125 @@ async function main() {
     console.error("\n❌ AI_PROVIDER_API_KEY is not set (put it in .env.local). Nothing to test.\n");
     process.exit(1);
   }
-  if (provider !== "google" && provider !== "anthropic") {
-    console.error(`\n❌ AI_PROVIDER must be google or anthropic (got '${provider}').\n`);
+  if (provider !== "google") {
+    console.error(`\nThis tool probes Gemini models. For AI_PROVIDER=${provider} set AI_MODEL_FAST / AI_MODEL_SMART yourself.\n`);
     process.exit(1);
   }
-  console.log(`Provider: ${provider} (key present, not shown)\n`);
+  console.log("Provider: google (key present, not shown)\n");
 
-  let fast = process.env.AI_MODEL_FAST?.trim() || "";
-  let smart = process.env.AI_MODEL_SMART?.trim() || "";
+  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?pageSize=200&key=${encodeURIComponent(key)}`);
+  if (!res.ok) {
+    console.error(`❌ Could not list models (HTTP ${res.status}). ${res.status === 400 || res.status === 403 ? "The key looks invalid or has no access." : ""}\n`);
+    process.exit(1);
+  }
+  const body = (await res.json()) as { models?: { name: string; supportedGenerationMethods?: string[] }[] };
+  const listed = (body.models ?? []).filter((m) => (m.supportedGenerationMethods ?? []).includes("generateContent")).map((m) => m.name.replace(/^models\//, ""));
+  console.log(`The key can see ${listed.length} models. Being listed does not mean a model works; trying candidates now.\n`);
 
-  if (provider === "google") {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?pageSize=200&key=${encodeURIComponent(key)}`);
-    if (!res.ok) {
-      console.error(`❌ Could not list models (HTTP ${res.status}). ${res.status === 400 || res.status === 403 ? "The key looks invalid or has no access." : ""}\n`);
-      process.exit(1);
-    }
-    const body = (await res.json()) as { models?: { name: string; supportedGenerationMethods?: string[] }[] };
-    const models: ListedModel[] = (body.models ?? []).map((m) => ({ name: m.name, methods: m.supportedGenerationMethods ?? [] }));
-    const callable = models.filter((m) => m.methods.includes("generateContent")).map((m) => m.name.replace(/^models\//, ""));
-    console.log(`Models this key can call (${callable.length}):`);
-    for (const name of callable.filter((n) => n.startsWith("gemini")).sort()) console.log(`  ${name}`);
-    const rec = recommendModels(models);
-    console.log(`\nRecommended: AI_MODEL_FAST=${rec.fast ?? "(none found)"}  AI_MODEL_SMART=${rec.smart ?? "(none found)"}\n`);
-    fast ||= rec.fast ?? "gemini-2.5-flash-lite";
-    smart ||= rec.smart ?? "gemini-2.5-flash";
-  } else {
-    fast ||= "claude-haiku-5-5";
-    smart ||= "claude-sonnet-5-5";
+  const argIdx = process.argv.indexOf("--models");
+  const forced = argIdx !== -1 ? (process.argv[argIdx + 1] ?? "").split(",").map((s) => s.trim()).filter(Boolean) : [];
+  const fastPool = forced.length ? forced : filterCandidates(listed, FAST_CANDIDATES);
+  const smartPool = forced.length ? forced : filterCandidates(listed, SMART_CANDIDATES);
+  const candidates = [...new Set([...fastPool, ...smartPool])];
+  if (!candidates.length) {
+    console.error("❌ None of the candidate models is listed for this key. Run with --models name1,name2 to try specific ones.\n");
+    process.exit(1);
   }
 
-  const google = provider === "google" ? createGoogleGenerativeAI({ apiKey: key }) : null;
-  const anthropic = provider === "anthropic" ? createAnthropic({ apiKey: key }) : null;
-  const make = (id: string) => (google ? google(id) : anthropic!(id));
+  const google = createGoogleGenerativeAI({ apiKey: key });
+  const probes: Probe[] = [];
+  console.log("--- Trying each candidate with one tiny request");
+  for (const model of candidates) {
+    const t = performance.now();
+    try {
+      const r = await generateText({ model: google(model), prompt: "Reply with the single word OK.", maxRetries: 0, maxTokens: 20, abortSignal: AbortSignal.timeout(PROBE_TIMEOUT_MS) });
+      const ok = /ok/i.test(r.text);
+      probes.push({ model, ok, ms: performance.now() - t, note: ok ? "answered" : `unexpected answer ${JSON.stringify(r.text.slice(0, 30))}` });
+    } catch (err) {
+      probes.push({ model, ok: false, ms: performance.now() - t, note: describeError(err) });
+    }
+    const p = probes[probes.length - 1];
+    console.log(`  ${p.ok ? "PASS" : "FAIL"}  ${model.padEnd(28)} ${ms(p.ms).padStart(9)}  ${p.note}`);
+    await sleep(PACE_MS);
+  }
+
+  const fast = pickBest(probes, fastPool);
+  const smart = pickBest(probes, smartPool);
+  if (!fast || !smart) {
+    console.error("\n❌ No candidate answered. Check the quota for this key in AI Studio (Usage), then try again in a few minutes, or pass --models with other names.\n");
+    process.exit(1);
+  }
+  console.log(`\nChosen: fast = ${fast}, smart = ${smart}\n`);
 
   let failures = 0;
+  const factsBlock = [
+    "NEW CARS (ex-showroom prices):",
+    "- Model H, suv: ZX automatic (petrol, automatic) ₹12,45,000; VX (diesel, manual) ₹16,80,000. Page: /cars/model-h",
+    "EMI FIGURES (9.5% is an assumed rate)",
+    "- ₹10,00,000 over 60 months at 9.5%: ₹20,998 a month",
+  ].join("\n");
+
   for (const [tier, id] of [["fast", fast], ["smart", smart]] as const) {
     console.log(`--- ${tier}: ${id}`);
-    const model = make(id);
-    const providerOptions = google && tier === "fast" ? ({ google: { thinkingConfig: { thinkingBudget: 0 } } } as never) : undefined;
-
+    const model = google(id);
     const check = async (label: string, run: () => Promise<{ ok: boolean; note: string; usage?: { promptTokens?: number; completionTokens?: number } }>) => {
       const t = performance.now();
       try {
         const r = await run();
-        const line = `${r.ok ? "PASS" : "FAIL"}  ${label.padEnd(18)} ${ms(performance.now() - t).padStart(8)}  ${tok(r.usage)}  ${r.note}`;
-        console.log(`  ${line}`);
+        console.log(`  ${r.ok ? "PASS" : "FAIL"}  ${label.padEnd(20)} ${ms(performance.now() - t).padStart(9)}  ${tok(r.usage)}  ${r.note}`);
         if (!r.ok) failures++;
       } catch (err) {
-        console.log(`  FAIL  ${label.padEnd(18)} ${ms(performance.now() - t).padStart(8)}  ${explain(err)}`);
+        console.log(`  FAIL  ${label.padEnd(20)} ${ms(performance.now() - t).padStart(9)}  ${describeError(err)}`);
         failures++;
       }
+      await sleep(PACE_MS);
     };
-
-    await check("plain text", async () => {
-      const r = await generateText({ model, prompt: "Reply with the single word OK.", maxRetries: 0, providerOptions, maxTokens: 20 });
-      return { ok: /ok/i.test(r.text), note: JSON.stringify(r.text.slice(0, 40)), usage: r.usage };
-    });
 
     await check("structured output", async () => {
       const r = await generateObject({
         model,
         maxRetries: 0,
-        providerOptions,
+        abortSignal: AbortSignal.timeout(TIMEOUT_MS),
+        // the same flat, nullable shape the Next-steps agent uses
         schema: z.object({
-          summary: z.string().min(10).max(200),
-          urgency: z.enum(["high", "medium", "low"]),
-          budget: z.string().max(40).nullable(),
-          finance: z.boolean().nullable(),
+          proposals: z
+            .array(
+              z.object({
+                kind: z.enum(["reply", "task", "escalate"]),
+                reason: z.string().min(3).max(160),
+                text: z.string().max(420).nullable(),
+                title: z.string().max(100).nullable(),
+                dueInHours: z.number().nullable(),
+              }),
+            )
+            .max(3),
         }),
-        prompt: "Summarise this car enquiry for a sales consultant: 'Looking for a petrol automatic under 14 lakh, will need a loan, want to drive one this week.'",
+        prompt: "A new car enquiry arrived 2 minutes ago and nobody has called the buyer. Suggest up to 2 next steps for the sales consultant.",
       });
-      return { ok: ["high", "medium", "low"].includes(r.object.urgency), note: `urgency=${r.object.urgency} finance=${r.object.finance}`, usage: r.usage };
+      return { ok: r.object.proposals.length > 0, note: `${r.object.proposals.length} suggestions: ${r.object.proposals.map((p) => p.kind).join(", ")}`, usage: r.usage };
     });
 
-    await check("tool call", async () => {
+    await check("chat with facts", async () => {
       const r = await generateText({
         model,
         maxRetries: 0,
-        providerOptions,
-        maxSteps: 3,
-        tools: {
-          get_price: tool({
-            description: "Ex-showroom price of a Vrooma model.",
-            parameters: z.object({ model: z.string().min(1), maxPrice: z.number().int().positive().optional() }),
-            execute: async () => ({ model: "Model H", exShowroom: "₹12,45,000" }),
-          }),
-        },
-        prompt: "What is the ex-showroom price of the Model H? Use the tool and answer in one sentence.",
+        maxTokens: 300,
+        abortSignal: AbortSignal.timeout(TIMEOUT_MS),
+        system: `You are Vrooma's website assistant. Use ONLY the FACTS below. Copy rupee amounts exactly. Under 60 words, plain text.\n\nFACTS:\n${factsBlock}`,
+        messages: [{ role: "user", content: "What would the EMI be on a 10 lakh loan for 5 years, and what does the Model H ZX cost?" }],
       });
-      const used = r.steps.some((s) => s.toolResults.length > 0);
-      return { ok: used && /12,45,000|12\.45/.test(r.text), note: used ? `called the tool, answered: ${r.text.slice(0, 50)}` : "the model did not call the tool", usage: r.usage };
+      const quoted = /20,998/.test(r.text) && /12,45,000/.test(r.text);
+      return { ok: quoted, note: quoted ? `quoted the figures: ${r.text.replace(/\s+/g, " ").slice(0, 70)}` : `did not quote the facts: ${r.text.replace(/\s+/g, " ").slice(0, 90)}`, usage: r.usage };
     });
   }
 
-  console.log(failures === 0 ? "\n✅ All checks passed. Put the recommended model names in .env.local and restart the dev server.\n" : `\n❌ ${failures} check(s) failed. Fix those before turning the features on.\n`);
+  if (failures === 0) {
+    console.log("\n✅ All checks passed. Put these two lines in .env.local and restart the dev server:\n");
+    console.log(`AI_MODEL_FAST=${fast}`);
+    console.log(`AI_MODEL_SMART=${smart}\n`);
+  } else {
+    console.log(`\n❌ ${failures} check(s) failed. Send me this output; do not turn the features on yet.\n`);
+  }
   process.exit(failures === 0 ? 0 : 1);
 }
 
@@ -188,7 +250,7 @@ if (process.env.NODE_ENV !== "test" && !process.env.VITEST) {
   const isDirectRun = typeof process.argv[1] === "string" && process.argv[1].endsWith("ai-smoke.ts");
   if (isDirectRun) {
     main().catch((err) => {
-      console.error("Fatal error:", explain(err));
+      console.error("Fatal error:", describeError(err));
       process.exit(1);
     });
   }

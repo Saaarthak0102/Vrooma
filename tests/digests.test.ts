@@ -2,7 +2,7 @@ import fs from "node:fs";
 import { describe, expect, it } from "vitest";
 
 import { digestNote, guardDigestNote } from "@/server/ai/digest-note";
-import { describeBand, explainPriceBand, guardBandNote } from "@/server/ai/price-band-note";
+import { clearBandNoteCache, describeBand, explainPriceBand, guardBandNote } from "@/server/ai/price-band-note";
 import { isMarketingTemplate, marketingConsentGranted } from "@/server/automations/consent-gate";
 import {
   composeDigest,
@@ -149,11 +149,46 @@ describe("price band note", () => {
   it("explains only through the guarded runner, and returns null when blocked or AI is off", async () => {
     const good = await explainPriceBand(subject, band, { runner: fakeRunner(), generate: async () => ({ text: "The range rests on 7 past sales with medium confidence, so treat it as a guide." }) });
     expect(good).toContain("7 past sales");
+    clearBandNoteCache(); // the good note is cached; the next steps must reach the guard
     const invented = await explainPriceBand(subject, band, { runner: fakeRunner(), generate: async () => ({ text: "Similar cars sold for ₹9,90,000 last month." }) });
     expect(invented).toBeNull();
+    clearBandNoteCache();
     const advice = await explainPriceBand(subject, band, { runner: fakeRunner(), generate: async () => ({ text: "You should list it at ₹8,28,000." }) });
     expect(advice).toBeNull();
+    clearBandNoteCache();
     expect(await explainPriceBand(subject, band, { runner: fakeRunner(false), generate: async () => ({ text: "x" }) })).toBeNull();
+  });
+});
+
+describe("price band note cache", () => {
+  const band: PriceBand = { low: 810000, median: 828000, high: 845000, confidence: "medium", sampleSize: 7, rationale: "7 comparable sales, adjusted for year and km" };
+  const subject = { model_name: "Model C", year: 2022, km: 41200, fuel: "diesel" };
+
+  it("keeps a successful note so reopening the drawer makes no model request, and does not keep failures", async () => {
+    clearBandNoteCache();
+    let calls = 0;
+    const generate = async () => ((calls += 1), { text: "The range rests on 7 past sales with medium confidence, so treat it as a guide." });
+    expect(await explainPriceBand(subject, band, { runner: fakeRunner(), generate })).toContain("7 past sales");
+    expect(await explainPriceBand(subject, band, { runner: fakeRunner(), generate })).toContain("7 past sales");
+    expect(calls).toBe(1);
+
+    clearBandNoteCache();
+    let bad = 0;
+    const failing = async () => ((bad += 1), { text: "Similar cars sold for ₹9,90,000 last month." });
+    expect(await explainPriceBand(subject, band, { runner: fakeRunner(), generate: failing })).toBeNull();
+    expect(await explainPriceBand(subject, band, { runner: fakeRunner(), generate: failing })).toBeNull();
+    expect(bad).toBe(2); // a blocked note is retried, not remembered
+    clearBandNoteCache();
+  });
+
+  it("a different band is a different note", async () => {
+    clearBandNoteCache();
+    let calls = 0;
+    const generate = async () => ((calls += 1), { text: "The range rests on 7 past sales with medium confidence, so treat it as a guide." });
+    await explainPriceBand(subject, band, { runner: fakeRunner(), generate });
+    await explainPriceBand(subject, { ...band, low: 800000, sampleSize: 7 }, { runner: fakeRunner(), generate });
+    expect(calls).toBe(2);
+    clearBandNoteCache();
   });
 });
 

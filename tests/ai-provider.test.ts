@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_MODELS, aiEnabled, pickModelId } from "@/server/ai/provider";
-import { createRateGate, isRateLimitError, retryAfterMs, DEFAULT_COOLDOWN_MS } from "@/server/ai/rate-gate";
+import { DEFAULT_MODELS, aiEnabled, pickModelId, thinkingOptionsFor } from "@/server/ai/provider";
+import { BREAKER_COOLDOWN_MS, createRateGate, isRateLimitError, retryAfterMs, DEFAULT_COOLDOWN_MS } from "@/server/ai/rate-gate";
 import { redactPii, sanitizeUserText } from "@/server/ai/guard";
 import { buildLeadPrompt, type LeadAiInput } from "@/server/ai/lead-context";
 import { runWithFallback, type AiRunDeps, type AiRunOptions } from "@/server/ai/runner";
@@ -219,3 +219,81 @@ describe("personal data never goes to the model", () => {
     expect(prompt).not.toMatch(/9876543210|9123456780|asha@example|test\.user@|AB1234/);
   });
 });
+
+describe("model defaults and the thinking option", () => {
+  it("default to Google's -latest aliases, which cannot be retired the way gemini-2.5-* was", () => {
+    expect(DEFAULT_MODELS.google.fast).toBe("gemini-flash-lite-latest");
+    expect(DEFAULT_MODELS.google.smart).toBe("gemini-flash-latest");
+  });
+
+  it("sends the thinking-off setting only to Gemini 2.5 fast models (newer models reject it with a 400)", () => {
+    expect(thinkingOptionsFor("google", "gemini-2.5-flash-lite", "fast")).toEqual({ google: { thinkingConfig: { thinkingBudget: 0 } } });
+    for (const id of ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-flash-lite-latest", "gemini-3.8-flash"]) {
+      expect(thinkingOptionsFor("google", id, "fast"), id).toBeUndefined();
+    }
+    expect(thinkingOptionsFor("google", "gemini-2.5-flash", "smart")).toBeUndefined();
+    expect(thinkingOptionsFor("anthropic", "gemini-2.5-flash-lite", "fast")).toBeUndefined();
+  });
+});
+
+describe("circuit breaker for slow or overloaded models", () => {
+  it("two failures in a row pause calls for 30 s; one failure, or a success in between, does not", () => {
+    const gate = createRateGate();
+    gate.failed(1_000);
+    expect(gate.check(1_001)).toBeNull();
+    gate.succeeded();
+    gate.failed(2_000);
+    expect(gate.check(2_001)).toBeNull(); // the success reset the count
+    gate.failed(3_000);
+    expect(gate.check(3_001)).toBe("cooldown");
+    expect(gate.cause()).toBe("unavailable");
+    expect(gate.check(3_000 + BREAKER_COOLDOWN_MS - 1)).toBe("cooldown");
+    expect(gate.check(3_000 + BREAKER_COOLDOWN_MS)).toBeNull();
+  });
+
+  it("a rate limit keeps its own cause and longer wait", () => {
+    const gate = createRateGate();
+    gate.tripped(0);
+    expect(gate.cause()).toBe("rate_limit");
+    gate.failed(10);
+    gate.failed(20);
+    expect(gate.check(BREAKER_COOLDOWN_MS + 1)).toBe("cooldown"); // still inside the 60 s rate-limit wait
+    expect(gate.cause()).toBe("rate_limit");
+  });
+
+  it("in the runner: an overloaded model costs two slow tries, then buyers get the rule-based answer instantly", async () => {
+    const logs: AiLogEntry[] = [];
+    let clock = 5_000_000;
+    const deps: AiRunDeps = {
+      enabled: () => true,
+      resolveModel: () => ({ model: {} as never, id: "gemini-test" }),
+      timeoutMs: () => 100,
+      isOverCap: async () => false,
+      log: async (e) => void logs.push(e),
+      now: () => clock,
+      gate: createRateGate(),
+    };
+    let calls = 0;
+    const slow = (): AiRunOptions<string> => ({
+      feature: "chat",
+      action: "chat_answered",
+      tier: "fast",
+      run: () => {
+        calls++;
+        return new Promise(() => {}); // never answers: the 100 ms timeout fires
+      },
+      fallback: () => "rule-based answer",
+    });
+
+    expect((await runWithFallback(slow(), deps)).reason).toBe("timeout");
+    expect((await runWithFallback(slow(), deps)).reason).toBe("timeout");
+    const third = await runWithFallback(slow(), deps);
+    expect(third).toMatchObject({ source: "fallback", reason: "unavailable", value: "rule-based answer" });
+    expect(calls).toBe(2); // the third buyer did not wait at all
+
+    clock += BREAKER_COOLDOWN_MS + 1;
+    const ok = await runWithFallback({ ...slow(), run: async () => ({ value: "from the model" }) }, deps);
+    expect(ok).toMatchObject({ source: "ai", value: "from the model" });
+  });
+});
+

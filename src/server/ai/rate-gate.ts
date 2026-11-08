@@ -4,6 +4,8 @@
  *  - Cooldown: after the API answers 429 / RESOURCE_EXHAUSTED, no model call is made until the cooldown ends
  *    (the time the API asked for, else 60 s). Features use their rule-based answer meanwhile.
  *  - Ceiling: optionally at most `maxPerMinute` model calls in any rolling minute (0 = no ceiling).
+ *  - Breaker: two failed calls in a row (timeout, "high demand", any error) pause model calls for 30 s, so an
+ *    overloaded or broken model costs one slow request, not one for every buyer message. One success resets it.
  *
  * In-memory and per server instance: a best-effort guard, not a global limiter. The daily cap in budget.ts and the
  * API's own 429 remain the hard limits.
@@ -15,13 +17,23 @@ export interface RateGate {
   record(now: number): void;
   /** The API said "too many requests". */
   tripped(now: number, retryAfterMs?: number): void;
+  /** A call failed for any other reason (timeout, overloaded, error). */
+  failed(now: number): void;
+  /** A call got an answer from the model. */
+  succeeded(): void;
+  /** Why the gate is closed, so the log can say rate limit or unavailable. */
+  cause(): "rate_limit" | "unavailable" | null;
 }
 
 export const DEFAULT_COOLDOWN_MS = 60_000;
+export const BREAKER_COOLDOWN_MS = 30_000;
+export const BREAKER_FAILURES = 2;
 const MAX_COOLDOWN_MS = 10 * 60_000;
 
 export function createRateGate(maxPerMinute = 0): RateGate {
   let cooldownUntil = 0;
+  let causeNow: "rate_limit" | "unavailable" | null = null;
+  let failures = 0;
   let calls: number[] = [];
   return {
     check(now) {
@@ -38,6 +50,24 @@ export function createRateGate(maxPerMinute = 0): RateGate {
     tripped(now, retryAfterMs) {
       const wait = retryAfterMs && retryAfterMs > 0 ? Math.min(retryAfterMs, MAX_COOLDOWN_MS) : DEFAULT_COOLDOWN_MS;
       cooldownUntil = Math.max(cooldownUntil, now + wait);
+      causeNow = "rate_limit";
+      failures = 0;
+    },
+    failed(now) {
+      failures += 1;
+      if (failures >= BREAKER_FAILURES) {
+        failures = 0;
+        if (now + BREAKER_COOLDOWN_MS > cooldownUntil) {
+          cooldownUntil = now + BREAKER_COOLDOWN_MS;
+          causeNow = "unavailable";
+        }
+      }
+    },
+    succeeded() {
+      failures = 0;
+    },
+    cause() {
+      return causeNow;
     },
   };
 }
