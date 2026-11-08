@@ -269,6 +269,11 @@ describe("Phase 09: Post-0014 End-to-End Workflow Verification", () => {
     expect(bookingA).toBeTruthy();
     expect(bookingA.user_id).toBe(buyerAId);
 
+    // Staff may cancel any booking, so this only proves isolation if Buyer B really is a buyer. Another script
+    // (console-e2e) promotes this account to manager and can leave it that way; fail with a clear reason.
+    const { data: profileB } = await admin.from("profiles").select("role").eq("id", buyerBId).single();
+    expect(profileB?.role, "dev-buyer-2 must have the buyer role for this test (a leftover manager role from another script?)").toBe("buyer");
+
     // 2. Buyer B attempts to cancel Buyer A's booking -> must throw VR005
     const { error: cancelErr } = await buyerBClient.rpc("cancel_booking", {
       p_booking_id: bookingA.id,
