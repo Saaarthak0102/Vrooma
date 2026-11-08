@@ -119,4 +119,24 @@ describe("price engine", () => {
     });
     expect(result!.lines.find((l) => l.key === "tcs")?.amount).toBe(10000);
   });
+  describe("rule validity is judged on the Indian calendar date", () => {
+    // 2026-11-08 20:00 UTC is 2026-11-09 01:30 in India: the UTC date is still the 8th.
+    const justAfterIndianMidnight = new Date("2026-11-08T20:00:00Z");
+
+    it("does not price a rule that ended yesterday in India", () => {
+      const ended = { ...sampleRule, valid_from: "2026-01-01", valid_until: "2026-11-08" };
+      expect(computeOnRoad({ variant: sampleVariant, rule: ended, date: justAfterIndianMidnight })).toBeNull();
+    });
+
+    it("prices a rule that starts today in India", () => {
+      const starting = { ...sampleRule, valid_from: "2026-11-09", valid_until: "2026-12-31" };
+      expect(computeOnRoad({ variant: sampleVariant, rule: starting, date: justAfterIndianMidnight })).not.toBeNull();
+    });
+
+    it("still treats a plain date string as that calendar day", () => {
+      const oneDay = { ...sampleRule, valid_from: "2026-11-09", valid_until: "2026-11-09" };
+      expect(computeOnRoad({ variant: sampleVariant, rule: oneDay, date: "2026-11-09" })).not.toBeNull();
+      expect(computeOnRoad({ variant: sampleVariant, rule: oneDay, date: "2026-11-10" })).toBeNull();
+    });
+  });
 });

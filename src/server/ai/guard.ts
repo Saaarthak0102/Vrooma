@@ -1,4 +1,4 @@
-import { findForbiddenDiscountWord } from "@/lib/validation/discount";
+import { findForbiddenDiscountWord, findPriceConcessionPhrase } from "@/lib/validation/discount";
 
 /**
  * Output and input guards shared by every AI feature. Pure functions, no I/O, so they are unit-tested directly
@@ -173,7 +173,7 @@ export function guardAiText(text: string, options: GuardOptions = {}): GuardResu
   if (!trimmed) return { ok: false, reason: "empty" };
   if (options.maxChars && trimmed.length > options.maxChars) return { ok: false, reason: "too_long" };
 
-  const forbidden = options.skipDiscountCheck ? null : findForbiddenDiscountWord(trimmed);
+  const forbidden = options.skipDiscountCheck ? null : (findForbiddenDiscountWord(trimmed) ?? findPriceConcessionPhrase(trimmed));
   if (forbidden) return { ok: false, reason: "discount", detail: forbidden };
 
   if (containsRegistrationNumber(trimmed)) return { ok: false, reason: "registration_number" };

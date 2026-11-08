@@ -12,7 +12,8 @@ const Checkbox = React.forwardRef<
   <CheckboxPrimitive.Root
     ref={ref}
     className={cn(
-      "peer h-5 w-5 shrink-0 rounded-sm border border-ink/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-accent data-[state=checked]:border-accent data-[state=checked]:text-dark flex items-center justify-center transition-colors",
+      // before:-inset-3 stretches the tappable area to about 44px without changing how the box looks.
+      "peer relative h-5 w-5 shrink-0 rounded-sm border border-ink/30 before:absolute before:-inset-3 before:content-[''] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-accent data-[state=checked]:border-accent data-[state=checked]:text-dark flex items-center justify-center transition-colors",
       className
     )}
     {...props}

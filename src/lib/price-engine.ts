@@ -1,3 +1,4 @@
+import { istDateString } from "./ist-format";
 export const TCS_THRESHOLD = 1_000_000;
 
 export interface PriceEngineVariant {
@@ -62,7 +63,9 @@ export function computeOnRoad({
 
   // Check date validity
   const targetDate = typeof date === "string" ? new Date(date) : date;
-  const targetIso = targetDate.toISOString().slice(0, 10);
+  // The Indian calendar date: between midnight and 05:30 IST the UTC date is still yesterday, which would price a
+  // rule that ended yesterday and ignore one that starts today.
+  const targetIso = istDateString(targetDate);
 
   if (targetIso < rule.valid_from || targetIso > rule.valid_until) {
     return null;

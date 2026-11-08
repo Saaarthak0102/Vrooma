@@ -71,9 +71,9 @@ export function SiteHeader() {
           <div className="flex h-14 items-center justify-between px-4 sm:px-6">
             {/* Left: Brand mark + Vrooma wordmark */}
             <div
-              className={`flex items-center h-[42px] px-3 ${GLASS_BASE} ${isScrolled ? GLASS_SCROLLED : GLASS_TOP}`}
+              className={`flex items-center h-11 px-3 ${GLASS_BASE} ${isScrolled ? GLASS_SCROLLED : GLASS_TOP}`}
             >
-              <Link href="/" className="flex items-center gap-2.5 group">
+              <Link href="/" className="flex h-full items-center gap-2.5 group">
                 <div className="h-8 w-8 relative overflow-hidden rounded-md bg-dark flex items-center justify-center p-1">
                   <Image
                     src="/images/placeholders/logo-mark.svg"
@@ -163,7 +163,7 @@ export function SiteHeader() {
             <Link
               href="/"
               onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center gap-2.5"
+              className="flex min-h-11 items-center gap-2.5"
             >
               <div className="h-8 w-8 relative overflow-hidden rounded-md bg-dark flex items-center justify-center p-1">
                 <Image

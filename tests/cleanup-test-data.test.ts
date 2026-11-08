@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { cleanupTestData, isTestLead } from "@/../scripts/cleanup-test-data";
+import { cleanupJunkSlots, cleanupTestData, isJunkSlot, isTestLead } from "@/../scripts/cleanup-test-data";
 
 const lead = (over: Partial<{ ref: string; name: string; source: string; email: string | null }> = {}) => ({
   ref: "LD-ABC123",
@@ -162,5 +162,89 @@ describe("cleanupTestData", () => {
     const f = fakeAdmin({ leads: [seed().leads[2]], bookings: [], slots: [] });
     expect(await cleanupTestData(f.admin)).toMatchObject({ leads: 0 });
     expect(f.log).toEqual([]);
+  });
+});
+
+
+describe("junk slots left by test runs", () => {
+  // 10:00 IST = 04:30 UTC. The generator only ever makes slots on the hour in Indian time.
+  const onTheHour = "2026-11-10T04:30:00.000Z";
+  const offTheHour = "2026-11-09T20:36:11.000Z";
+  const slot = (over: Partial<{ id: string; starts_at: string; booked_count: number }> = {}) => ({ id: "11111111-aaaa", starts_at: offTheHour, booked_count: 0, ...over });
+
+  it("flags unbooked slots that do not start on the hour in Indian time", () => {
+    expect(isJunkSlot(slot())).toBe(true);
+    expect(isJunkSlot(slot({ starts_at: "2026-11-09T20:30:30.000Z" }))).toBe(true); // right minute, stray seconds
+  });
+
+  it("never flags generated slots, booked slots, the demo data, or an unreadable date", () => {
+    expect(isJunkSlot(slot({ starts_at: onTheHour }))).toBe(false);
+    expect(isJunkSlot(slot({ booked_count: 1 }))).toBe(false);
+    expect(isJunkSlot(slot({ id: "5eed0001-0000-0000-0000-000000000001" }))).toBe(false);
+    expect(isJunkSlot(slot({ starts_at: "not a date" }))).toBe(false);
+  });
+
+  function fakeSlots(rows: any[], opts: { undeletable?: string[] } = {}) {
+    const calls: string[] = [];
+    const admin = {
+      from() {
+        const state: { op: "select" | "delete" | "update"; id?: string } = { op: "select" };
+        const builder: any = {
+          select: () => builder,
+          eq: (col: string, v: string) => {
+            if (col === "id") state.id = v;
+            return builder;
+          },
+          gte: () => builder,
+          order: () => builder,
+          range: async () => ({ data: rows.filter((r) => r.is_active), error: null }),
+          delete: () => ((state.op = "delete"), builder),
+          update: () => ((state.op = "update"), builder),
+          then: (resolve: any) => {
+            if (state.op === "delete") {
+              calls.push(`delete ${state.id}`);
+              if (opts.undeletable?.includes(state.id!)) return resolve({ error: { message: "violates foreign key constraint" } });
+              rows.splice(rows.findIndex((r) => r.id === state.id), 1);
+            } else if (state.op === "update") {
+              calls.push(`hide ${state.id}`);
+              rows.find((r) => r.id === state.id).is_active = false;
+            }
+            return resolve({ error: null });
+          },
+        };
+        return builder;
+      },
+    };
+    return { admin, calls };
+  }
+
+  const row = (id: string, starts_at: string, extra: object = {}) => ({ id, kind: "test_drive", starts_at, booked_count: 0, is_active: true, ...extra });
+
+  it("deletes junk slots and leaves real ones alone", async () => {
+    const rows = [row("a", offTheHour), row("b", onTheHour), row("5eed1", offTheHour), row("c", offTheHour, { booked_count: 1 })];
+    const { admin, calls } = fakeSlots(rows);
+    const r = await cleanupJunkSlots(admin);
+    expect(r.found.map((s) => s.id)).toEqual(["a"]);
+    expect([r.deleted, r.deactivated]).toEqual([1, 0]);
+    expect(calls).toEqual(["delete a"]);
+    expect(rows.map((x) => x.id)).toEqual(["b", "5eed1", "c"]);
+  });
+
+  it("hides a junk slot that a booking still points at instead of failing", async () => {
+    const rows = [row("a", offTheHour)];
+    const { admin, calls } = fakeSlots(rows, { undeletable: ["a"] });
+    const r = await cleanupJunkSlots(admin);
+    expect([r.deleted, r.deactivated]).toEqual([0, 1]);
+    expect(calls).toEqual(["delete a", "hide a"]);
+    expect(rows[0].is_active).toBe(false);
+  });
+
+  it("a dry run lists what it would remove and changes nothing", async () => {
+    const rows = [row("a", offTheHour), row("b", onTheHour)];
+    const { admin, calls } = fakeSlots(rows);
+    const r = await cleanupJunkSlots(admin, { dryRun: true });
+    expect(r.found.map((s) => s.id)).toEqual(["a"]);
+    expect(calls).toEqual([]);
+    expect(rows).toHaveLength(2);
   });
 });

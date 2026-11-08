@@ -20,6 +20,7 @@ import { savePriceRuleAction } from "@/server/actions/admin-catalog";
 import { priceRuleSchema } from "@/lib/validation/price-rule";
 import { LUCKNOW_CITY_ID, KANPUR_CITY_ID } from "@/lib/cities";
 import type { PriceRule } from "@/types/domain";
+import { istDateString } from "@/lib/ist-format";
 
 export interface PriceRuleModelOption {
   id: string;
@@ -61,7 +62,7 @@ interface FormState {
 }
 
 function today(): string {
-  return new Date().toISOString().slice(0, 10);
+  return istDateString(new Date());
 }
 
 function endOfYear(): string {

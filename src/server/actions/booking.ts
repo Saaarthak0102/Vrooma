@@ -13,6 +13,7 @@ import { listDemoCars, listSlots } from "@/server/repositories/slots";
 import { normalizeVehicleReg, maskVehicleReg } from "@/lib/validation/vehicle";
 import { recordConsent } from "@/server/privacy/consent";
 import { queueWhatsAppCopy } from "@/server/services/outbox";
+import { istDateString } from "@/lib/ist-format";
 
 /**
  * Loads showrooms, demo cars, and available slots for the test drive booking wizard.
@@ -501,7 +502,7 @@ export async function generateSlotsAction(
     const admin = createAdminClient();
 
     const validDays = Math.min(Math.max(1, days), 60); // Maximum 60 days
-    const dateParam = startDate || new Date().toISOString().slice(0, 10);
+    const dateParam = startDate || istDateString(new Date());
 
     const { data: count, error } = await admin.rpc("generate_slots", {
       p_start_date: dateParam,

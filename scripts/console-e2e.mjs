@@ -736,7 +736,9 @@ async function adminGroup(browser) {
 
   /* ---- Team ---- */
   const { data: priya } = await db.from("profiles").select("id, full_name, role, is_active").eq("email", "dev-buyer-2@vrooma.in").single();
-  cleanups.push(() => db.from("profiles").update({ role: priya.role, is_active: priya.is_active }).eq("id", priya.id));
+  // dev-buyer-2 is a plain buyer (tests/e2e-flows.test.ts relies on it). Restore THAT, not the role seen at the start of this
+  // run: after an interrupted run the account may already have been promoted, and "restoring" it would keep it promoted.
+  cleanups.push(() => db.from("profiles").update({ role: "buyer", is_active: true }).eq("id", priya.id));
 
   await check("people: changing a role is stored (and the last-admin / self guards hold)", async () => {
     assert((await open(page, "/admin/team?tab=users")) === 200, "expected HTTP 200");
@@ -1353,8 +1355,38 @@ async function platformGroup(browser) {
 
 /* ================================== runner ================================== */
 
+/** Runs every registered restore step once (newest first). Safe to call twice. */
+async function runCleanups() {
+  for (const fn of cleanups.splice(0).reverse()) {
+    try {
+      await fn();
+    } catch (err) {
+      console.log(`  (cleanup issue: ${String(err.message).slice(0, 120)})`);
+    }
+  }
+}
+
+/** Test cars this script adds to Used Stock carry an "E2E" model name; remove any a previous interrupted run left. */
+async function sweepLeftovers() {
+  await db.from("profiles").update({ role: "buyer", is_active: true }).eq("email", EMAIL_BUYER_2);
+  const { error } = await db.from("used_cars").delete().like("model_name", "E2E%");
+  if (error) console.log(`  (could not remove leftover E2E cars: ${error.message.slice(0, 120)})`);
+}
+const EMAIL_BUYER_2 = "dev-buyer-2@vrooma.in";
+
+for (const signal of ["SIGINT", "SIGTERM"]) {
+  process.on(signal, async () => {
+    console.log(`
+${signal}: restoring what this run changed...`);
+    await runCleanups();
+    await sweepLeftovers();
+    process.exit(130);
+  });
+}
+
 async function main() {
   console.log(`Target ${baseUrl} · Supabase ${DEV_REF} · tag ${E2E}`);
+  await sweepLeftovers();
   const browser = await chromium.launch();
   try {
     if (!only || only === "consultant") await consultantGroup(browser);
@@ -1365,13 +1397,8 @@ async function main() {
     if (!only || only === "platform") await platformGroup(browser);
   } finally {
     await browser.close();
-    for (const fn of cleanups.reverse()) {
-      try {
-        await fn();
-      } catch (err) {
-        console.log(`  (cleanup issue: ${String(err.message).slice(0, 120)})`);
-      }
-    }
+    await runCleanups();
+    await sweepLeftovers();
   }
 
   const failed = results.filter((r) => !r.ok);

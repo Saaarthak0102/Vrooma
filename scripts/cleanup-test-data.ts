@@ -168,6 +168,66 @@ export async function cleanupTestData(
   return result;
 }
 
+/* ------------------------------ slots the tests leave behind ------------------------------ */
+
+export interface JunkSlotRow {
+  id: string;
+  kind: string;
+  starts_at: string;
+  booked_count: number;
+  is_active: boolean;
+}
+
+const HOUR_MS = 60 * 60 * 1000;
+const IST_OFFSET_MS = 5.5 * HOUR_MS;
+
+/**
+ * The slot generator (generate_slots) only creates slots that start exactly on the hour in Indian time, and the demo
+ * data (ids starting 5eed) is deliberate. A bookable, unbooked slot starting at any other minute was inserted by a
+ * test ("now + 4 hours"); left in place it shows to buyers as "Next free slot 10:06 pm" and ends up in chat answers.
+ */
+export function isJunkSlot(s: Pick<JunkSlotRow, "id" | "starts_at" | "booked_count">): boolean {
+  if (s.id.startsWith("5eed")) return false;
+  if (s.booked_count > 0) return false;
+  const start = Date.parse(s.starts_at);
+  if (!Number.isFinite(start)) return false;
+  return (start + IST_OFFSET_MS) % HOUR_MS !== 0;
+}
+
+export interface JunkSlotResult {
+  found: JunkSlotRow[];
+  deleted: number;
+  /** Slots a booking still points at (bookings are never deleted here): hidden from buyers instead. */
+  deactivated: number;
+}
+
+/** Removes (or, when a booking still references them, hides) the off-the-hour slots that tests inserted. */
+export async function cleanupJunkSlots(admin: any, options: { since?: string; dryRun?: boolean } = {}): Promise<JunkSlotResult> {
+  const found: JunkSlotRow[] = [];
+  for (let from = 0; ; from += 1000) {
+    let q = admin.from("slots").select("id, kind, starts_at, booked_count, is_active").eq("is_active", true);
+    if (options.since) q = q.gte("created_at", options.since);
+    const { data, error } = await q.order("starts_at", { ascending: true }).range(from, from + 999);
+    if (error) throw new Error(`slots: ${error.message}`);
+    found.push(...((data ?? []) as JunkSlotRow[]).filter(isJunkSlot));
+    if ((data ?? []).length < 1000) break;
+  }
+  const result: JunkSlotResult = { found, deleted: 0, deactivated: 0 };
+  if (options.dryRun) return result;
+
+  for (const slot of found) {
+    const del = await admin.from("slots").delete().eq("id", slot.id);
+    if (!del.error) {
+      result.deleted++;
+      continue;
+    }
+    const hide = await admin.from("slots").update({ is_active: false }).eq("id", slot.id);
+    if (hide.error) throw new Error(`slots: ${hide.error.message}`);
+    result.deactivated++;
+  }
+  return result;
+}
+
 function loadEnv() {
   for (const file of [".env.local", ".env"]) {
     const full = path.resolve(process.cwd(), file);
@@ -200,6 +260,13 @@ async function main() {
   const { data: buyers } = await admin.from("profiles").select("id").in("email", TEST_BUYER_EMAILS);
   const r = await cleanupTestData(admin, { dryRun, testBuyerIds: (buyers ?? []).map((b: { id: string }) => b.id) });
   console.log(`\n${dryRun ? "Would remove" : "Removed"}: ${r.leads} test leads, ${r.bookings} bookings` + (dryRun ? "" : `, ${r.outbox} outbox rows, ${r.aiLogs} AI log rows, ${r.tradeIns} trade-ins, ${r.chats} chats; ${r.slotsAdjusted} slots had their seats handed back`));
+  const slots = await cleanupJunkSlots(admin, { dryRun });
+  if (dryRun) {
+    console.log(`${slots.found.length} junk slots (not on the hour, not booked, not demo data) would be removed:`);
+    for (const s of slots.found) console.log(`  ${s.id}  ${s.kind}  ${new Date(s.starts_at).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })} IST`);
+  } else {
+    console.log(`Junk slots: ${slots.deleted} deleted, ${slots.deactivated} hidden (still referenced by a booking).`);
+  }
 }
 
 if (process.env.NODE_ENV !== "test" && !process.env.VITEST) {

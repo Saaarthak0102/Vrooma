@@ -126,7 +126,8 @@ export async function recordServiceVisit(params: {
 
   // Keep the car's odometer moving forward only.
   if (!createdVehicle && (existing?.odometer_km ?? 0) < visit.odometerKm) {
-    await admin.from("owner_vehicles").update({ odometer_km: visit.odometerKm }).eq("id", vehicleId);
+    const { error: odoErr } = await admin.from("owner_vehicles").update({ odometer_km: visit.odometerKm }).eq("id", vehicleId);
+    if (odoErr) console.warn(`[garage] odometer not updated for ${vehicleId}: ${odoErr.message}`);
   }
   return { recorded: true, vehicleId: vehicleId!, createdVehicle };
 }

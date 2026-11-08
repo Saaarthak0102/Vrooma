@@ -252,8 +252,9 @@ export async function inviteStaff(
 
       // Sync showroom assignments if provided
       if (showroomIds.length > 0) {
-        await adminClient.from("staff_showrooms").delete().eq("profile_id", existingProfile.id);
-        await adminClient.from("staff_showrooms").insert(
+        const { error: clearError } = await adminClient.from("staff_showrooms").delete().eq("profile_id", existingProfile.id);
+        if (clearError) return errorResponse("INTERNAL_ERROR", `Failed to update showrooms: ${clearError.message}`);
+        const { error: assignError } = await adminClient.from("staff_showrooms").insert(
           showroomIds.map((sid, idx) => ({
             profile_id: existingProfile.id,
             showroom_id: sid,
@@ -261,6 +262,7 @@ export async function inviteStaff(
             created_at: new Date().toISOString(),
           }))
         );
+        if (assignError) return errorResponse("INTERNAL_ERROR", `Failed to assign showrooms: ${assignError.message}`);
       }
 
       return successResponse({
@@ -306,8 +308,9 @@ export async function inviteStaff(
 
     // Sync showroom assignments if provided
     if (showroomIds.length > 0) {
-      await adminClient.from("staff_showrooms").delete().eq("profile_id", userId);
-      await adminClient.from("staff_showrooms").insert(
+      const { error: clearError } = await adminClient.from("staff_showrooms").delete().eq("profile_id", userId);
+      if (clearError) return errorResponse("INTERNAL_ERROR", `Failed to update showrooms: ${clearError.message}`);
+      const { error: assignError } = await adminClient.from("staff_showrooms").insert(
         showroomIds.map((sid, idx) => ({
           profile_id: userId,
           showroom_id: sid,
@@ -315,6 +318,7 @@ export async function inviteStaff(
           created_at: now,
         }))
       );
+      if (assignError) return errorResponse("INTERNAL_ERROR", `Failed to assign showrooms: ${assignError.message}`);
     }
 
     return successResponse({

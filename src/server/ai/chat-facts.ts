@@ -1,7 +1,7 @@
 import "server-only";
 
 import { calculateEmi } from "@/lib/emi";
-import { formatIstDateTime } from "@/lib/ist-format";
+import { formatIstDateTime, istDateString } from "@/lib/ist-format";
 import { formatINR } from "@/lib/money";
 import type { VehicleSummary } from "@/lib/garage";
 import { sanitizeUserText } from "@/server/ai/guard";
@@ -128,7 +128,7 @@ export async function buildChatFacts(
   deps: ChatFactsDeps = realDeps,
 ): Promise<ChatFacts> {
   const { message, intent, userId } = input;
-  const today = deps.now().toISOString().slice(0, 10);
+  const today = istDateString(deps.now()); // offers are valid until an Indian calendar date
   const sections: string[] = [];
 
   const [models, offers] = await Promise.all([deps.listModels({}), deps.listOffers().catch(() => [])]);

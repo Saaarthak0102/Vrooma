@@ -2,6 +2,7 @@ import { createPublicClient } from "@/lib/supabase/public";
 import { Offer, Banner } from "@/types/domain";
 import { cachedQuery } from "@/server/cache";
 import { AppError } from "@/lib/errors";
+import { istDateString } from "@/lib/ist-format";
 
 const OFFER_COLUMNS = "id, title, body, badge, model_id, valid_from, valid_until, is_active";
 const BANNER_COLUMNS = "id, title, image_url, href, sort, is_active";
@@ -13,7 +14,7 @@ const BANNER_COLUMNS = "id, title, image_url, href, sort, is_active";
 export async function listOffers(): Promise<Offer[]> {
   const cachedFn = cachedQuery(
     async () => {
-      const todayStr = new Date().toISOString().slice(0, 10);
+      const todayStr = istDateString(new Date());
       const supabase = createPublicClient();
       const { data, error } = await supabase
         .from("offers")
@@ -50,7 +51,7 @@ export async function listOffers(): Promise<Offer[]> {
  */
 export async function listActiveOfferModelIds(today?: string): Promise<string[]> {
   const activeOffers = await listOffers();
-  const todayStr = today || new Date().toISOString().slice(0, 10);
+  const todayStr = today || istDateString(new Date());
   const modelIds = new Set<string>();
 
   for (const offer of activeOffers) {

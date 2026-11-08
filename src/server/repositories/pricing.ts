@@ -4,6 +4,7 @@ import { PriceRule, FuelType } from "@/types/domain";
 import { cachedQuery } from "@/server/cache";
 import { AppError } from "@/lib/errors";
 import { normalizeCityId } from "@/lib/cities";
+import { istDateString } from "@/lib/ist-format";
 
 export interface GetPriceRuleParams {
   cityId: string;
@@ -87,7 +88,7 @@ export async function getPriceRule({
   const normModel = normalizeModelId(modelId);
 
   const targetDate = typeof date === "string" ? new Date(date) : date;
-  const targetIso = targetDate.toISOString().slice(0, 10);
+  const targetIso = istDateString(targetDate); // the rule window is an Indian calendar date
 
   const cachedFn = cachedQuery(
     async () => {

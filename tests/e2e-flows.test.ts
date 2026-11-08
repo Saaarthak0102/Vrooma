@@ -3,7 +3,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { POST as leadsPost } from "@/app/api/leads/route";
 import { NextRequest } from "next/server";
-import { cleanupTestData, TEST_BUYER_EMAILS } from "@/../scripts/cleanup-test-data";
+import { cleanupJunkSlots, cleanupTestData, TEST_BUYER_EMAILS } from "@/../scripts/cleanup-test-data";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://eobtzcwinjmimzisypca.supabase.co";
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
@@ -21,7 +21,11 @@ afterAll(async () => {
     const cleaner: any = createAdminClient();
     const { data: buyers } = await cleaner.from("profiles").select("id").in("email", TEST_BUYER_EMAILS);
     const r = await cleanupTestData(cleaner, { since: startedAt, testBuyerIds: (buyers ?? []).map((b: { id: string }) => b.id) });
-    if (r.leads || r.bookings) console.info(`[e2e-flows] cleaned up ${r.leads} test leads and ${r.bookings} bookings`);
+    // The tests insert real, bookable slots at "now + a few hours"; remove them once their bookings are gone.
+    const slots = await cleanupJunkSlots(cleaner, { since: startedAt });
+    if (r.leads || r.bookings || slots.found.length) {
+      console.info(`[e2e-flows] cleaned up ${r.leads} test leads, ${r.bookings} bookings and ${slots.deleted + slots.deactivated} test slots`);
+    }
   } catch (err: any) {
     console.warn(`[e2e-flows] cleanup skipped: ${err?.message}`);
   }

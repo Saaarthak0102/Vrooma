@@ -133,7 +133,7 @@ export async function escalateLeadAction(leadId: string, reason: string): Promis
 
     const admin = db();
     const day = istDateString(new Date());
-    await admin.from("lead_tasks").upsert(
+    const { error: taskError } = await admin.from("lead_tasks").upsert(
       {
         lead_id: leadId,
         assigned_to: null,
@@ -147,6 +147,8 @@ export async function escalateLeadAction(leadId: string, reason: string): Promis
       },
       { onConflict: "idempotency_key", ignoreDuplicates: true },
     );
+    // Without this the consultant is told the manager was asked while no task exists anywhere.
+    if (taskError) return errorResponse("INTERNAL_ERROR", "Could not ask a manager just now. Please try again.");
 
     const to = alertEmail();
     if (to) {

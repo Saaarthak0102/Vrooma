@@ -145,7 +145,7 @@ export async function submitPublicDataRequestAction(
       reqRecordId = reqRecord?.id;
     } else {
       // If no account exists, ensure all marketing/newsletter consents are withdrawn
-      await admin.from("consents").insert({
+      const { error: consentError } = await admin.from("consents").insert({
         subject_email: cleanEmail,
         purpose: "marketing",
         granted: false,
@@ -153,10 +153,14 @@ export async function submitPublicDataRequestAction(
         source: "signup",
         text_hash: "public_opt_out_request",
       });
+      if (consentError) {
+        console.error("[data-rights] could not record the marketing opt-out:", consentError.message);
+        return errorResponse("INTERNAL_ERROR", "We could not record your request. Please try again or write to dpo@vrooma.in.");
+      }
     }
 
     // Queue verification notice to customer
-    await admin.from("messages_outbox").insert({
+    const { error: noticeError } = await admin.from("messages_outbox").insert({
       channel: "email",
       to_address: cleanEmail,
       template: `dpdp_${kind}_request_received`,
@@ -164,6 +168,8 @@ export async function submitPublicDataRequestAction(
       idempotency_key: `outbox_dpdp_${kind}_${Date.now()}`,
       status: "pending",
     });
+    // The request itself is recorded above; a missing confirmation email should be visible in the logs, not silent.
+    if (noticeError) console.error("[data-rights] could not queue the request-received notice:", noticeError.message);
 
     return successResponse({
       message: `Your DPDP ${kind} request has been recorded. A verification notice has been sent to ${cleanEmail}.`,

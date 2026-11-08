@@ -2,7 +2,7 @@ import "server-only";
 
 import { generateText, type CoreMessage, type LanguageModel } from "ai";
 
-import { findForbiddenDiscountWord } from "@/lib/validation/discount";
+import { findForbiddenDiscountWord, findPriceConcessionPhrase } from "@/lib/validation/discount";
 import { buildChatFacts, type ChatFacts } from "@/server/ai/chat-facts";
 import { guardAiText, looksLikePromptInjection, sanitizeUserText, type GuardResult } from "@/server/ai/guard";
 import { providerOptionsFor } from "@/server/ai/provider";
@@ -97,7 +97,7 @@ export async function answerChat(
   if (looksLikePromptInjection(message)) return { ...ruleAnswer, reason: "injection" };
   // A buyer asking for a price cut gets a fixed, helpful pointer to a consultant. The model would have to repeat
   // the forbidden word to answer, so it is not asked.
-  if (findForbiddenDiscountWord(message)) {
+  if (findForbiddenDiscountWord(message) || findPriceConcessionPhrase(message)) {
     return {
       ...ruleAnswer,
       reply: `Pricing talks are handled by a Vrooma consultant, who can go through the official price breakup with you. Choose "Connect me to a consultant" below and they will reach out.\n\n${CLOSING_QUESTION}`,
