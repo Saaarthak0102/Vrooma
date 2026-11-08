@@ -59,6 +59,25 @@ describe("email body rendering", () => {
   });
 });
 
+describe("markup validity and the chat close button", () => {
+  it("never puts a Badge (it renders a div) inside a paragraph", () => {
+    for (const file of ["src/components/staff/AiSummaryCard.tsx", "src/components/chat/ChatWidget.tsx"]) {
+      const src = fs.readFileSync(file, "utf8");
+      expect(/<p\b[^>]*>\s*<Badge/.test(src), file).toBe(false);
+    }
+  });
+
+  it("keeps a clearly visible, labelled close button on the chat header", () => {
+    const src = fs.readFileSync("src/components/chat/ChatWidget.tsx", "utf8");
+    const at = src.indexOf('aria-label="Close Chat"');
+    expect(at).toBeGreaterThan(-1);
+    const button = src.slice(src.lastIndexOf("<Button", at), at);
+    expect(button).toContain("setIsOpen(false)");
+    expect(button).toContain("text-white");
+    expect(button).not.toContain("text-gray-400");
+  });
+});
+
 describe("design tokens in the new UI", () => {
   // Classes that do not exist in tailwind.config.ts generate no CSS and silently leave the element unstyled.
   // (LeadDrawer is not listed: its quoted-message box predates this work and is left as is.)

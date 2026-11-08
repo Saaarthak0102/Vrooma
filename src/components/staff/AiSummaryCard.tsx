@@ -63,11 +63,11 @@ export function AiSummaryCard({
           {fromModel && generatedAt ? (
             <p className="pl-6 text-[11px] text-ink-mute">Updated {timeAgo(generatedAt)}</p>
           ) : !fromModel ? (
-            <p className="pl-6">
+            <div className="pl-6">
               <Badge variant="secondary" className="px-2 py-0 text-[10px]">
                 Rule-based
               </Badge>
-            </p>
+            </div>
           ) : null}
         </div>
         {onRefresh && (

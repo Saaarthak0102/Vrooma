@@ -313,7 +313,7 @@ export function ChatWidget() {
               size="icon"
               shape="pill"
               onClick={() => setIsOpen(false)}
-              className="h-8 w-8 text-gray-400 hover:text-white"
+              className="h-9 w-9 shrink-0 bg-white/10 text-white hover:bg-white/20 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
               aria-label="Close Chat"
             >
               <X className="h-5 w-5" />
