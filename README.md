@@ -72,7 +72,7 @@ Supabase cannot call `localhost`, so the HTTP cron jobs (outbox, retention, dele
 | Quality | `pnpm check:buttons` | Shared Button component usage audit |
 | Quality | `pnpm check:layout` | Layout regression audit |
 | Quality | `pnpm smoke` / `pnpm probe` | Smoke test and API probe against a running server |
-| Database | `pnpm db:push` | Apply pending migrations (guarded to the DEV project; needs `SUPABASE_PROJECT_REF`) |
+| Database | `pnpm db:push --target dev --yes` | Apply pending migrations to DEV (guarded; needs `SUPABASE_PROJECT_REF`). Production: `--target prod`, see `docs/backend/ENVIRONMENTS.md` section 3 |
 | Database | `pnpm db:lint` | Lint the live schema and PL/pgSQL functions |
 | Database | `pnpm db:types` | Regenerate `src/types/db.ts` from the DEV schema |
 | Ops | `pnpm dev:cron` | Local stand-in for the HTTP cron jobs |

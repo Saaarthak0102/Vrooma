@@ -50,10 +50,15 @@
    - Run `pnpm db:lint` to verify syntax, universal RLS, and search paths.
 
 2. **Step 2: DEV Application & Verification:**
-   - Push to DEV project:
+   - Link the CLI to DEV (the CLI link is a single shared file, `supabase/.temp/project-ref`; the runner checks it but never changes it):
      ```bash
-     SUPABASE_PROJECT_REF=eobtzcwinjmimzisypca pnpm db:push --yes
+     npx supabase link --project-ref eobtzcwinjmimzisypca
      ```
+   - Push to the DEV project. `--target dev` and `--yes` are both required:
+     ```bash
+     SUPABASE_PROJECT_REF=eobtzcwinjmimzisypca pnpm db:push --target dev --yes
+     ```
+     The runner checks, in order: the arguments (an allowlist; any other flag is rejected), that `APP_ENV`/`NODE_ENV` is not `production`, that `SUPABASE_PROJECT_REF` is the DEV ref, that `.env.local`'s `NEXT_PUBLIC_SUPABASE_URL` is the DEV project, and that the CLI is linked to DEV. It then runs `supabase db push --remote=eobtzcwinjmimzisypca --include-all --yes`.
    - Run all automated regression tests:
      ```bash
      pnpm test
@@ -64,13 +69,41 @@
      pnpm probe
      ```
 
-3. **Step 3: Guarded Production Push:**
-   - Production migrations must pass through the guarded runner with `--target prod`, the safety flag `--i-am-targeting-production`, and operator ref verification:
+3. **Step 3: Guarded Production Push (owner only):**
+   - Take a production backup first (Supabase dashboard, Database, Backups).
+   - Link the CLI to production, in the same shell session you will use for the push:
      ```bash
-     pnpm db:push --target prod --i-am-targeting-production
+     npx supabase link --project-ref ajumkjokagqfdikfguti
      ```
+   - Export production values **in the shell session only**. Never put them in `.env.local`, `.env.prod`, or any file (the runner blocks if `.env.local` mentions the production ref or defines production credentials):
+     ```powershell
+     # PowerShell
+     $env:SUPABASE_PROJECT_REF = "ajumkjokagqfdikfguti"
+     $env:NEXT_PUBLIC_SUPABASE_URL = "https://ajumkjokagqfdikfguti.supabase.co"
+     $env:SUPABASE_DB_PASSWORD = "<production database password>"
+     ```
+     ```bash
+     # bash
+     export SUPABASE_PROJECT_REF=ajumkjokagqfdikfguti
+     export NEXT_PUBLIC_SUPABASE_URL=https://ajumkjokagqfdikfguti.supabase.co
+     export SUPABASE_DB_PASSWORD='<production database password>'
+     ```
+   - **Dry run first.** It runs every production check and asks the CLI to list what it would apply, without applying anything:
+     ```bash
+     pnpm db:push --target prod --i-am-targeting-production --dry-run
+     ```
+     Read the list. It must be exactly the migrations you expect.
+   - **Apply.** Type the production ref as a second, separate confirmation:
+     ```bash
+     pnpm db:push --target prod --i-am-targeting-production --confirm-production=ajumkjokagqfdikfguti
+     ```
+     This runs `supabase db push --remote=ajumkjokagqfdikfguti --yes`. There is no `--include-all`, so a migration older than the remote history is stopped by the CLI's own history check instead of being forced through. The password reaches the CLI only through the process environment, never as an argument, and is never printed.
+   - Re-link the CLI to DEV afterwards, otherwise DEV pushes stay blocked:
+     ```bash
+     npx supabase link --project-ref eobtzcwinjmimzisypca
+     ```
+   - The production run is refused when any of these is true: a missing `--i-am-targeting-production` or typed ref (the typed ref is not needed for `--dry-run`); `SUPABASE_PROJECT_REF` is anything other than the production ref (the DEV ref and the deleted legacy ref are named in the error); `NEXT_PUBLIC_SUPABASE_URL` is not exactly `https://ajumkjokagqfdikfguti.supabase.co`; `SUPABASE_DB_PASSWORD` is empty; the CLI link (`project-ref`, and `linked-project.json` when present) is not production; `.env.local` mentions the production ref or defines `SUPABASE_DB_PASSWORD`/`SUPABASE_ACCESS_TOKEN`; any of `SUPABASE_DB_URL`, `DATABASE_URL`, `POSTGRES_URL`, `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`, `SUPABASE_PROJECT_ID` is set; or any flag outside the allowlist is given (`--remote`, `--project-ref`, `--db-url`, `--linked`, `--password`, `--include-all`, `--yes` and so on).
    - Seed scripts, dev users, and test runners strictly refuse to execute against production.
-
 
 ---
 

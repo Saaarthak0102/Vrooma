@@ -1,6 +1,6 @@
 # Promoting migrations 0028-0034 to PROD (owner runbook)
 
-Everything below is **owner-only**. `scripts/db-push.mjs` deliberately refuses to touch PROD, and no agent should run
+Everything below is **owner-only**. `scripts/db-push.mjs` only touches PROD with the explicit production flags below, and no agent should run
 these steps without an explicit go from the owner.
 
 | Migration | What it adds |
@@ -21,9 +21,11 @@ these steps without an explicit go from the owner.
 
 ## Apply to PROD
 1. Link the CLI to PROD: `supabase link --project-ref <PROD_REF>` (the PROD ref is `SUPABASE_PROD_REF`).
-2. Dry run, read the list: `supabase db push --dry-run`. It must list exactly 0028 to 0034 and nothing else.
-3. Apply: `supabase db push`.
-4. Re-link the CLI to DEV afterwards so `pnpm db:push` guards keep working: `supabase link --project-ref eobtzcwinjmimzisypca`.
+2. Dry run, read the list: `pnpm db:push --target prod --i-am-targeting-production --dry-run`. It must list exactly the migrations you expect (here 0028 to 0034) and nothing else.
+3. Apply through the guarded runner, not raw `supabase db push`. First export `SUPABASE_PROJECT_REF`, `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_DB_PASSWORD` for production **in the shell only**, then:
+   `pnpm db:push --target prod --i-am-targeting-production --confirm-production=ajumkjokagqfdikfguti`
+   (the full procedure, required variables and everything the runner refuses are in `ENVIRONMENTS.md` section 3).
+4. Re-link the CLI to DEV afterwards so DEV pushes are not blocked: `supabase link --project-ref eobtzcwinjmimzisypca`.
 
 ## Verify on PROD
 - Run these against PROD in the SQL editor:
