@@ -488,6 +488,11 @@ export function ChatWidget() {
               <Send className="h-4 w-4" />
             </Button>
           </form>
+          {!live && (
+            <p className="border-t border-border/60 bg-white px-3 pb-2 pt-1.5 text-[10px] leading-snug text-ink-mute">
+              Answers are AI-assisted. Please don&apos;t type phone numbers or other personal details here.
+            </p>
+          )}
         </div>
       )}
     </div>

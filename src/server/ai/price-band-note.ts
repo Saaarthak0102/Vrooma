@@ -1,5 +1,6 @@
 import "server-only";
 
+import { providerOptionsFor } from "@/server/ai/provider";
 import { generateText, type LanguageModel } from "ai";
 
 import { formatINR } from "@/lib/money";
@@ -58,7 +59,7 @@ export async function explainPriceBand(subject: BandNoteSubject, band: PriceBand
   const generate =
     options.generate ??
     (async ({ model, signal, system, prompt }) => {
-      const r = await generateText({ model, system, prompt, abortSignal: signal, temperature: 0.2, maxTokens: 140 });
+      const r = await generateText({ model, system, prompt, abortSignal: signal, maxRetries: 0, providerOptions: providerOptionsFor("fast") as never, temperature: 0.2, maxTokens: 140 });
       return { text: r.text, usage: r.usage };
     });
   const runner = options.runner ?? runAi;

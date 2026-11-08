@@ -140,3 +140,10 @@
 - **Privacy (DPDP):** buyer free text goes to a third-party processor. Only first name and the enquiry content are sent: no phone, email or full registration number. **Owner action:** add the processor to `/legal/privacy` before the first live AI feature ships.
 - **Plan:** phases P0-P6 (foundation, lead summaries, chatbot, date triggers, garage and service records, Lead Desk Agent, digests).
 
+## ADR addendum: Gemini (free AI Studio key) instead of Claude
+
+- **Date:** 2026-11-08
+- **Decision:** the first live model is Google Gemini through a free AI Studio key (`AI_PROVIDER=google`). Claude remains supported (`AI_PROVIDER=anthropic`); nothing else in the AI layer is vendor-specific.
+- **Consequences:** free keys have small per-minute and per-day quotas, so the runner pauses model calls after a 429 (`rate-gate.ts`), supports a per-minute ceiling, fails fast instead of retrying, and limits chat tool steps. The site never depends on the model: every feature has a rule-based path.
+- **Data:** the owner chose to run the free tier in production. On that tier Google may use prompts and responses to improve its products and reviewers may read them. Mitigations: `redactPii()` removes phone numbers, emails, registration numbers and ID numbers from every text sent; only the first name and the enquiry content go out; the privacy page (section 6) and the chat box disclose it; the key can be removed at any time. **Owner/legal action:** approve the wording of privacy section 6 and the chat notice before launch. A paid-tier key (no training on prompts) is a one-line change if this decision is revisited.
+

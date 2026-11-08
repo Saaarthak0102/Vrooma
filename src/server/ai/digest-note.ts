@@ -1,5 +1,6 @@
 import "server-only";
 
+import { providerOptionsFor } from "@/server/ai/provider";
 import { generateText, type LanguageModel } from "ai";
 
 import { composeDigest, type DigestFacts, type DigestRecipient } from "@/server/automations/digests";
@@ -37,7 +38,7 @@ export async function digestNote(recipient: DigestRecipient, data: DigestFacts, 
   const generate =
     options.generate ??
     (async ({ model, signal, system, prompt }) => {
-      const r = await generateText({ model, system, prompt, abortSignal: signal, temperature: 0.2, maxTokens: 120 });
+      const r = await generateText({ model, system, prompt, abortSignal: signal, maxRetries: 0, providerOptions: providerOptionsFor("fast") as never, temperature: 0.2, maxTokens: 120 });
       return { text: r.text, usage: r.usage };
     });
   const runner = options.runner ?? runAi;

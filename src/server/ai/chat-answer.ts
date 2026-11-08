@@ -1,7 +1,9 @@
 import "server-only";
 
+import { providerOptionsFor } from "@/server/ai/provider";
 import { generateText, type CoreMessage, type LanguageModel } from "ai";
 
+import { env } from "@/lib/env";
 import { buildChatTools } from "@/server/ai/chat-tools";
 import { guardAiText, looksLikePromptInjection, sanitizeUserText, type GuardResult } from "@/server/ai/guard";
 import { runAi, type AiRunOptions, type AiRunResult } from "@/server/ai";
@@ -58,8 +60,10 @@ const defaultGenerate: GenerateFn = async ({ model, signal, system, messages, us
     system,
     messages,
     tools: buildChatTools({ userId }),
-    maxSteps: 4,
+    maxSteps: env.AI_CHAT_MAX_STEPS,
     abortSignal: signal,
+    maxRetries: 0,
+    providerOptions: providerOptionsFor("fast") as never,
     temperature: 0.2,
     maxTokens: 450,
   });

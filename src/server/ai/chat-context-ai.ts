@@ -1,5 +1,6 @@
 import "server-only";
 
+import { providerOptionsFor } from "@/server/ai/provider";
 import { generateObject } from "ai";
 import { z } from "zod";
 
@@ -74,6 +75,8 @@ export async function enrichChatContext(
         system,
         prompt,
         abortSignal: signal,
+        maxRetries: 0,
+        providerOptions: providerOptionsFor("fast") as never,
         temperature: 0.3,
         maxTokens: 350,
       });

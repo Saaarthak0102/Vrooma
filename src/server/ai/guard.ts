@@ -217,15 +217,36 @@ const CONTROL_CHARS_RE = new RegExp(
   "g",
 );
 
-/** Strips control characters and collapses whitespace; caps the length. Never trusts the caller's length checks. */
-export function sanitizeUserText(text: string, maxChars = 1000): string {
+/**
+ * Replaces personal identifiers in free text with placeholders, so they never reach a model provider. Models are
+ * given the buyer's first name and what they asked for, not how to contact or identify them. Deliberately errs on
+ * the side of redacting: a model does not need a phone number or a plate to write a good reply.
+ *
+ * Order matters: more specific patterns first. Stock ids like UC-1182 and amounts like 12,45,000 are left alone.
+ */
+export function redactPii(text: string): string {
   return (text ?? "")
+    .replace(/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g, "[email]")
+    .replace(/\b[A-Z]{5}\d{4}[A-Z]\b/g, "[id]") // PAN
+    .replace(/(?<![\d₹.,])(?:\+?91[ -]?)?[6-9]\d{4}[ -]?\d{5}(?!\d)/g, "[phone]") // Indian mobile, spaced or not
+    .replace(/(?<!\d)\d{4}[ -]?\d{4}[ -]?\d{4}(?!\d)/g, "[id]") // Aadhaar-style 12 digits
+    .replace(/(?<!\d)0?[1-9]\d{2,4}[ -]\d{6,8}(?!\d)/g, "[phone]") // landline with STD code
+    .replace(/\b[A-Za-z]{2}[ -]?\d{1,2}[ -]?[A-Za-z]{1,3}[ -]?\d{4}\b/g, "[reg]"); // vehicle registration
+}
+
+/**
+ * Cleans text on its way to a model: strips control characters, collapses whitespace, REMOVES personal identifiers
+ * (see redactPii) and caps the length. Never trusts the caller's length checks. Pass `redact: false` only for text
+ * that is not personal data.
+ */
+export function sanitizeUserText(text: string, maxChars = 1000, options: { redact?: boolean } = {}): string {
+  const cleaned = (text ?? "")
     .normalize("NFKC")
     .replace(CONTROL_CHARS_RE, "")
     .replace(/[ \t]+/g, " ")
     .replace(/\n{3,}/g, "\n\n")
-    .trim()
-    .slice(0, maxChars);
+    .trim();
+  return (options.redact === false ? cleaned : redactPii(cleaned)).slice(0, maxChars);
 }
 
 /**

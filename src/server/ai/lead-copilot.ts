@@ -1,5 +1,6 @@
 import "server-only";
 
+import { providerOptionsFor } from "@/server/ai/provider";
 import { generateObject, type LanguageModel } from "ai";
 import { z } from "zod";
 
@@ -72,6 +73,8 @@ const defaultGenerate: GenerateFn = async ({ model, signal, system, prompt }) =>
     system,
     prompt,
     abortSignal: signal,
+    maxRetries: 0,
+    providerOptions: providerOptionsFor("smart") as never,
     temperature: 0.3,
     maxTokens: 700,
   });

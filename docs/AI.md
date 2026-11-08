@@ -132,4 +132,12 @@ Every AI feature is called through `runAi()` (`index.ts` -> `runner.ts`), so the
 - **Grounding**: every rupee amount in buyer-facing text must appear in a tool result (price engine, EMI calculator, catalog). `groundingSources: []` forbids any amount, which is how first-reply drafts are checked.
 - **Prompt injection**: `looksLikePromptInjection` short-circuits to the fallback; `wrapUntrusted` fences buyer text so it is treated as data; `sanitizeUserText` strips control characters.
 
-Models: `AI_MODEL_FAST` (default `claude-haiku-5-5`: chatbot, extraction, digests) and `AI_MODEL_SMART` (default `claude-sonnet-5-5`: lead summaries, replies, the Lead Desk Agent). Buyer free text sent to the model is a third-party processing step: see the ADR in `docs/DECISIONS.md`.
+**Provider and models.** `AI_PROVIDER` is `google` (Gemini, works with a free AI Studio key; the default) or `anthropic` (Claude). `AI_MODEL_FAST` (chatbot, handoff brief, digest note, price-band note) and `AI_MODEL_SMART` (lead briefing, Lead Desk Agent) override the provider defaults; run `pnpm ai:smoke` to see which models a key can call and to test plain text, structured output and a tool call on each. Model names and free-tier access change, so the defaults are only a starting point.
+
+**Small quotas (free keys).**
+- A 429 / `RESOURCE_EXHAUSTED` from the API pauses model calls for the time the API asks (default 60 s); features answer from their rule-based path meanwhile and the audit log records `fallback` with `[rate_limited]` (it does not count against `AI_DAILY_CALL_CAP`).
+- `AI_MAX_RPM` is an optional ceiling on model calls per minute; set it a little under the key's limit. Calls fail fast (no hidden SDK retries).
+- A buyer-chat turn can make several requests (one per tool step): `AI_CHAT_MAX_STEPS` (default 3) limits that.
+- `AI_DAILY_CALL_CAP` is per feature; keep the sum under the key's daily limit.
+
+**Personal data and the provider.** Every buyer- or staff-typed text is passed through `redactPii()` before it reaches a model: phone numbers, emails, vehicle registration numbers, PAN and Aadhaar-style numbers become `[phone]`, `[email]`, `[reg]`, `[id]`. The model gets the buyer's first name and what they asked for. On Google's free tier the provider may use prompts to improve its services and reviewers may read them; the privacy page (section 6) and a line under the chat box say so. Removing `AI_PROVIDER_API_KEY` switches every feature back to rule-based answers at once.

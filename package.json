@@ -14,6 +14,7 @@
     "check:layout": "node scripts/check-layout.mjs",
     "db:push": "node scripts/db-push.mjs",
     "db:lint": "node scripts/db-lint.mjs",
+    "ai:smoke": "node --experimental-strip-types scripts/ai-smoke.ts",
     "cleanup:test-data": "node --experimental-strip-types scripts/cleanup-test-data.ts",
     "seed:ai-demo": "node --experimental-strip-types scripts/seed-ai-demo.ts",
     "db:types": "supabase gen types typescript --project-id eobtzcwinjmimzisypca > src/types/database.types.ts",
@@ -32,6 +33,7 @@
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^1.2.12",
+    "@ai-sdk/google": "^1.2.22",
     "@gsap/react": "^2.1.2",
     "@hookform/resolvers": "^3.10.0",
     "@radix-ui/react-accordion": "^1.2.3",

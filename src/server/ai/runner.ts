@@ -3,6 +3,7 @@ import "server-only";
 import type { LanguageModel } from "ai";
 
 import type { GuardResult } from "@/server/ai/guard";
+import { isRateLimitError, retryAfterMs, type RateGate } from "@/server/ai/rate-gate";
 import type { AiFeature, AiLogEntry, AiStatus, AiTier, AiUsage } from "@/server/ai/types";
 
 /**
@@ -23,6 +24,8 @@ export interface AiRunDeps {
   isOverCap(feature: AiFeature): Promise<boolean>;
   log(entry: AiLogEntry): Promise<void>;
   now(): number;
+  /** Cooldown after a 429 and an optional per-minute ceiling. Omit to disable. */
+  gate?: RateGate;
 }
 
 export interface AiRunOptions<T> {
@@ -79,6 +82,9 @@ export async function runWithFallback<T>(options: AiRunOptions<T>, deps: AiRunDe
     return fallback("fallback", "over_cap");
   }
 
+  const blockedBy = deps.gate?.check(deps.now());
+  if (blockedBy) return fallback("fallback", blockedBy === "cooldown" ? "rate_limited" : "throttled");
+
   const { model, id: modelId } = deps.resolveModel(options.tier);
   const base: Omit<AiLogEntry, "status"> = {
     feature: options.feature,
@@ -91,6 +97,7 @@ export async function runWithFallback<T>(options: AiRunOptions<T>, deps: AiRunDe
   };
 
   const startedAt = deps.now();
+  deps.gate?.record(startedAt);
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), options.timeoutMs ?? deps.timeoutMs(options.tier));
 
@@ -117,6 +124,14 @@ export async function runWithFallback<T>(options: AiRunOptions<T>, deps: AiRunDe
     await deps.log({ ...base, status: "ok", response: responseText, latencyMs, usage: result.usage });
     return { value: result.value, source: "ai", status: "ok" };
   } catch (err: any) {
+    // The API said "too many requests": stop calling for a while. Logged as a fallback (not an error) so a quota
+    // problem does not eat the daily cap.
+    if (isRateLimitError(err)) {
+      deps.gate?.tripped(deps.now(), retryAfterMs(err));
+      console.warn(`[ai] ${options.feature}: the model API is rate limited; using the rule-based fallback for a while`);
+      await deps.log({ ...base, status: "fallback", response: `[rate_limited] ${String(err?.message ?? err).slice(0, 240)}`, latencyMs: deps.now() - startedAt });
+      return fallback("fallback", "rate_limited");
+    }
     const timedOut = err?.message === "ai_timeout" || err?.name === "AbortError";
     await deps.log({
       ...base,

@@ -11,9 +11,18 @@ const envSchema = z.object({
   ALLOW_DEV_LOGIN: z.string().optional().default("false"),
   RESEND_API_KEY: z.string().optional().default(""),
   AI_PROVIDER_API_KEY: z.string().optional().default(""),
-  AI_MODEL_FAST: z.string().optional().default("claude-haiku-5-5"),
-  AI_MODEL_SMART: z.string().optional().default("claude-sonnet-5-5"),
+  /** Which vendor answers: Google Gemini (default, works with a free AI Studio key) or Anthropic Claude. */
+  AI_PROVIDER: z.enum(["google", "anthropic"]).optional().default("google"),
+  /** Empty = the provider's default model (see src/server/ai/provider.ts). Run `pnpm ai:smoke` to see what a key can call. */
+  AI_MODEL_FAST: z.string().optional().default(""),
+  AI_MODEL_SMART: z.string().optional().default(""),
   AI_DAILY_CALL_CAP: z.coerce.number().int().positive().optional().default(5000),
+  /** Client-side ceiling on model calls per minute. 0 = no ceiling. Set a little under the key's real limit (free tiers are small). */
+  AI_MAX_RPM: z.coerce.number().int().min(0).optional().default(0),
+  /** Tool steps one buyer-chat turn may take. Every step is a separate API request, so keep this low on small quotas. */
+  AI_CHAT_MAX_STEPS: z.coerce.number().int().min(1).max(6).optional().default(3),
+  AI_TIMEOUT_FAST_MS: z.coerce.number().int().min(1000).optional().default(10000),
+  AI_TIMEOUT_SMART_MS: z.coerce.number().int().min(1000).optional().default(25000),
   CRON_SECRET: z.string().optional().default(""),
   CALLS_WEBHOOK_SECRET: z.string().optional().default(""),
 });
@@ -41,9 +50,14 @@ const rawEnv = {
   ALLOW_DEV_LOGIN: process.env.ALLOW_DEV_LOGIN ?? "false",
   RESEND_API_KEY: process.env.RESEND_API_KEY,
   AI_PROVIDER_API_KEY: process.env.AI_PROVIDER_API_KEY,
+  AI_PROVIDER: process.env.AI_PROVIDER || undefined,
   AI_MODEL_FAST: process.env.AI_MODEL_FAST || undefined,
   AI_MODEL_SMART: process.env.AI_MODEL_SMART || undefined,
   AI_DAILY_CALL_CAP: process.env.AI_DAILY_CALL_CAP || undefined,
+  AI_MAX_RPM: process.env.AI_MAX_RPM || undefined,
+  AI_CHAT_MAX_STEPS: process.env.AI_CHAT_MAX_STEPS || undefined,
+  AI_TIMEOUT_FAST_MS: process.env.AI_TIMEOUT_FAST_MS || undefined,
+  AI_TIMEOUT_SMART_MS: process.env.AI_TIMEOUT_SMART_MS || undefined,
   CRON_SECRET: process.env.CRON_SECRET,
   CALLS_WEBHOOK_SECRET: process.env.CALLS_WEBHOOK_SECRET,
 };
@@ -76,9 +90,14 @@ if (skipValidation) {
       ALLOW_DEV_LOGIN: rawEnv.ALLOW_DEV_LOGIN || "false",
       RESEND_API_KEY: rawEnv.RESEND_API_KEY || "",
       AI_PROVIDER_API_KEY: rawEnv.AI_PROVIDER_API_KEY || "",
-      AI_MODEL_FAST: rawEnv.AI_MODEL_FAST || "claude-haiku-5-5",
-      AI_MODEL_SMART: rawEnv.AI_MODEL_SMART || "claude-sonnet-5-5",
+      AI_PROVIDER: rawEnv.AI_PROVIDER === "anthropic" ? "anthropic" : "google",
+      AI_MODEL_FAST: rawEnv.AI_MODEL_FAST || "",
+      AI_MODEL_SMART: rawEnv.AI_MODEL_SMART || "",
       AI_DAILY_CALL_CAP: Number(rawEnv.AI_DAILY_CALL_CAP) > 0 ? Number(rawEnv.AI_DAILY_CALL_CAP) : 5000,
+      AI_MAX_RPM: Number(rawEnv.AI_MAX_RPM) > 0 ? Number(rawEnv.AI_MAX_RPM) : 0,
+      AI_CHAT_MAX_STEPS: Number(rawEnv.AI_CHAT_MAX_STEPS) >= 1 ? Math.min(6, Number(rawEnv.AI_CHAT_MAX_STEPS)) : 3,
+      AI_TIMEOUT_FAST_MS: Number(rawEnv.AI_TIMEOUT_FAST_MS) >= 1000 ? Number(rawEnv.AI_TIMEOUT_FAST_MS) : 10000,
+      AI_TIMEOUT_SMART_MS: Number(rawEnv.AI_TIMEOUT_SMART_MS) >= 1000 ? Number(rawEnv.AI_TIMEOUT_SMART_MS) : 25000,
       CRON_SECRET: rawEnv.CRON_SECRET || "",
       CALLS_WEBHOOK_SECRET: rawEnv.CALLS_WEBHOOK_SECRET || "",
     };
