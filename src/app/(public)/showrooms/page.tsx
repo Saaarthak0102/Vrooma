@@ -4,7 +4,7 @@ import { listShowrooms, listWorkshops } from "@/server/repositories/showrooms";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { MapPin, Phone, Clock, Navigation, Wrench, ShieldCheck } from "lucide-react";
+import { MapPin, Phone, Clock, Navigation, Wrench } from "lucide-react";
 import { constructMetadata } from "@/lib/seo";
 
 export const revalidate = 300;

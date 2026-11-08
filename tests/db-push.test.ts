@@ -4,9 +4,7 @@ import {
   buildPushArgs,
   getSpawnConfig,
   runPush,
-  EXPECTED_DEV_PROJECT_REF,
-  FORBIDDEN_PROJECT_REFS,
-} from "../scripts/db-push.mjs";
+  EXPECTED_DEV_PROJECT_REF } from "../scripts/db-push.mjs";
 
 describe("Guarded db-push.mjs Validation Runner", () => {
   const validEnv: NodeJS.ProcessEnv = {

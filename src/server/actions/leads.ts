@@ -1,13 +1,12 @@
 "use server";
 
-import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/server/auth/viewer";
 import { ActionResponse, successResponse, errorResponse } from "@/lib/errors";
-import { Lead, LeadStatus } from "@/types/domain";
+import { LeadStatus } from "@/types/domain";
 
-import { FORBIDDEN_DISCOUNT_WORDS, findForbiddenDiscountWord } from "@/lib/validation/discount";
+import { findForbiddenDiscountWord } from "@/lib/validation/discount";
 import { NO_EMAIL_MESSAGE, NO_PHONE_MESSAGE, replyTarget, type ReplyChannel } from "@/server/services/channels";
 
 /**

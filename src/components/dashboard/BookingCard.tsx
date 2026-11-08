@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Booking } from "@/types/domain";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, MapPin, User, Car, Clock, Loader2 } from "lucide-react";
+import { MapPin, User, Car, Clock, Loader2 } from "lucide-react";
 import { bookingRef } from "@/lib/booking-ref";
 import { cancelBookingAction } from "@/server/actions/booking";
 import { toast } from "sonner";

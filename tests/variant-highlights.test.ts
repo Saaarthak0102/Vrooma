@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { getVariantHighlights } from "../src/components/cars/VariantHighlights";
-import { Model, Variant } from "../src/types/domain";
+import { Model } from "../src/types/domain";
 
 describe("getVariantHighlights", () => {
   const modelS: Model = {

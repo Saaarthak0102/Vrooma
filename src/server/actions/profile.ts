@@ -1,7 +1,6 @@
 "use server";
 
 import { z } from "zod";
-import { cookies } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { requireUser, requireCompleteProfile } from "@/server/auth/viewer";

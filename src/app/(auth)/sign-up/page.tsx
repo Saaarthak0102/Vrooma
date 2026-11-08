@@ -1,12 +1,10 @@
 "use client";
 
 import { CITIES, DEFAULT_CITY } from "@/lib/constants";
-import { normalizeCityId } from "@/lib/cities";
 import React, { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
 import { requestSignupLink } from "@/server/auth/signup-link";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";

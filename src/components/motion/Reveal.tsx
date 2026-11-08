@@ -2,7 +2,7 @@
 
 import React, { useRef } from "react";
 import { useGSAP } from "@gsap/react";
-import { gsap, ScrollTrigger } from "@/lib/motion/register";
+import { gsap } from "@/lib/motion/register";
 import { REDUCED_QUERY } from "@/lib/motion/media";
 
 export interface RevealProps extends React.HTMLAttributes<HTMLDivElement> {

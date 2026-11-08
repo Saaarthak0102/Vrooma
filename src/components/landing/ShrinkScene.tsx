@@ -2,8 +2,6 @@
 
 import React from "react";
 import { PinnedScene } from "@/components/motion/PinnedScene";
-import { Reveal } from "@/components/motion/Reveal";
-import { gsap } from "@/lib/motion/register";
 
 export interface ShrinkSceneProps {
   id: string;

@@ -2,7 +2,6 @@
 
 import React, { useState } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
-import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -11,7 +10,7 @@ import {
 } from "@/server/actions/data-rights";
 import { requestAccountDeletionAction } from "@/server/actions/profile";
 import { toast } from "sonner";
-import { ShieldCheck, AlertTriangle, Download, Mail, CheckCircle2, FileText } from "lucide-react";
+import { AlertTriangle, Download, Mail, CheckCircle2, FileText } from "lucide-react";
 
 export function DataRightsPanel() {
   const { user, status: authStatus, signOut } = useAuth();

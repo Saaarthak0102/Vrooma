@@ -1,10 +1,9 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireUser } from "@/server/auth/viewer";
 import { ActionResponse, successResponse, errorResponse } from "@/lib/errors";
-import { Booking, ChatConversationSummary, Model, UsedCar } from "@/types/domain";
+import { Booking, ChatConversationSummary } from "@/types/domain";
 import { SavedVehicleRecord } from "@/server/repositories/saved";
 import { listModels } from "@/server/repositories/models";
 import { listUsedCars } from "@/server/repositories/used-cars";

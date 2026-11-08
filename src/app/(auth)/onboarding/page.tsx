@@ -16,12 +16,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import {
-  ShieldCheck,
   CheckCircle2,
   LogOut,
   RefreshCw,
-  Sparkles,
-} from "lucide-react";
+  Sparkles } from "lucide-react";
 import Link from "next/link";
 
 export default function OnboardingPage() {

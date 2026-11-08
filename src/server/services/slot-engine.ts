@@ -1,4 +1,3 @@
-import { Slot } from "@/types/domain";
 
 /**
  * Validates slot availability and ensures capacity is not exceeded.

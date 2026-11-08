@@ -15,13 +15,11 @@
 import { describe, it, expect, vi } from "vitest";
 import {
   EXPECTED_DEV_PROJECT_REF,
-  FORBIDDEN_PROJECT_REFS,
   DEV_TEST_USERS,
   validateDevEnvironment,
   validatePersonas,
   seedDevUsers,
-  type DevUser,
-} from "@/../scripts/seed-dev-users";
+  type DevUser } from "@/../scripts/seed-dev-users";
 
 describe("1. DEV Project Validation & Security Guards", () => {
   const validDevEnv = {

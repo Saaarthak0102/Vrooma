@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Clock, ShieldCheck, CheckCircle } from "lucide-react";
+import { Clock, CheckCircle } from "lucide-react";
 
 export interface EnquiryFormProps {
   /** Active showrooms from the database (real UUIDs). */

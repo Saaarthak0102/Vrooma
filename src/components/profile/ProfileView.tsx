@@ -10,7 +10,6 @@ import { AuthGate } from "@/components/auth/AuthGate";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -26,7 +25,7 @@ import {
   requestAccountDeletionAction,
 } from "@/server/actions/profile";
 import { toast } from "sonner";
-import { ShieldCheck, UserCheck, Mail, Globe, Bell, AlertTriangle } from "lucide-react";
+import { ShieldCheck, UserCheck, Mail, Bell, AlertTriangle } from "lucide-react";
 
 export function ProfileView() {
   const { user, status: authStatus, signOut } = useAuth();

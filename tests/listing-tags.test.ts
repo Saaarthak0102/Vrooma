@@ -6,10 +6,7 @@ import {
   diffDaysKolkata,
 } from "@/lib/listing-tags";
 import {
-  NEW_ARRIVAL_DAYS,
-  JUST_LISTED_DAYS,
-  LOW_KM_THRESHOLD,
-} from "@/lib/constants";
+  LOW_KM_THRESHOLD } from "@/lib/constants";
 
 describe("listing-tags pure logic", () => {
   const referenceDate = new Date("2026-11-03T12:00:00+05:30");

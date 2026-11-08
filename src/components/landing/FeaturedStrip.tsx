@@ -8,7 +8,7 @@ import { Reveal } from "@/components/motion/Reveal";
 import { FeaturedModelTeaser } from "@/server/landing-data";
 import { formatINR } from "@/lib/money";
 import { getVehicleAsset } from "@/constants/vehicle-assets";
-import { ArrowRight, ShieldCheck } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 export interface FeaturedStripProps {
   models: FeaturedModelTeaser[];

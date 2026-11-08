@@ -22,9 +22,7 @@ import {
   User,
   Car,
   Trash2,
-  ArrowRight,
-  ExternalLink,
-} from "lucide-react";
+  ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getVehicleAsset } from "@/constants/vehicle-assets";
 

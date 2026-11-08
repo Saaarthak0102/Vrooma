@@ -9,8 +9,8 @@ import { PillButton } from "@/components/ui/PillButton";
 import { PhoneMockup, PhoneScreenBookNow } from "./phone";
 import { Reveal } from "@/components/motion/Reveal";
 import { LandingData } from "@/server/landing-data";
-import { gsap, DrawSVGPlugin, MotionPathPlugin } from "@/lib/motion/register";
-import { MapPin, ArrowRight } from "lucide-react";
+import { gsap } from "@/lib/motion/register";
+import { MapPin } from "lucide-react";
 import { APPROVED_VEHICLE_ASSETS } from "@/constants/vehicle-assets";
 
 export interface FinalCtaProps {

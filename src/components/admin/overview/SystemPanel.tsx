@@ -10,10 +10,7 @@ import {
   Clock,
   FileSpreadsheet,
   ShieldCheck,
-  CheckCircle2,
-  XCircle,
-  Database,
-} from "lucide-react";
+  CheckCircle2 } from "lucide-react";
 
 
 /** Every job the platform expects to exist. A missing one is shown as "not scheduled", never silently hidden. */

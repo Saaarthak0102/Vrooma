@@ -7,7 +7,6 @@ import { Pencil, Plus, Trash2 } from "lucide-react";
 import { DataGrid, type GridColumn } from "@/components/grid/DataGrid";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,

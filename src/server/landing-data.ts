@@ -6,7 +6,7 @@ import { getPriceRule } from "@/server/repositories/pricing";
 import { computeOnRoad } from "@/lib/price-engine";
 import { calculateEmi } from "@/lib/emi";
 import { DEFAULT_CITY, COMPANY_FACTS, EMI_DEFAULTS } from "@/lib/constants";
-import { Model, UsedCar } from "@/types/domain";
+import { UsedCar } from "@/types/domain";
 
 export const revalidate = 60;
 

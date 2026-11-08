@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { authorizeCron } from "@/lib/cron-auth";
-import { RETENTION_POLICIES } from "@/server/privacy/retention";
+import { RETENTION_POLICIES, retentionCutoff } from "@/server/privacy/retention";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +21,9 @@ export async function POST(request: NextRequest) {
       purgedOutbox: 0,
       purgedIdempotency: 0,
       purgedCallLogs: 0,
+      purgedChats: 0,
+      purgedAiLogs: 0,
+      purgedLeadTasks: 0,
     };
 
     // 1. Purge expired idempotency keys (> 7 days)
@@ -72,6 +75,39 @@ export async function POST(request: NextRequest) {
     const callCutoff = new Date(now - RETENTION_POLICIES.CALL_LOG_PURGE_DAYS * 24 * 60 * 60 * 1000).toISOString();
     const { data: delCalls } = await admin.from("call_logs").delete().lte("started_at", callCutoff).select("id");
     stats.purgedCallLogs = (delCalls || []).length;
+
+    // 3c. Purge support chats idle for 12 months (messages go with them). Buyers can also erase theirs by deleting
+    // the account; this covers accounts that stay open.
+    const { data: delChats } = await admin
+      .from("chat_conversations")
+      .delete()
+      .lte("last_message_at", retentionCutoff(now, RETENTION_POLICIES.CHAT_PURGE_DAYS))
+      .select("id");
+    stats.purgedChats = (delChats || []).length;
+
+    // 3d. Purge AI call records: 90 days for the call log, 12 months for the draft-versus-sent reply audit.
+    const { data: delAi } = await admin
+      .from("ai_logs")
+      .delete()
+      .not("action", "in", "(reply_sent_unedited,reply_sent_edited)")
+      .lte("created_at", retentionCutoff(now, RETENTION_POLICIES.AI_LOG_PURGE_DAYS))
+      .select("id");
+    const { data: delAudit } = await admin
+      .from("ai_logs")
+      .delete()
+      .in("action", ["reply_sent_unedited", "reply_sent_edited"])
+      .lte("created_at", retentionCutoff(now, RETENTION_POLICIES.AI_REPLY_AUDIT_PURGE_DAYS))
+      .select("id");
+    stats.purgedAiLogs = (delAi || []).length + (delAudit || []).length;
+
+    // 3e. Purge finished or dismissed lead tasks after 6 months (open tasks are never touched).
+    const { data: delTasks } = await (admin as any)
+      .from("lead_tasks")
+      .delete()
+      .in("status", ["done", "dismissed"])
+      .lte("created_at", retentionCutoff(now, RETENTION_POLICIES.LEAD_TASK_PURGE_DAYS))
+      .select("id");
+    stats.purgedLeadTasks = (delTasks || []).length;
 
     // 4. Record non-personal audit event
     try {

@@ -1,6 +1,6 @@
 import React from "react";
 import { formatINR } from "@/lib/money";
-import { Calendar, ShieldCheck, Clock, MapPin } from "lucide-react";
+import { ShieldCheck, Clock } from "lucide-react";
 
 export interface PhoneScreenHomeProps {
   modelName?: string;

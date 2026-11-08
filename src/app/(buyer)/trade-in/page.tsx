@@ -2,7 +2,7 @@ import React from "react";
 import { PageShell } from "@/components/layout/PageShell";
 import { TradeInForm } from "@/components/forms/TradeInForm";
 import { constructMetadata } from "@/lib/seo";
-import { ShieldCheck, Sparkles, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 
 export async function generateMetadata() {
   return constructMetadata({

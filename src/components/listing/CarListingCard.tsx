@@ -18,10 +18,7 @@ import {
   Fuel,
   Gauge,
   ArrowRight,
-  ChevronLeft,
-  Sparkles,
-  Info,
-} from "lucide-react";
+  ChevronLeft } from "lucide-react";
 
 export interface CarListingCardProps {
   model: Model;

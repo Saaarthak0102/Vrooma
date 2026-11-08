@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Role } from "@/types/domain";
 import { postSignInPath } from "@/lib/console-nav";
 import { requestOtp, verifyOtp } from "@/server/auth/actions";
-import { ShieldCheck, Mail, ArrowRight, CheckCircle2, RefreshCw, User, Briefcase, KeyRound } from "lucide-react";
+import { ShieldCheck, ArrowRight, CheckCircle2, RefreshCw, User, Briefcase, KeyRound } from "lucide-react";
 import { toast } from "sonner";
 
 export function SignInSheet() {

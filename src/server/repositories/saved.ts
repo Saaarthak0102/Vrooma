@@ -1,8 +1,8 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createPublicClient } from "@/lib/supabase/public";
-import { Model, UsedCar, SavedItemType, SavedVehicleRecord } from "@/types/domain";
-import { getModelBySlug, listModels } from "./models";
-import { getUsedCarByStockId, listUsedCars } from "./used-cars";
+import { SavedItemType, SavedVehicleRecord } from "@/types/domain";
+import { listModels } from "./models";
+import { listUsedCars } from "./used-cars";
 import { memoryStore } from "@/server/store";
 
 export type { SavedItemType, SavedVehicleRecord };

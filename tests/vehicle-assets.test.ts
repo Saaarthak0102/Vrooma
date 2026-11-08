@@ -3,12 +3,9 @@ import {
   APPROVED_VEHICLE_ASSETS,
   APPROVED_VEHICLE_ASSET_PATHS,
   DEFAULT_VEHICLE_ASSET,
-  MODEL_ASSET_MAP,
-  BODY_TYPE_ASSET_MAP,
   isApprovedVehicleAsset,
   getVehicleAsset,
-  normalizeVehicleAsset,
-} from "@/constants/vehicle-assets";
+  normalizeVehicleAsset } from "@/constants/vehicle-assets";
 
 describe("Vehicle Asset Centralized System", () => {
   it("defines exactly the five approved SVG assets", () => {

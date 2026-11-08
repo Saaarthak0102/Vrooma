@@ -5,7 +5,6 @@ import React, { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
 import { requestOtp, verifyOtp } from "@/server/auth/actions";
 import { safeNext } from "@/server/auth/safe-next";
 import { postSignInPath } from "@/lib/console-nav";
@@ -18,11 +17,9 @@ import {
   ArrowRight,
   RefreshCw,
   AlertCircle,
-  Mail,
   KeyRound,
   User,
-  Briefcase,
-} from "lucide-react";
+  Briefcase } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { Role } from "@/types/domain";
 

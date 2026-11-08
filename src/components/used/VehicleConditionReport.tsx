@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import { UsedCar, InspectionCheck } from "@/types/domain";
 import { AuthGate } from "@/components/auth/AuthGate";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   CheckCircle2,
   AlertTriangle,
@@ -13,10 +12,7 @@ import {
   FileCheck,
   Wrench,
   Car,
-  ChevronDown,
-  ChevronUp,
-  Info,
-} from "lucide-react";
+  Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export interface VehicleConditionReportProps {

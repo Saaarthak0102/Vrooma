@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import { describe, it, expect } from "vitest";
 import {
   POLICY_VERSION,
@@ -6,8 +7,7 @@ import {
   verifyUnsubscribeToken,
 } from "@/server/privacy/consent";
 import { tradeInSubmissionSchema } from "@/lib/validation/trade-in";
-import { normalizeIndianPhone } from "@/lib/phone";
-import { RETENTION_POLICIES } from "@/server/privacy/retention";
+import { RETENTION_POLICIES, retentionCutoff } from "@/server/privacy/retention";
 
 describe("DPDP Act 2023 Statutory Privacy & Consent Guarantees", () => {
   it("enforces statutory policy version 2026.1", () => {
@@ -151,6 +151,20 @@ describe("DPDP Act 2023 Statutory Privacy & Consent Guarantees", () => {
       expect(RETENTION_POLICIES.LEAD_ANONYMIZATION_MONTHS).toBe(24);
       expect(RETENTION_POLICIES.OUTBOX_PURGE_DAYS).toBe(90);
       expect(RETENTION_POLICIES.IDEMPOTENCY_PURGE_DAYS).toBe(7);
+      expect(RETENTION_POLICIES.CHAT_PURGE_DAYS).toBe(365);
+      expect(RETENTION_POLICIES.AI_LOG_PURGE_DAYS).toBe(90);
+      expect(RETENTION_POLICIES.AI_REPLY_AUDIT_PURGE_DAYS).toBe(365);
+      expect(RETENTION_POLICIES.LEAD_TASK_PURGE_DAYS).toBe(180);
+    });
+
+    it("computes cutoffs from the policy and the job purges chats, AI logs and finished tasks", () => {
+      const now = Date.parse("2026-11-09T00:00:00Z");
+      expect(retentionCutoff(now, 90)).toBe("2026-08-11T00:00:00.000Z");
+      const job = fs.readFileSync("src/app/api/cron/data-retention/route.ts", "utf8");
+      for (const needle of ['"chat_conversations"', '"ai_logs"', '"lead_tasks"', 'reply_sent_unedited,reply_sent_edited', '["done", "dismissed"]']) {
+        expect(job, needle).toContain(needle);
+      }
+      expect(job).not.toMatch(/lead_tasks"\)\s*\.delete\(\)\s*\.lte/); // open tasks are never purged
     });
   });
 });

@@ -20,7 +20,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useRequireAuth } from "@/components/auth/useRequireAuth";
 import { useSavedModel } from "@/components/cars/useSavedModel";
-import { toast } from "sonner";
 import {
   Heart,
   Calendar,

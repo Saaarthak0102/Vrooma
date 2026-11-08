@@ -10,7 +10,7 @@ import { CountUp } from "@/components/motion/CountUp";
 import { Reveal } from "@/components/motion/Reveal";
 import { LandingData, LocationChipData } from "@/server/landing-data";
 import { gsap } from "@/lib/motion/register";
-import { MapPin, Wrench, Car, Tag, ArrowRight } from "lucide-react";
+import { Wrench, Car, Tag } from "lucide-react";
 
 export interface ShowroomsOrbitProps {
   data: LandingData;

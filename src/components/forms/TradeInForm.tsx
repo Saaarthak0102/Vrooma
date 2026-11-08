@@ -11,8 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { formatINR } from "@/lib/money";
-import { CheckCircle2, Sparkles, Upload, X, FileImage } from "lucide-react";
+import { CheckCircle2, Upload, X, FileImage } from "lucide-react";
 
 export function TradeInForm({ className }: { className?: string }) {
   const [submittedRef, setSubmittedRef] = useState<string | null>(null);

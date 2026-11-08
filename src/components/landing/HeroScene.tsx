@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
@@ -20,7 +20,7 @@ import {
 } from "./phone";
 import { LandingData } from "@/server/landing-data";
 import { formatINR } from "@/lib/money";
-import { gsap, DrawSVGPlugin, MotionPathPlugin } from "@/lib/motion/register";
+import { gsap } from "@/lib/motion/register";
 import {
   Clock,
   Sparkles,
@@ -29,10 +29,8 @@ import {
   Calendar,
   ShieldCheck,
   Wrench,
-  ChevronDown,
-  MapPin,
-} from "lucide-react";
-import { APPROVED_VEHICLE_ASSETS, getVehicleAsset } from "@/constants/vehicle-assets";
+  ChevronDown } from "lucide-react";
+import { APPROVED_VEHICLE_ASSETS } from "@/constants/vehicle-assets";
 
 export interface HeroSceneProps {
   data: LandingData;

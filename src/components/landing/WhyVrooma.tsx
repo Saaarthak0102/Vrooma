@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef } from "react";
+import React, {} from "react";
 import Link from "next/link";
 import { PinnedScene } from "@/components/motion/PinnedScene";
 import { GlassCard } from "@/components/ui/GlassCard";
@@ -10,8 +10,8 @@ import { CountUp } from "@/components/motion/CountUp";
 import { Reveal } from "@/components/motion/Reveal";
 import { LandingData } from "@/server/landing-data";
 import { formatINR } from "@/lib/money";
-import { gsap, DrawSVGPlugin } from "@/lib/motion/register";
-import { Check, Calendar, ShieldCheck, ArrowRight, Wrench } from "lucide-react";
+import { gsap } from "@/lib/motion/register";
+import { Check, Calendar, ShieldCheck } from "lucide-react";
 
 export interface WhyVroomaProps {
   data: LandingData;

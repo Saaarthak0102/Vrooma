@@ -12,7 +12,7 @@ import { LandingData } from "@/server/landing-data";
 import { calculateEmi } from "@/lib/emi";
 import { formatINR } from "@/lib/money";
 import { gsap } from "@/lib/motion/register";
-import { Check, ArrowRight, Car, Calendar, KeyRound } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 export interface BookingStepsProps {
   data: LandingData;
