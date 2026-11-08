@@ -139,7 +139,9 @@ Every AI feature is called through `runAi()` (`index.ts` -> `runner.ts`), so the
 - `AI_MAX_RPM` is an optional ceiling on model calls per minute; set it a little under the key's limit. Calls fail fast (no hidden SDK retries).
 - A buyer-chat turn is one request. The price-band note is remembered for a day per band, and lead briefings are only rewritten when the lead changed.
 - **Circuit breaker:** two failed calls in a row (timeout, high demand, any error) pause model calls for 30 s, so an overloaded model costs one slow request instead of one for every buyer message.
-- `AI_DAILY_CALL_CAP` is per feature; keep the sum under the key's daily limit.
+- `AI_DAILY_CALL_CAP` is per feature; keep the sum under the key's daily limit. On a free Gemini key (about 500 calls a day, about 10 a minute; check AI Studio's rate-limit page) use `AI_MAX_RPM=8` and `AI_DAILY_CALL_CAP=100`.
+- `AI_TIMEOUT_FAST_MS` (default 30 s) and `AI_TIMEOUT_SMART_MS` (25 s) are how long a call may take before the rule-based answer is used. Free-tier Gemini often takes 10-15 s, so a 10 s limit made every chat answer time out. Routes that call the model set `maxDuration = 60` (chat, digests, staff pages); the digest job stops asking the model after 40 s and still queues every digest.
+- **Admin > AI activity** (`/admin?tab=ai`) shows every call, with result, reason, latency, tokens and the daily-limit meter per feature.
 
 **Personal data and the provider.** Every buyer- or staff-typed text is passed through `redactPii()` before it reaches a model: phone numbers, emails, vehicle registration numbers, PAN and Aadhaar-style numbers become `[phone]`, `[email]`, `[reg]`, `[id]`. The model gets the buyer's first name and what they asked for. On Google's free tier the provider may use prompts to improve its services and reviewers may read them; the privacy page (section 6) and a line under the chat box say so. Removing `AI_PROVIDER_API_KEY` switches every feature back to rule-based answers at once.
 

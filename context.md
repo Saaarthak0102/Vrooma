@@ -183,7 +183,7 @@ Interactive 3D flip cards are deployed exclusively on the three main catalog rou
 - `/staff/bookings` — test drives and service in one grid, plus workshop bay load for the next 7 days (all staff).
 - `/staff/chats` — support chats the buyer chatbot handed to a consultant: status KPIs, grid, side panel with the AI brief, live transcript and a discount-guarded reply box (all staff; consultants see only their own).
 - `/staff/stock` — Used Stock (manager and admin): stock grid, final price, manager-only price band from past sales, inspection scorecard, audited registration reveal, vehicle intake, and the Trade-ins tab.
-- `/admin` — Overview (admin): live success metrics and the ₹2.11 cr leakage monitor; tabs for the AI reply log and system health.
+- `/admin` — Overview (admin): live success metrics and the ₹2.11 cr leakage monitor; tabs for AI activity (every model call: chat, briefings, next steps, digests, price notes, with filters, usage meters and a detail drawer; a second view compares AI drafts with sent replies) and system health.
 - `/admin/catalog` — Models and variants, on-road price rules, offers, banners (tabs).
 - `/admin/team` — People and roles, showrooms and bay capacity, lead routing rules, slot calendar (tabs).
 - Old `/staff/leads*` and `/admin/*` deep links redirect to these screens. Each non-buyer role has at most 4 screens: consultant 3, manager 4, admin 3 of its own.

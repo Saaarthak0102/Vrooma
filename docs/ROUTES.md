@@ -30,7 +30,7 @@ The app is English only. Old `/en/...` and `/hi/...` URLs permanently redirect t
 | `/staff/bookings` | `(staff)` | Consultant / Manager / Admin | Test drives and service in one grid, attended / no-show, workshop bay load for the next 7 days. |
 | `/staff/chats` | `(staff)` | Consultant / Manager / Admin | Support chats handed off by the chatbot: AI brief, live transcript, guarded reply, reassign, close. Consultants see their own only. |
 | `/staff/stock` | `(staff)` | **Manager / Admin only** | **Used Stock.** Stock grid, final price, manager-only price band from past sales, inspection scorecard, audited registration reveal, vehicle intake. Trade-ins tab with signed-URL photos. |
-| `/admin` | `(admin)` | Admin only | **Overview.** Live success metrics and the ₹2.11 cr leakage monitor. Tabs: AI reply log, System health. |
+| `/admin` | `(admin)` | Admin only | **Overview.** Live success metrics and the ₹2.11 cr leakage monitor. Tabs: AI activity (all model calls; a second view compares AI drafts with what consultants sent), System health. |
 | `/admin/catalog` | `(admin)` | Admin only | Tabs `?tab=models` (with `&model=<id>` detail), `prices`, `offers`, `banners`. |
 | `/admin/team` | `(admin)` | Admin only | Tabs `?tab=users`, `network` (showrooms, workshops, bays, demo cars), `routing`, `slots`. |
 

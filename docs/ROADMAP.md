@@ -33,7 +33,7 @@
 - [x] Staff and admin consoles, consolidated to 2-3 spreadsheet-style screens per role (see `docs/ROUTES.md`):
   - [x] Consultant: Lead Desk (`/staff`: SLA timers, inline stage, AI summary and guarded reply, reassign, activity, CSV import) and Bookings (`/staff/bookings`: attended / no-show, bay load).
   - [x] Used-Car Manager: Used Stock (`/staff/stock`: manager-only price band from past sales, scorecard, audited plate reveal, vehicle intake, trade-ins with photos).
-  - [x] Dealer Principal: Overview (`/admin`: live metrics, leakage monitor, AI reply log, system health), Catalog (`/admin/catalog`: models, variants, price rules, offers, banners), Team (`/admin/team`: roles, invite, bays, routing rules, slot calendar).
+  - [x] Dealer Principal: Overview (`/admin`: live metrics, leakage monitor, AI activity (every model call, filters, detail drawer, CSV) with a draft-versus-sent view, system health), Catalog (`/admin/catalog`: models, variants, price rules, offers, banners), Team (`/admin/team`: roles, invite, bays, routing rules, slot calendar).
   - [x] Every action verified against Supabase by `scripts/console-e2e.mjs`; layout verified by `scripts/console-layout.mjs`.
 
 ---

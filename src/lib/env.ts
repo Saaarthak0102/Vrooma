@@ -19,7 +19,7 @@ const envSchema = z.object({
   AI_DAILY_CALL_CAP: z.coerce.number().int().positive().optional().default(5000),
   /** Client-side ceiling on model calls per minute. 0 = no ceiling. Set a little under the key's real limit (free tiers are small). */
   AI_MAX_RPM: z.coerce.number().int().min(0).optional().default(0),
-  AI_TIMEOUT_FAST_MS: z.coerce.number().int().min(1000).optional().default(10000),
+  AI_TIMEOUT_FAST_MS: z.coerce.number().int().min(1000).optional().default(30000),
   AI_TIMEOUT_SMART_MS: z.coerce.number().int().min(1000).optional().default(25000),
   CRON_SECRET: z.string().optional().default(""),
   CALLS_WEBHOOK_SECRET: z.string().optional().default(""),
@@ -92,7 +92,7 @@ if (skipValidation) {
       AI_MODEL_SMART: rawEnv.AI_MODEL_SMART || "",
       AI_DAILY_CALL_CAP: Number(rawEnv.AI_DAILY_CALL_CAP) > 0 ? Number(rawEnv.AI_DAILY_CALL_CAP) : 5000,
       AI_MAX_RPM: Number(rawEnv.AI_MAX_RPM) > 0 ? Number(rawEnv.AI_MAX_RPM) : 0,
-      AI_TIMEOUT_FAST_MS: Number(rawEnv.AI_TIMEOUT_FAST_MS) >= 1000 ? Number(rawEnv.AI_TIMEOUT_FAST_MS) : 10000,
+      AI_TIMEOUT_FAST_MS: Number(rawEnv.AI_TIMEOUT_FAST_MS) >= 1000 ? Number(rawEnv.AI_TIMEOUT_FAST_MS) : 30000,
       AI_TIMEOUT_SMART_MS: Number(rawEnv.AI_TIMEOUT_SMART_MS) >= 1000 ? Number(rawEnv.AI_TIMEOUT_SMART_MS) : 25000,
       CRON_SECRET: rawEnv.CRON_SECRET || "",
       CALLS_WEBHOOK_SECRET: rawEnv.CALLS_WEBHOOK_SECRET || "",

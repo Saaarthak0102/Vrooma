@@ -30,3 +30,7 @@ supabase/.temp/
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Screen-audit output (scripts/screen-audit.mjs)
+/audit-out/
+/.audit/
