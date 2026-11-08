@@ -8,6 +8,7 @@ import { ActionResponse, successResponse, errorResponse } from "@/lib/errors";
 import { Lead, LeadStatus } from "@/types/domain";
 
 import { FORBIDDEN_DISCOUNT_WORDS, findForbiddenDiscountWord } from "@/lib/validation/discount";
+import { NO_EMAIL_MESSAGE, NO_PHONE_MESSAGE, replyTarget, type ReplyChannel } from "@/server/services/channels";
 
 /**
  * Update lead status with optimistic concurrency protection.
@@ -140,8 +141,7 @@ export async function reassignLeadAction(
 export async function sendLeadReplyAction(
   leadId: string,
   message: string,
-  channel: "whatsapp" | "email" = "whatsapp"
-): Promise<ActionResponse<{ messageId: string; statusUpdated: boolean }>> {
+): Promise<ActionResponse<{ messageId: string; statusUpdated: boolean; channel: ReplyChannel }>> {
   try {
     const { profile } = await requireRole("consultant", "manager", "admin");
     const admin = createAdminClient();
@@ -171,7 +171,12 @@ export async function sendLeadReplyAction(
       return errorResponse("NOT_FOUND", "Lead record not found.");
     }
 
-    const destination = channel === "email" ? (lead.email || lead.phone) : lead.phone;
+    // One place picks the channel (src/server/services/channels.ts): WhatsApp when its keys are set, otherwise email.
+    // Never queue a message that cannot be delivered: nothing is sent, the lead stays "new" and the SLA keeps running.
+    const { channel, address: destination } = replyTarget(lead);
+    if (!destination) {
+      return errorResponse("VALIDATION_FAILED", channel === "email" ? NO_EMAIL_MESSAGE : NO_PHONE_MESSAGE);
+    }
 
     // Queue in messages_outbox
     const msgId = `reply_${lead.id}_${Date.now()}`;
@@ -230,7 +235,7 @@ export async function sendLeadReplyAction(
       }
     }
 
-    return successResponse({ messageId: msgId, statusUpdated });
+    return successResponse({ messageId: msgId, statusUpdated, channel });
   } catch (err: any) {
     return errorResponse("INTERNAL_ERROR", err?.message || "Failed to send reply.");
   }

@@ -5,12 +5,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { sendLeadReplyAction } from "@/server/actions/leads";
 import { findForbiddenDiscountWord } from "@/lib/validation/discount";
+import { formatIndianPhoneDisplay } from "@/lib/phone";
 import { toast } from "sonner";
 import { Send, AlertTriangle, Sparkles, CheckCircle2 } from "lucide-react";
 
 export interface ReplyDraftEditorProps {
   leadId: string;
   leadPhone: string;
+  /** The buyer's email, when we have one. */
+  leadEmail?: string | null;
+  /** How the reply will go out (decided on the server): email until WhatsApp keys exist. */
+  channel?: "email" | "whatsapp";
   customerName: string;
   initialDraft: string;
   onSent?: () => void;
@@ -20,6 +25,8 @@ export interface ReplyDraftEditorProps {
 export function ReplyDraftEditor({
   leadId,
   leadPhone,
+  leadEmail = null,
+  channel = "email",
   customerName,
   initialDraft,
   onSent,
@@ -47,7 +54,7 @@ export function ReplyDraftEditor({
     setSending(true);
     setStatus("loading");
     try {
-      const res = await sendLeadReplyAction(leadId, draft, "whatsapp");
+      const res = await sendLeadReplyAction(leadId, draft);
       if (!res.ok) {
         throw new Error(res.error?.message || "Failed to send message");
       }
@@ -55,7 +62,7 @@ export function ReplyDraftEditor({
       setStatus("success");
       setSentSuccess(true);
       if (res.data.statusUpdated) {
-        toast.success("First reply sent via WhatsApp! SLA timer stopped.");
+        toast.success(`Reply sent ${res.data.channel === "email" ? "by email" : "via WhatsApp"}. SLA timer stopped.`);
       } else {
         toast.warning("Reply queued, but the lead status could not be updated. Please mark it Contacted manually.");
       }
@@ -78,7 +85,9 @@ export function ReplyDraftEditor({
           </span>
           <h4 className="text-sm font-bold text-ink">AI First-Reply Assistant</h4>
         </div>
-        <span className="text-[11px] text-ink-mute">Channel: WhatsApp (+91 {leadPhone})</span>
+        <span className="text-[11px] text-ink-mute">
+          Channel: {channel === "email" ? `Email (${leadEmail ?? "no address on file"})` : `WhatsApp (${formatIndianPhoneDisplay(leadPhone)})`}
+        </span>
       </div>
 
       <div className="space-y-2">
@@ -120,11 +129,13 @@ export function ReplyDraftEditor({
 
       <div className="flex items-center justify-between pt-1">
         <p className="text-[11px] text-ink-mute">
-          Drafts must always be reviewed by a certified consultant.
+          {channel === "email" && !leadEmail
+            ? "No email on file for this lead. Call them or ask for an address."
+            : "Drafts must always be reviewed by a certified consultant."}
         </p>
         <Button
           onClick={handleSend}
-          disabled={sending || hasDiscountWarning || !draft.trim()}
+          disabled={sending || hasDiscountWarning || !draft.trim() || (channel === "email" && !leadEmail)}
           status={status}
           loadingText="Sending..."
           successText="Dispatched!"
@@ -132,7 +143,7 @@ export function ReplyDraftEditor({
           className="gap-1.5 text-xs h-10 px-5"
           leftIcon={<Send className="h-3.5 w-3.5" />}
         >
-          Approve & Send via WhatsApp
+          {channel === "email" ? "Approve & Send by email" : "Approve & Send via WhatsApp"}
         </Button>
       </div>
     </div>

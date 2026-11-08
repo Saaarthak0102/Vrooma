@@ -125,3 +125,15 @@ pnpm cleanup:test-data                 # deletes it
 It removes only leads that look like test data (known test names, `E2E-` prefixes, the sample-CSV people), with their bookings, outbox rows, AI log rows, trade-ins and chats, plus bookings made by the test buyer accounts, and hands the booked seats back to the slots.
 It never touches the AI demo data (`LD-D-` leads, `BK-D-` bookings, `5eed` ids) or a real person's enquiry.
 
+## Email now, WhatsApp when the keys arrive
+
+Nothing needs to be rewritten to start on email and move to WhatsApp later.
+
+- **Reminders, booking confirmations and cancellations, service-due and insurance notices** already queue an email row and a separate WhatsApp row. Without WhatsApp keys the WhatsApp row is recorded as `skipped` (System health shows the count) and the email goes out.
+- **A consultant's reply to a lead** uses one switch, `NOTIFY_CHANNEL` (`src/server/services/channels.ts`):
+  - `auto` (default): email until `WHATSAPP_TOKEN` and `WHATSAPP_PHONE_ID` are both set, then WhatsApp.
+  - `email`: always email, even with keys (handy while WhatsApp templates are in review).
+  - `whatsapp`: always WhatsApp.
+  A reply by email goes to the lead's real email address. If the lead has none, nothing is sent and the lead stays `new` with the SLA timer running; the editor says "No email on file for this lead".
+- **To switch to WhatsApp:** add `WHATSAPP_TOKEN` and `WHATSAPP_PHONE_ID` (and `WHATSAPP_TEMPLATES` once templates are approved) in Vercel and redeploy. Nothing else changes.
+

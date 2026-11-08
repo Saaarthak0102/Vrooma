@@ -83,7 +83,7 @@ export async function SystemPanel() {
       detail:
         process.env.WHATSAPP_TOKEN && process.env.WHATSAPP_PHONE_ID
           ? "Connected"
-          : "Add WHATSAPP_TOKEN and WHATSAPP_PHONE_ID; messages are skipped until then",
+          : "Not connected: replies and notices go by email. Add WHATSAPP_TOKEN and WHATSAPP_PHONE_ID and redeploy to add WhatsApp",
     },
     {
       label: "Telephony (call tracking)",

@@ -177,6 +177,8 @@ export function LeadDrawer({ leadId, viewerRole, onClose, onLeadChanged }: LeadD
               leadId={lead.id}
               customerName={lead.name}
               leadPhone={lead.phone}
+              leadEmail={lead.email}
+              channel={data.replyChannel}
               initialDraft={agentDraft ?? (lead.ai_draft || "")}
               onSent={() => {
                 onLeadChanged({

@@ -7,6 +7,7 @@ import { listUsers } from "@/server/repositories/users";
 import { findConversationForLead } from "@/server/repositories/chats";
 import { ensureLeadCopilot } from "@/server/services/lead-copilot-persist";
 import type { Lead, Profile } from "@/types/domain";
+import { replyChannel } from "@/server/services/channels";
 
 export interface LeadDrawerData {
   lead: Lead;
@@ -15,6 +16,8 @@ export interface LeadDrawerData {
   consultants: Profile[];
   /** Support chat that created or belongs to this lead, if any. */
   chatId: string | null;
+  /** How an approved reply will go out: WhatsApp when its keys are set (or forced), otherwise email. */
+  replyChannel: "email" | "whatsapp";
 }
 
 /**
@@ -44,6 +47,7 @@ export async function getLeadDrawerAction(leadId: string): Promise<ActionRespons
       events,
       consultants: consultants.filter((c) => c.is_active !== false),
       chatId: chat?.id ?? null,
+      replyChannel: replyChannel(),
     });
   } catch (err: any) {
     return errorResponse("INTERNAL_ERROR", err?.message || "Could not load the lead.");
