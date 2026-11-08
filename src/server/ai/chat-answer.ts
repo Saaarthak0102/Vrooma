@@ -2,6 +2,7 @@ import "server-only";
 
 import { generateText, type CoreMessage, type LanguageModel } from "ai";
 
+import { findForbiddenDiscountWord } from "@/lib/validation/discount";
 import { buildChatFacts, type ChatFacts } from "@/server/ai/chat-facts";
 import { guardAiText, looksLikePromptInjection, sanitizeUserText, type GuardResult } from "@/server/ai/guard";
 import { providerOptionsFor } from "@/server/ai/provider";
@@ -65,6 +66,11 @@ const defaultGenerate: GenerateFn = async ({ model, signal, system, messages }) 
   return { text: result.text, usage: result.usage };
 };
 
+/** The site adds the closing question itself; remove any copy (the model imitates earlier bot turns that end with it). */
+export function stripClosing(text: string): string {
+  return text.split(CLOSING_QUESTION).join("").trim();
+}
+
 /** Every rupee figure in the answer must appear in the facts the model was given. */
 export function guardChatAnswer(text: string, facts: string): GuardResult {
   return guardAiText(text, { maxChars: 900, checkLinks: true, groundingSources: [facts] });
@@ -89,10 +95,21 @@ export async function answerChat(
   // Only plain questions go to the model. Handoff, solved and greetings keep their fixed behaviour.
   if (rules.intent === "handoff" || rules.intent === "solved" || rules.intent === "greeting") return ruleAnswer;
   if (looksLikePromptInjection(message)) return { ...ruleAnswer, reason: "injection" };
+  // A buyer asking for a price cut gets a fixed, helpful pointer to a consultant. The model would have to repeat
+  // the forbidden word to answer, so it is not asked.
+  if (findForbiddenDiscountWord(message)) {
+    return {
+      ...ruleAnswer,
+      reply: `Pricing talks are handled by a Vrooma consultant, who can go through the official price breakup with you. Choose "Connect me to a consultant" below and they will reach out.\n\n${CLOSING_QUESTION}`,
+      reason: "pricing_request",
+    };
+  }
 
   const clean = sanitizeUserText(message, 1000);
   const messages: CoreMessage[] = [
-    ...history.slice(-9).map((h) => ({ role: h.role, content: sanitizeUserText(h.content, 1000) }) as CoreMessage),
+    ...history
+      .slice(-9)
+      .map((h) => ({ role: h.role, content: sanitizeUserText(stripClosing(h.content), 1000) }) as CoreMessage),
     { role: "user", content: clean },
   ];
   const generate = options.generate ?? defaultGenerate;
@@ -124,7 +141,7 @@ export async function answerChat(
   if (outcome.source !== "ai") return { ...ruleAnswer, reason: outcome.reason };
   return {
     intent: rules.intent,
-    reply: `${outcome.value}\n\n${CLOSING_QUESTION}`,
+    reply: `${stripClosing(outcome.value)}\n\n${CLOSING_QUESTION}`,
     quickReplies: CLOSING_REPLIES,
     askedClosing: true,
     source: "ai",

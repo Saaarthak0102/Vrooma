@@ -100,6 +100,19 @@ export function mentionedModels<T extends Pick<Model, "name" | "slug">>(message:
 
 const wants = (message: string, pattern: RegExp) => pattern.test(message);
 
+const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+/** The weekday a buyer names ("slots on Saturday"), if any. */
+export function weekdayAsked(message: string): string | null {
+  const m = message.toLowerCase().match(/\b(sun|mon|tues?|wed(?:nes)?|thu(?:rs?)?|fri|sat(?:ur)?)(?:day)?\b/);
+  if (!m) return null;
+  return WEEKDAYS.find((d) => d.toLowerCase().startsWith(m[1].slice(0, 3))) ?? null;
+}
+
+function istWeekday(iso: string): string {
+  return new Intl.DateTimeFormat("en-IN", { weekday: "long", timeZone: "Asia/Kolkata" }).format(new Date(iso));
+}
+
 const emiLine = (principal: number, months: number, rate: number) =>
   `${formatINR(principal)} over ${months} months at ${rate}%: ${formatINR(calculateEmi(principal, rate, months))} a month`;
 
@@ -154,11 +167,19 @@ export async function buildChatFacts(
   // Open slots
   const slotKind = intent === "service" ? "service" : intent === "test_drive" || wants(message, /\b(slot|available|availability|book|saturday|sunday|monday|tuesday|wednesday|thursday|friday|tomorrow|today|weekend)\b/i) ? "test_drive" : null;
   if (slotKind) {
-    const [slots, showrooms, workshops] = await Promise.all([deps.listSlots({ kind: slotKind, limit: 40 }), deps.listShowrooms(), deps.listWorkshops()]);
+    const [slots, showrooms, workshops] = await Promise.all([deps.listSlots({ kind: slotKind, limit: 120 }), deps.listShowrooms(), deps.listWorkshops()]);
     const names = new Map<string, string>([...showrooms, ...workshops].map((p) => [p.id, p.name]));
-    const open = slots.filter((s) => s.capacity - s.booked_count > 0).slice(0, 6);
+    const free = slots.filter((s) => s.capacity - s.booked_count > 0);
+    const day = weekdayAsked(message);
+    const onDay = day ? free.filter((s) => istWeekday(s.starts_at) === day).slice(0, 5) : [];
+    const open = onDay.length ? onDay : free.slice(0, 6);
+    const heading = day
+      ? onDay.length
+        ? `FREE ${slotKind === "service" ? "SERVICE" : "TEST DRIVE"} SLOTS ON ${day.toUpperCase()}`
+        : `NO FREE SLOTS ON ${day.toUpperCase()} (say so; the nearest free slots are listed)`
+      : `NEXT FREE ${slotKind === "service" ? "SERVICE" : "TEST DRIVE"} SLOTS`;
     sections.push(
-      `NEXT FREE ${slotKind === "service" ? "SERVICE" : "TEST DRIVE"} SLOTS (India time, at least 2 hours' notice; the buyer books on the page, you cannot book for them):\n` +
+      `${heading} (India time, at least 2 hours' notice; the buyer books on the page, you cannot book for them):\n` +
         (open.length
           ? open.map((s) => `- ${formatIstDateTime(s.starts_at)} at ${names.get(s.showroom_id ?? s.workshop_id ?? "") ?? "Vrooma"}`).join("\n")
           : "- none open right now") +

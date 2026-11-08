@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import { calculateEmi } from "@/lib/emi";
 import { answerChat } from "@/server/ai/chat-answer";
-import { DEFAULT_LOAN_RATE_PCT, buildChatFacts, mentionedModels, parseLoanRequest, type ChatFactsDeps } from "@/server/ai/chat-facts";
+import { DEFAULT_LOAN_RATE_PCT, buildChatFacts, mentionedModels, parseLoanRequest, weekdayAsked, type ChatFactsDeps } from "@/server/ai/chat-facts";
+import { findForbiddenDiscountWord } from "@/lib/validation/discount";
 import { findDisallowedLink, guardAiText } from "@/server/ai/guard";
 import { CLOSING_QUESTION } from "@/server/ai/support-bot";
 import { runWithFallback, type AiRunDeps, type AiRunOptions } from "@/server/ai/runner";
@@ -93,11 +94,19 @@ describe("the fact pack", () => {
 
   it("adds only free slots for a test drive question, and the right booking page", async () => {
     const t = await facts("can I drive it on Saturday?", "test_drive");
-    expect(t).toContain("NEXT FREE TEST DRIVE SLOTS");
+    expect(t).toContain("NO FREE SLOTS ON SATURDAY"); // none on the day asked: says so and lists the nearest
     expect(t.match(/- .* at Hazratganj/g)).toHaveLength(1); // the full slot is left out
     expect(t).toContain("/book/test-drive");
     expect(await facts("any slots for a service?", "service")).toContain("/book/service");
     expect(await facts("tell me about the Model H")).not.toContain("NEXT FREE");
+  });
+
+  it("lists the slots on the weekday the buyer names", async () => {
+    const t = await facts("any test drive slots on Tuesday?", "test_drive");
+    expect(t).toContain("FREE TEST DRIVE SLOTS ON TUESDAY");
+    expect(t).toContain("Tue, 10 Nov");
+    expect(weekdayAsked("slots on sat?")).toBe("Saturday");
+    expect(weekdayAsked("what is the emi")).toBeNull();
   });
 
   it("adds showroom details for location questions", async () => {
@@ -183,6 +192,40 @@ describe("answerChat (one request, facts in the prompt)", () => {
     expect(a.reply.endsWith(CLOSING_QUESTION)).toBe(true);
     expect(a.quickReplies.map((q) => q.action)).toEqual(["solved", "connect"]);
     expect(logs[0]).toMatchObject({ feature: "chat", status: "ok", usage: { inputTokens: 400, outputTokens: 60 } });
+  });
+
+  it("answers a price-cut request with a fixed consultant pointer, without asking the model", async () => {
+    let called = false;
+    const { runner } = fakeRunner();
+    const a = await answerChat("give me a discount on Model H", [], {
+      runner,
+      buildFacts: buildFacts("x"),
+      generate: async () => {
+        called = true;
+        return { text: "x" };
+      },
+    });
+    expect(called).toBe(false);
+    expect(a.reason).toBe("pricing_request");
+    expect(a.reply).toContain("consultant");
+    expect(findForbiddenDiscountWord(a.reply)).toBeNull();
+    expect(a.quickReplies.map((q) => q.action)).toEqual(["solved", "connect"]);
+  });
+
+  it("shows the closing question once, even when the model copies it from earlier turns", async () => {
+    const { runner } = fakeRunner();
+    let sent = "";
+    const a = await answerChat("What is the EMI on 10 lakh for 5 years?", [{ role: "assistant", content: `Hello.\n\n${CLOSING_QUESTION}` }], {
+      runner,
+      buildFacts: buildFacts(`EMI FIGURES\n- ₹10,00,000 over 60 months at 9.5%: ₹${emi} a month`),
+      generate: async ({ messages }) => {
+        sent = String(messages[0].content);
+        return { text: `Your EMI is about ₹${emi} a month.\n\n${CLOSING_QUESTION}` };
+      },
+    });
+    expect(a.source).toBe("ai");
+    expect(a.reply.split(CLOSING_QUESTION)).toHaveLength(2);
+    expect(sent).not.toContain(CLOSING_QUESTION);
   });
 
   it.each([
