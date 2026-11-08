@@ -7,7 +7,7 @@ import { getCallMetricsAction } from "@/server/actions/calls";
 import { LeakCard } from "@/components/admin/LeakCard";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { TabLinks, pickTab, type TabLinkItem } from "@/components/layout/TabLinks";
-import { AiLogsPanel } from "@/components/admin/overview/AiLogsPanel";
+import { AiLogsPanel, pickAiView } from "@/components/admin/overview/AiLogsPanel";
 import { SystemPanel } from "@/components/admin/overview/SystemPanel";
 import { PerformanceOverview } from "@/components/admin/overview/PerformanceOverview";
 import { loadOverviewData } from "@/server/repositories/admin-overview";
@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
 
 const TABS: TabLinkItem[] = [
   { id: "overview", label: "Overview" },
-  { id: "ai", label: "AI reply log" },
+  { id: "ai", label: "AI activity" },
   { id: "system", label: "System health" },
 ];
 
@@ -26,15 +26,16 @@ const WINDOW_DAYS = 30;
 export default async function AdminOverviewPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string | string[] }>;
+  searchParams: Promise<{ tab?: string | string[]; view?: string | string[] }>;
 }) {
   await requireRole("admin");
-  const tab = pickTab((await searchParams).tab, TABS);
+  const params = await searchParams;
+  const tab = pickTab(params.tab, TABS);
 
   let body: React.ReactNode;
 
   if (tab === "ai") {
-    body = <AiLogsPanel />;
+    body = <AiLogsPanel view={pickAiView(params.view)} />;
   } else if (tab === "system") {
     body = <SystemPanel />;
   } else {

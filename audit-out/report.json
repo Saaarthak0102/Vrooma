@@ -1,0 +1,112 @@
+[
+ {
+  "role": "buyer",
+  "viewport": "390",
+  "name": "buyer-home-chat",
+  "url": "/",
+  "status": 200,
+  "finalPath": "/",
+  "overflowPx": 0,
+  "wide": [],
+  "smallTargets": 5,
+  "smallSamples": [
+   "a.flex.items-center \"VROOMA\" → 119x32px",
+   "a.fs-small.font-bold \"View all Brand X models\" → 188x22px",
+   "input.w-full.accent-accent → 286x8px",
+   "a.inline-block \"VROOMA\" → 105x32px",
+   "button#newsletter-consent.peer.h-5 → 20x20px"
+  ],
+  "tinyText": 4,
+  "tinySamples": [
+   "div.inline-flex.items-center \"AI Assistant\" → 9px",
+   "span.text-[10px].text-ink-mute \"Just now\" → 10px",
+   "p.border-t.border-border/60 \"Answers are AI-assisted and processed by\" → 10px",
+   "a.underline.underline-offset-2 \"Privacy\" → 10px"
+  ],
+  "brokenImages": [
+   "http://localhost:3001/images/cars/c.svg",
+   "http://localhost:3001/images/cars/c.svg",
+   "http://localhost:3001/images/cars/s.svg",
+   "http://localhost:3001/images/cars/r.svg"
+  ],
+  "imagesWithoutAlt": 0,
+  "height": 13688,
+  "shot": "buyer-buyer-home-chat-390.jpg",
+  "consoleErrors": [
+   "Failed to load resource: net::ERR_CONNECTION_REFUSED"
+  ],
+  "failedRequests": []
+ },
+ {
+  "role": "buyer",
+  "viewport": "390",
+  "name": "dashboard",
+  "url": "/dashboard",
+  "error": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3001/dashboard",
+  "consoleErrors": [],
+  "failedRequests": []
+ },
+ {
+  "role": "buyer",
+  "viewport": "390",
+  "name": "dashboard-bookings",
+  "url": "/dashboard/bookings",
+  "error": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3001/dashboard/bookings",
+  "consoleErrors": [],
+  "failedRequests": []
+ },
+ {
+  "role": "buyer",
+  "viewport": "390",
+  "name": "dashboard-enquiries",
+  "url": "/dashboard/enquiries",
+  "error": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3001/dashboard/enquiries",
+  "consoleErrors": [],
+  "failedRequests": []
+ },
+ {
+  "role": "buyer",
+  "viewport": "390",
+  "name": "dashboard-saved",
+  "url": "/dashboard/saved",
+  "error": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3001/dashboard/saved",
+  "consoleErrors": [],
+  "failedRequests": []
+ },
+ {
+  "role": "buyer",
+  "viewport": "390",
+  "name": "profile-my-cars",
+  "url": "/profile",
+  "error": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3001/profile",
+  "consoleErrors": [],
+  "failedRequests": []
+ },
+ {
+  "role": "buyer",
+  "viewport": "390",
+  "name": "book-test-drive",
+  "url": "/book/test-drive",
+  "error": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3001/book/test-drive",
+  "consoleErrors": [],
+  "failedRequests": []
+ },
+ {
+  "role": "buyer",
+  "viewport": "390",
+  "name": "book-service",
+  "url": "/book/service",
+  "error": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3001/book/service",
+  "consoleErrors": [],
+  "failedRequests": []
+ },
+ {
+  "role": "buyer",
+  "viewport": "390",
+  "name": "trade-in",
+  "url": "/trade-in",
+  "error": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3001/trade-in",
+  "consoleErrors": [],
+  "failedRequests": []
+ }
+]

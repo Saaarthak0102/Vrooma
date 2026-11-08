@@ -20,6 +20,8 @@ import { rateLimit } from "@/server/security/rate-limit";
 import { guardOrigin } from "@/server/auth/api-guard";
 
 export const dynamic = "force-dynamic";
+/** The free-tier model can take 10+ s; the model call has its own timeout (AI_TIMEOUT_FAST_MS). */
+export const maxDuration = 60;
 
 const MAX_MESSAGE_LENGTH = 1000;
 

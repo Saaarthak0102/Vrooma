@@ -152,7 +152,7 @@ export function SiteFooter() {
                   placeholder="Enter your email address"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="flex-1 h-11 rounded-pill bg-white/90 border border-border px-4 text-base sm:text-xs text-ink placeholder:text-ink-mute focus:outline-none focus:ring-2 focus:ring-accent"
+                  className="w-full sm:w-auto sm:flex-1 h-11 shrink-0 rounded-pill bg-white/90 border border-border px-4 text-base sm:text-xs text-ink placeholder:text-ink-mute focus:outline-none focus:ring-2 focus:ring-accent"
                 />
                 <PillButton
                   type="submit"

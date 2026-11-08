@@ -61,9 +61,25 @@ describe("email body rendering", () => {
 
 describe("markup validity and the chat close button", () => {
   it("never puts a Badge (it renders a div) inside a paragraph", () => {
-    for (const file of ["src/components/staff/AiSummaryCard.tsx", "src/components/chat/ChatWidget.tsx"]) {
+    for (const file of ["src/components/staff/AiSummaryCard.tsx", "src/components/chat/ChatWidget.tsx", "src/components/admin/overview/AiActivityPanel.tsx"]) {
       const src = fs.readFileSync(file, "utf8");
       expect(/<p\b[^>]*>\s*<Badge/.test(src), file).toBe(false);
+    }
+  });
+
+  it("the chat notice names the provider and links to the privacy policy; section 6 says the same", () => {
+    const chat = fs.readFileSync("src/components/chat/ChatWidget.tsx", "utf8");
+    expect(chat).toContain("processed by Google");
+    expect(chat).toContain('href="/legal/privacy"');
+    const policy = fs.readFileSync("src/app/(public)/legal/privacy/page.tsx", "utf8");
+    expect(policy).toContain("Google (Gemini API)");
+    expect(policy).toContain("dpo@vrooma.in");
+    expect(policy).toContain("do not use your messages to train");
+  });
+
+  it("long model calls have room to finish: the routes that make them set maxDuration", () => {
+    for (const file of ["src/app/api/chat/route.ts", "src/app/api/cron/digests/route.ts", "src/app/(staff)/staff/layout.tsx"]) {
+      expect(fs.readFileSync(file, "utf8"), file).toMatch(/export const maxDuration = \d+/);
     }
   });
 
@@ -73,7 +89,7 @@ describe("markup validity and the chat close button", () => {
     expect(at).toBeGreaterThan(-1);
     const button = src.slice(src.lastIndexOf("<Button", at), at);
     expect(button).toContain("setIsOpen(false)");
-    expect(button).toContain("text-white");
+    expect(button).toContain("!text-white"); // the ghost variant sets its own text colour, so it must be forced
     expect(button).not.toContain("text-gray-400");
   });
 });
@@ -84,6 +100,7 @@ describe("design tokens in the new UI", () => {
   const BAD = /\b(?:bg|text|border|ring|from|to|via)-(?:error|warning|success|accent-subtle|bg-sheen)(?:\/\d+)?\b/;
   const files = [
     "src/components/staff/AiSummaryCard.tsx",
+    "src/components/admin/overview/AiActivityPanel.tsx",
     "src/components/staff/NextBestActionCard.tsx",
     "src/components/staff/ServiceVisitDialog.tsx",
     "src/components/staff/StockDrawer.tsx",

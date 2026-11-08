@@ -23,7 +23,7 @@ export function Breadcrumbs({ items, className }: BreadcrumbsProps) {
         <li>
           <Link
             href="/"
-            className="flex items-center hover:text-ink transition-colors"
+            className="-my-3 -ml-3 flex min-h-11 min-w-11 items-center justify-center hover:text-ink transition-colors"
           >
             <Home className="h-3.5 w-3.5" />
             <span className="sr-only">Home</span>

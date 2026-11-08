@@ -62,10 +62,13 @@ export default function PrivacyPage() {
         <section className="space-y-2">
           <h2 className="text-base font-bold text-ink">6. AI Assistance and Service Providers</h2>
           <p>
-            Some features use artificial intelligence: the website chat assistant, and tools that help our staff summarise an enquiry and draft a reply. A person always reviews a reply before it is sent to you. Prices are never produced by AI; they always come from our official price tables.
+            Some features use artificial intelligence: the website chat assistant, and tools that help our staff summarise an enquiry and draft a reply. A person always reviews a reply before it is sent to you. Prices are never produced by AI; they always come from our official price tables, and the assistant cannot book, change or cancel anything for you.
           </p>
           <p>
-            To do this we send the text of your enquiry or chat message, and your first name, to Google (Gemini API), our AI service provider. Before anything is sent we remove phone numbers, email addresses, vehicle registration numbers and similar identifiers from that text. We do not send your contact details or registration number. Under the terms that apply to the service we use, Google may use this text to improve its services, and trained reviewers may read it. Please do not type personal details, such as phone numbers or ID numbers, into the chat.
+            To do this we send the text of your enquiry or chat message, and your first name, to Google (Gemini API), our AI service provider. Before anything is sent we remove phone numbers, email addresses, vehicle registration numbers and similar identifiers from that text. We do not send your contact details or registration number. Under the terms that apply to the service we use, Google may use this text to improve its services, and trained reviewers may read it. We do not use your messages to train any AI model ourselves. Please do not type personal details, such as phone numbers or ID numbers, into the chat.
+          </p>
+          <p>
+            We keep your chat conversation so that a consultant can continue it if you ask to speak to one. It is erased when you delete your account, and you can ask us to delete it sooner at dpo@vrooma.in.
           </p>
           <p>
             If you would rather not have your message handled this way, use the booking and enquiry forms or contact us at dpo@vrooma.in and a team member will help you directly.

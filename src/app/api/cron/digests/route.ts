@@ -8,6 +8,9 @@ import { isDigestEmpty, loadDigestData, loadRecipients, planDigests } from "@/se
 import { recordHeartbeat } from "@/server/automations/heartbeat";
 
 export const dynamic = "force-dynamic";
+/** The free-tier model can take 10+ s per call; give the job room and stop asking it after AI_BUDGET_MS. */
+export const maxDuration = 60;
+const AI_BUDGET_MS = 40_000;
 
 /**
  * Daily staff digests (08:30 IST). Queues one email per person who has something to act on; the outbox job sends
@@ -33,16 +36,19 @@ export async function GET(request: NextRequest) {
     const alreadyQueued = new Set<string>((existing ?? []).map((r: any) => r.idempotency_key));
 
     const dateLabel = new Date(`${today}T00:00:00Z`).toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" });
-    const items: { recipient: (typeof recipients)[number]; data: NonNullable<ReturnType<typeof data.get>>; note: string | null }[] = [];
+    // Each digest is queued as soon as it is built, so a slow model (or a function time limit) keeps what was done.
+    // After AI_BUDGET_MS the rest go out without the AI line; the digest itself does not need it.
+    const startedAt = Date.now();
+    let queued = 0;
     for (const recipient of recipients) {
       const facts = data.get(recipient.id);
       if (!facts || alreadyQueued.has(`digest:${recipient.role}:${recipient.id}:${today}`) || isDigestEmpty(facts)) continue;
-      items.push({ recipient, data: facts, note: await digestNote(recipient, facts, dateLabel) });
+      const note = Date.now() - startedAt < AI_BUDGET_MS ? await digestNote(recipient, facts, dateLabel) : null;
+      const rows = planDigests([{ recipient, data: facts, note }], now, alreadyQueued);
+      await enqueueOnce(admin, rows);
+      queued += rows.length;
     }
-
-    const rows = planDigests(items, now, alreadyQueued);
-    await enqueueOnce(admin, rows);
-    return NextResponse.json({ ok: true, data: { recipients: recipients.length, queued: rows.length } });
+    return NextResponse.json({ ok: true, data: { recipients: recipients.length, queued } });
   } catch (err: any) {
     console.error("[cron/digests] failed:", err?.message);
     return NextResponse.json({ ok: false, error: String(err?.message ?? err) }, { status: 500 });

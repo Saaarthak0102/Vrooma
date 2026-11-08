@@ -313,7 +313,7 @@ export function ChatWidget() {
               size="icon"
               shape="pill"
               onClick={() => setIsOpen(false)}
-              className="h-9 w-9 shrink-0 bg-white/10 text-white hover:bg-white/20 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              className="h-9 w-9 shrink-0 bg-white/10 !text-white hover:bg-white/20 hover:!text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
               aria-label="Close Chat"
             >
               <X className="h-5 w-5" />
@@ -490,7 +490,10 @@ export function ChatWidget() {
           </form>
           {!live && (
             <p className="border-t border-border/60 bg-white px-3 pb-2 pt-1.5 text-[10px] leading-snug text-ink-mute">
-              Answers are AI-assisted. Please don&apos;t type phone numbers or other personal details here.
+              Answers are AI-assisted and processed by Google. Please don&apos;t type phone numbers or other personal details here.{" "}
+              <a href="/legal/privacy" target="_blank" rel="noopener" className="underline underline-offset-2">
+                Privacy
+              </a>
             </p>
           )}
         </div>

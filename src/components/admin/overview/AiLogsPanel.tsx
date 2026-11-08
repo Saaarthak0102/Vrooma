@@ -5,7 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { CheckCircle2, FileEdit, Bot } from "lucide-react";
 import { requireRole } from "@/server/auth/viewer";
-import { listAiReplyAudit } from "@/server/repositories/ai-logs";
+import { listAiActivity, listAiReplyAudit } from "@/server/repositories/ai-logs";
+import { AiActivityPanel } from "@/components/admin/overview/AiActivityPanel";
 
 
 const whenFmt = new Intl.DateTimeFormat("en-IN", {
@@ -16,9 +17,57 @@ const whenFmt = new Intl.DateTimeFormat("en-IN", {
   timeZone: "Asia/Kolkata",
 });
 
-export async function AiLogsPanel() {
+const VIEWS = [
+  { id: "activity", label: "All activity" },
+  { id: "replies", label: "Draft vs sent" },
+] as const;
+
+export type AiLogView = (typeof VIEWS)[number]["id"];
+
+export function pickAiView(raw: string | string[] | undefined): AiLogView {
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  return value === "replies" ? "replies" : "activity";
+}
+
+export async function AiLogsPanel({ view = "activity" }: { view?: AiLogView }) {
   // Defence in depth behind middleware and the admin layout.
   await requireRole("admin");
+
+  const switcher = (
+    <nav aria-label="AI log views" className="flex flex-wrap items-center gap-2">
+      {VIEWS.map((v) => (
+        <Link
+          key={v.id}
+          href={`/admin?tab=ai&view=${v.id}` as any}
+          aria-current={v.id === view ? "page" : undefined}
+          className={`inline-flex h-11 items-center rounded-md px-4 text-xs font-bold transition-colors ${
+            v.id === view ? "bg-dark text-white" : "border border-border bg-surface text-ink-soft hover:bg-ink/5 hover:text-ink"
+          }`}
+        >
+          {v.label}
+        </Link>
+      ))}
+    </nav>
+  );
+
+  if (view === "activity") {
+    const data = await listAiActivity();
+    return (
+      <div className="space-y-5 max-w-6xl">
+        <div className="pb-4 border-b border-border">
+          <h1 className="text-2xl font-black text-ink">AI activity</h1>
+          <p className="text-xs text-ink-soft">
+            Every call to the AI model: buyer chat, lead briefings, next steps, digests and price notes. Tap a card,
+            a feature or a row to look closer. Only redacted descriptions are stored, never phone numbers or
+            registration numbers.
+          </p>
+        </div>
+        {switcher}
+        <AiActivityPanel rows={data.rows} truncated={data.truncated} settings={data.settings} generatedAt={new Date().toISOString()} />
+      </div>
+    );
+  }
+
   const { entries, summary } = await listAiReplyAudit();
 
   return (
@@ -30,6 +79,7 @@ export async function AiLogsPanel() {
           before sending, so any edit here is a human correction.
         </p>
       </div>
+      {switcher}
 
       <dl className="grid grid-cols-3 gap-3">
         {[
