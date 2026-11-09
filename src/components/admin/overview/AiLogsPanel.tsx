@@ -53,7 +53,7 @@ export async function AiLogsPanel({ view = "activity" }: { view?: AiLogView }) {
   if (view === "activity") {
     const data = await listAiActivity();
     return (
-      <div className="space-y-5 max-w-6xl">
+      <div className="space-y-5">
         <div className="pb-4 border-b border-border">
           <h1 className="text-2xl font-black text-ink">AI activity</h1>
           <p className="text-xs text-ink-soft">

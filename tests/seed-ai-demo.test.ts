@@ -346,9 +346,11 @@ describe("it does not touch what already exists", () => {
     }
   });
 
-  it("leaves seed.sql and the migrations alone (no demo rows were added to them)", () => {
+  it("leaves seed.sql and the schema migrations alone (demo rows live only in the generated 0042_demo_data.sql)", () => {
     expect(fs.readFileSync("supabase/seed.sql", "utf8")).not.toContain("5eed");
     for (const f of fs.readdirSync("supabase/migrations")) {
+      // 0042 is the one deliberate home of the demo rows; it is generated from this script and checked by demo-migration.test.ts
+      if (f === "0042_demo_data.sql") continue;
       expect(fs.readFileSync(`supabase/migrations/${f}`, "utf8"), f).not.toMatch(/'5eed[0-9a-f]{4}-/);
     }
   });

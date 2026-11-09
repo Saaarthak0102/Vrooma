@@ -100,23 +100,23 @@ export function AiActivityPanel({
       cell: (r) => <span className="tabular-nums text-ink-soft">{whenFmt.format(new Date(r.createdAt))}</span>,
     },
     { id: "feature", header: "Feature", accessor: (r) => featureLabel(r.feature), filter: "select", cell: (r) => <span className="font-semibold text-ink">{featureLabel(r.feature)}</span> },
-    { id: "status", header: "Result", accessor: (r) => STATUS_LABELS[r.status], cell: (r) => <StatusBadge status={r.status} /> },
+    { id: "status", header: "Result", accessor: (r) => STATUS_LABELS[r.status], filter: "select", cell: (r) => <StatusBadge status={r.status} /> },
     {
       id: "detail",
       header: "What happened",
       accessor: (r) => `${reasonLabel(reasonOf(r))} ${previewOf(r)}`,
-      className: "min-w-[18rem] max-w-[28rem]",
+      className: "min-w-[14rem] max-w-[24rem]",
       cell: (r) => {
         const reason = reasonLabel(reasonOf(r));
         return (
-          <span className="block max-w-[28rem] truncate text-ink-soft" title={previewOf(r, 400)}>
+          <span className="block max-w-[24rem] truncate text-ink-soft" title={previewOf(r, 400)}>
             {reason && <span className="mr-1 font-semibold text-ink">{reason}.</span>}
             {previewOf(r)}
           </span>
         );
       },
     },
-    { id: "model", header: "Model", accessor: (r) => r.model ?? "", className: "text-ink-soft" },
+    { id: "model", header: "Model", accessor: (r) => r.model ?? "", className: "hidden text-ink-soft 2xl:table-cell" },
     { id: "latency", header: "Time taken", accessor: (r) => r.latencyMs, align: "right", cell: (r) => ms(r.latencyMs) },
     { id: "tokens", header: "Tokens in/out", accessor: (r) => (r.inputTokens ?? 0) + (r.outputTokens ?? 0), align: "right", cell: (r) => (r.inputTokens === null ? "—" : `${r.inputTokens}/${r.outputTokens ?? 0}`) },
   ];
