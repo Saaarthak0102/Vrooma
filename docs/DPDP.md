@@ -57,5 +57,5 @@ Personal data is deleted or anonymised when its purpose ends. Periods (leads 24 
 
 ## 7. Demo accounts
 
-Demo accounts (`*@demo.vrooma.in`, migration `0042`) hold fictional people only. The outbox never emails demo addresses. Remove them with `supabase/remove-demo-data.sql` before real launch (`docs/backend/PROD_DEMO.md`).
+Demo accounts (the nine persona addresses at `vrooma.in`, migration `0042`) hold fictional people only. The outbox never emails demo addresses. Remove them with `supabase/remove-demo-data.sql` before real launch (`docs/backend/PROD_DEMO.md`).
 

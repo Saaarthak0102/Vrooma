@@ -9,8 +9,8 @@ The app is English only. Old `/en/...` and `/hi/...` URLs permanently redirect t
 | `/cars/[modelSlug]` | `(public)` | Anonymous (Gated Breakup) | Model deep dive: 360 photo gallery, variant selector, specs table, on-road price modal. |
 | `/used-cars` | `(public)` | Anonymous (Masked Reg) | Certified pre-owned inventory with inspection badges, km/year/price filters. |
 | `/used-cars/[stockId]` | `(public)` | Anonymous (Gated Report) | Dossier for used vehicle with photo slider, masked plate, 140-pt digital report gate, EMI widget. |
-| `/book/test-drive` | `(buyer)` | Anonymous / Auto-guest | 5-step test drive booking stepper (Showroom → Demo Car → Date/Bay Slot → License & DPDP → Docket). |
-| `/book/service` | `(buyer)` | Anonymous / Auto-guest | 4-step workshop service booking stepper with workshop bay capacity checks. |
+| `/book/test-drive` | `(buyer)` | Signed-in buyer (email code asked at the booking step) | 5-step test drive booking stepper (Showroom → Demo Car → Date/Bay Slot → License & DPDP → Docket). |
+| `/book/service` | `(buyer)` | Signed-in buyer (email code asked at the booking step) | 4-step workshop service booking stepper with workshop bay capacity checks. |
 | `/emi-calculator` | `(public)` | Anonymous / Public | Loan calculation engine with real-time sliders and amortisation breakdown. |
 | `/trade-in` | `(public)` | Anonymous / Public | Instant used-car trade-in intake form with AI price estimation band. |
 | `/offers` | `(public)` | Anonymous / Public | Active dealer promotions, festive benefits, and corporate discounts. |
@@ -55,15 +55,15 @@ Console routes render no public header, footer, chat widget or smooth-scroll; th
 Public/buyer: `/api/leads`, `/api/bookings`, `/api/slots`, `/api/price`, `/api/cars`, `/api/trade-in`, `/api/chat`, `/api/consent`, `/api/newsletter`, `/api/me/delete`, `/api/me/profile`, `/api/export`, `/api/health`. Staff: `/api/ai/lead-copilot`. Webhook: `/api/webhooks/calls`. Cron (all require `CRON_SECRET`; schedule in `docs/backend/OPERATIONS.md`): `/api/cron/outbox`, `sla`, `automations`, `digests`, `data-retention`, `finalize-deletions`, `dms-export`.
 
 ## Access philosophy (gating)
-Value before capture: anyone can browse models, specs, ex-showroom prices, masked used cars, and use the EMI calculator. The on-road price breakup and the line-by-line 140-point inspection ask for name and mobile (with DPDP consent). Test-drive and service booking never need an account: the form creates a guest lead and shows the confirmation.
+Value before capture: anyone can browse models, specs, ex-showroom prices, masked used cars, and use the EMI calculator. The on-road price breakup and the line-by-line 140-point inspection ask for name and mobile (with DPDP consent). Test-drive and service booking ask the visitor to sign in with an email code first (`bookSlotAction` calls `requireCompleteProfile`). The enquiry, trade-in and chat forms stay open to anonymous visitors and create a lead.
 
 | Resource | Anonymous | Buyer | Consultant | Manager | Admin |
 |---|---|---|---|---|---|
 | Catalogue, specs, ex-showroom price, EMI | yes | yes | yes | yes | yes |
 | On-road breakup, inspection report | lead gate | yes | yes | yes | yes |
-| Used cars | masked reg | masked reg | masked reg | full reg (audited reveal) | full reg (audited reveal) |
-| Book test drive / service | auto guest | yes | assisted | assisted | assisted |
-| `/dashboard/*` | sign-in | yes | redirect to console | redirect | redirect |
+| Used cars | masked reg | masked reg | audited reveal | audited reveal | audited reveal |
+| Book test drive / service | sign-in first | yes | assisted | assisted | assisted |
+| `/dashboard/*` | sign-in | yes | can open (sign-in sends staff to their console) | can open (same) | can open (same) |
 | `/staff`, `/staff/bookings`, `/staff/chats` | 403 | 403 | own leads | all | all |
 | `/staff/stock` and the AI price band | 403 | 403 | 403 | yes | yes |
 | `/admin/*` | 403 | 403 | 403 | 403 | yes |

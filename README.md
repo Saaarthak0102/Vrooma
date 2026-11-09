@@ -20,8 +20,8 @@ Vrooma transforms the traditional car buying and servicing experience by replaci
 
 ### 2. Installation
 ```bash
-git clone https://github.com/vrooma/vrooma.git
-cd vrooma
+git clone https://github.com/Saaarthak0102/Vrooma.git
+cd Vrooma
 pnpm install
 ```
 

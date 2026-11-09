@@ -134,7 +134,7 @@ The authorisation boundaries are verified in CI/CD through dedicated test suites
 
 ## 6. Sign-up and sign-in flows
 
-- **Sign-in** is email plus a 6-digit code (no passwords, no Google). Staff always land in their console afterwards (`postSignInPath`).
+- **Sign-in** is email plus an 8-digit code (no passwords, no Google). Staff always land in their console afterwards (`postSignInPath`).
 - **Sign-up** collects name, email, phone, city and consent boxes (a gate only; nothing is stored from that page). `requestSignupLink` sends a **Confirm Account** link. The link opens `/auth/confirm`, which only forwards to `/verify-email`; verification needs a click on **Confirm my email**, because mail scanners open every link and the token is single-use. Destination after verifying comes from `resolvePostVerifyDestination` (onboarding for a new account, the role's home for a finished one).
 - **Onboarding** opens prefilled with every consent box unticked; ticking them records consent through `complete_profile`. `user_metadata` only prefills fields; it never sets a role or a consent.
 - **Supabase dashboard setup per project:** Authentication, Email Templates, Confirm signup: paste `supabase/templates/confirmation.html` (the button keeps `{{ .RedirectTo }}&token_hash={{ .TokenHash }}&type=signup`). URL Configuration: Site URL = the app URL; Redirect URLs include `<app url>/auth/confirm**` and `<app url>/auth/callback**`. Keep **Confirm email** on (link lifetime = OTP expiry, 1 hour).

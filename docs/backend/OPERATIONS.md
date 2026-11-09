@@ -309,7 +309,7 @@ Manual trigger: `curl -H "Authorization: Bearer $CRON_SECRET" https://YOUR-APP-D
 
 - Time-sensitive messages (acknowledgements, SLA and escalation alerts, reminders, outcome prompts) older than 24 hours are marked `skipped` (stale) instead of being sent late. Confirmations, cancellations, data-rights notices and consultant replies are always sent.
 - Outside production, `OUTBOX_ALLOWLIST` (addresses or `@domains`) restricts who can be contacted; others are `skipped`. Production ignores it. Set it on DEV and Preview.
-- Demo addresses (`*@demo.vrooma.in`, `isDemoAddress`) are never emailed in any environment.
+- Demo addresses (the nine persona accounts and reserved test domains such as `example.com`, see `isDemoAddress`) are never emailed in any environment.
 - `NOTIFY_CHANNEL` (default `email`) decides whether replies and reminders go by email or WhatsApp. WhatsApp rows with no keys are `skipped`, never `sent`.
 
 ## 10. Daily DMS export

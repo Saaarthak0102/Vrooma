@@ -38,7 +38,7 @@
 | # | Step | Expected |
 |---|---|---|
 | A1 | `/sign-up` with a new email | confirmation email with a link; clicking opens "Confirm my email"; then onboarding prefilled, consents unticked |
-| A2 | Sign in with an existing email | 6-digit code arrives; wrong code gives a clear error; right code lands on your home |
+| A2 | Sign in with an existing email | 8-digit code arrives; wrong code gives a clear error; right code lands on your home |
 | A3 | Resend code repeatedly / use a code after 10 minutes | button disabled about 60 s / "expired" message |
 | A4 | Signed out, open `/book/test-drive`, then `/dashboard` | sign-in, then you return and continue / redirect to `/sign-in?next=/dashboard` |
 | A5 | `/sign-in?next=//evil.com` | you end on your own dashboard, never another site |
