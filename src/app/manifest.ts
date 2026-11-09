@@ -7,15 +7,12 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "Browse new and certified used cars with transparent on-road prices in Lucknow.",
     start_url: "/",
     display: "standalone",
-    background_color: "#EEF0F3",
+    background_color: "#FFFFFF",
     theme_color: "#121A24",
     icons: [
-      {
-        src: "/images/placeholders/logo-mark.svg",
-        sizes: "192x192",
-        type: "image/svg+xml",
-      },
+      { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+      { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+      { src: "/icons/icon-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
     ],
   };
 }
-

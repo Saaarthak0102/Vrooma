@@ -87,7 +87,7 @@ export function OrganizationJsonLd() {
     name: DEALER_NAME,
     alternateName: BRAND_NAME,
     url: env.NEXT_PUBLIC_SITE_URL,
-    logo: `${env.NEXT_PUBLIC_SITE_URL}/images/placeholders/logo-mark.svg`,
+    logo: `${env.NEXT_PUBLIC_SITE_URL}/icons/icon-512.png`,
     address: {
       "@type": "PostalAddress",
       streetAddress: "14/A, MG Marg, Hazratganj",
@@ -128,7 +128,7 @@ export function DealerAndWebsiteJsonLd() {
         name: DEALER_NAME,
         alternateName: BRAND_NAME,
         url: siteUrl,
-        logo: `${siteUrl}/images/placeholders/logo-mark.svg`,
+        logo: `${siteUrl}/icons/icon-512.png`,
         telephone: "+91-522-4098800",
         address: {
           "@type": "PostalAddress",
@@ -163,7 +163,7 @@ export function DealerAndWebsiteJsonLd() {
         "@id": `${siteUrl}/#organization`,
         name: DEALER_NAME,
         url: siteUrl,
-        logo: `${siteUrl}/images/placeholders/logo-mark.svg`,
+        logo: `${siteUrl}/icons/icon-512.png`,
       },
       {
         "@type": "WebSite",

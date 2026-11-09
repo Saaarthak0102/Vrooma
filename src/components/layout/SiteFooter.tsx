@@ -2,6 +2,7 @@
 
 import React, { useState, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Container } from "@/components/ui/container";
@@ -129,7 +130,8 @@ export function SiteFooter() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
           {/* Left Column: Newsletter & DPDP Consent */}
           <div className="lg:col-span-5 space-y-4">
-            <Link href="/" className="inline-block">
+            <Link href="/" className="inline-flex items-center gap-2.5">
+              <Image src="/icons/logo-64.png" alt="Vrooma" width={36} height={36} className="h-9 w-9 rounded-md object-contain" />
               <span className="text-2xl font-black tracking-tight text-ink">VROOMA</span>
             </Link>
             <p className="text-sm text-ink-soft max-w-sm leading-relaxed">

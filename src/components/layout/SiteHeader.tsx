@@ -74,12 +74,12 @@ export function SiteHeader() {
               className={`flex items-center h-11 px-3 ${GLASS_BASE} ${isScrolled ? GLASS_SCROLLED : GLASS_TOP}`}
             >
               <Link href="/" className="flex h-full items-center gap-2.5 group">
-                <div className="h-8 w-8 relative overflow-hidden rounded-md bg-dark flex items-center justify-center p-1">
+                <div className="h-9 w-9 relative overflow-hidden rounded-md flex items-center justify-center">
                   <Image
-                    src="/images/placeholders/logo-mark.svg"
+                    src="/icons/logo-64.png"
                     alt="Vrooma"
-                    width={32}
-                    height={32}
+                    width={36}
+                    height={36}
                     className="object-contain"
                     priority
                   />
@@ -165,12 +165,12 @@ export function SiteHeader() {
               onClick={() => setMobileMenuOpen(false)}
               className="flex min-h-11 items-center gap-2.5"
             >
-              <div className="h-8 w-8 relative overflow-hidden rounded-md bg-dark flex items-center justify-center p-1">
+              <div className="h-9 w-9 relative overflow-hidden rounded-md flex items-center justify-center">
                 <Image
-                  src="/images/placeholders/logo-mark.svg"
+                  src="/icons/logo-64.png"
                   alt="Vrooma"
-                  width={32}
-                  height={32}
+                  width={36}
+                  height={36}
                   className="object-contain"
                 />
               </div>
