@@ -22,6 +22,7 @@ import {
   Briefcase } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { Role } from "@/types/domain";
+import { PERSONA_LOGIN_TITLE, SHOW_PERSONA_LOGIN } from "@/lib/demo-mode";
 
 const ERROR_MESSAGES: Record<string, string> = {
   invalid_link: "The verification link is invalid or has already been used.",
@@ -128,8 +129,8 @@ export default function SignInPage() {
     }
   };
 
-  // Dev mode role switcher (Development only)
-  const isDev = process.env.NODE_ENV === "development";
+  // Persona quick sign-in: development, or demo mode (DEMO_LOGIN=true)
+  const showPersonaLogin = SHOW_PERSONA_LOGIN;
   const handleDevRole = async (role: Role) => {
     const result = await switchRole(role);
     if (!result.ok) {
@@ -266,11 +267,11 @@ export default function SignInPage() {
           </div>
         )}
 
-        {/* Development-Only Role Switcher for Fast Prototyping */}
-        {isDev && (
+        {/* Instant persona sign-in: development, or demo mode */}
+        {showPersonaLogin && (
           <div className="pt-4 border-t border-dashed border-border/80 space-y-2">
             <p className="text-[10px] font-bold uppercase tracking-wider text-ink-mute text-center">
-              Dev Mode: Instant Persona Login
+              {PERSONA_LOGIN_TITLE}
             </p>
             <div className="grid grid-cols-2 gap-1.5 text-xs">
               <Button

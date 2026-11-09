@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { authorizeCron } from "@/lib/cron-auth";
+import { isDemoAddress } from "@/lib/demo-personas";
 import { isRecipientAllowed, isStaleTimeSensitive, resolveRecipient } from "@/server/automations/alerts";
 import { isMarketingTemplate, marketingConsentGranted } from "@/server/automations/consent-gate";
 import { recordHeartbeat } from "@/server/automations/heartbeat";
@@ -69,6 +70,8 @@ export async function GET(request: NextRequest) {
     const recipient = resolveRecipient(msg.to_address);
     let skipReason: string | null = isStaleTimeSensitive(msg.template, msg.created_at)
       ? "stale: too old to be useful, not sent"
+      : isDemoAddress(recipient)
+        ? "demo address: demo data is never emailed or messaged"
       : !isRecipientAllowed(recipient)
         ? "recipient is not on the non-production allowlist (OUTBOX_ALLOWLIST)"
         : null;

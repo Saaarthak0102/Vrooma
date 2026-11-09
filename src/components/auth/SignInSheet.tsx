@@ -19,6 +19,7 @@ import { postSignInPath } from "@/lib/console-nav";
 import { requestOtp, verifyOtp } from "@/server/auth/actions";
 import { ShieldCheck, ArrowRight, CheckCircle2, RefreshCw, User, Briefcase, KeyRound } from "lucide-react";
 import { toast } from "sonner";
+import { PERSONA_LOGIN_TITLE, SHOW_PERSONA_LOGIN } from "@/lib/demo-mode";
 
 export function SignInSheet() {
   const router = useRouter();
@@ -130,8 +131,8 @@ export function SignInSheet() {
     }
   };
 
-  // Dev persona quick-login
-  const isDev = process.env.NODE_ENV === "development";
+  // Persona quick sign-in: development, or demo mode (DEMO_LOGIN=true)
+  const showPersonaLogin = SHOW_PERSONA_LOGIN;
   const handleDevRole = async (role: Role) => {
     const result = await switchRole(role);
     if (!result.ok) {
@@ -268,11 +269,11 @@ export function SignInSheet() {
             </div>
           )}
 
-          {/* Dev persona quick-switcher */}
-          {isDev && (
+          {/* Instant persona sign-in: development, or demo mode */}
+          {showPersonaLogin && (
             <div className="pt-3 border-t border-dashed border-border/80 space-y-2">
               <p className="text-[10px] font-bold uppercase tracking-wider text-ink-mute text-center">
-                Dev Mode: Persona Switcher
+                {PERSONA_LOGIN_TITLE}
               </p>
               <div className="grid grid-cols-2 gap-1.5 text-xs">
                 <Button

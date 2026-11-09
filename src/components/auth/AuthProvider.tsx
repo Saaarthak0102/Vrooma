@@ -15,6 +15,7 @@ import { createClient } from "@/lib/supabase/client";
 import { signOut as serverSignOut } from "@/server/auth/actions";
 import { SignInSheet } from "./SignInSheet";
 import { shouldRedirectOnAuthEvent } from "@/lib/auth-events";
+import { IS_DEV_BUILD, PERSONA_LOGIN_ENDPOINT } from "@/lib/demo-mode";
 
 export interface PendingIntent {
   type: string;
@@ -203,13 +204,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch {}
   }, []);
 
-  // Dev-only persona switch. It performs a REAL Supabase sign-in through /api/auth/dev-login so the session
+  // Persona switch (development, or demo mode when DEMO_LOGIN=true). It performs a REAL Supabase sign-in through
+  // /api/auth/dev-login or /api/auth/demo-login so the session
   // cookie exists; a client-only fake profile made the navbar look signed in while /dashboard and /profile
   // (middleware + requireUser) still redirected to sign-in.
   const switchRole = useCallback(
     async (newRole: Role): Promise<{ ok: true } | { ok: false; message: string }> => {
       try {
-        const res = await fetch("/api/auth/dev-login", {
+        const res = await fetch(PERSONA_LOGIN_ENDPOINT, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ role: newRole }),
@@ -217,7 +219,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (res.status === 404) {
           return {
             ok: false,
-            message: "Dev login is off. Run the dev server with ALLOW_DEV_LOGIN=true and APP_ENV=development.",
+            message: IS_DEV_BUILD
+              ? "Dev login is off. Run the dev server with ALLOW_DEV_LOGIN=true and APP_ENV=development."
+              : "Demo sign-in is switched off.",
           };
         }
         if (!res.ok) {

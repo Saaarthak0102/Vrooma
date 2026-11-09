@@ -89,6 +89,15 @@ if ((appEnv === "production" || nodeEnv === "production") && allowDevLogin) {
   process.exit(1);
 }
 
+// 2b. Demo mode (instant persona sign-in) is allowed in production only as an explicit, loudly reported choice.
+const demoLogin = (process.env.DEMO_LOGIN ?? fileEnv.DEMO_LOGIN) === "true";
+console.log(` DEMO_LOGIN:      ${demoLogin}`);
+if ((appEnv === "production" || nodeEnv === "production") && demoLogin) {
+  console.warn("\n⚠️  DEMO_LOGIN is ON for a production target.");
+  console.warn(" Anyone who opens the site can sign in as buyer, consultant, manager or ADMIN (no passcode).");
+  console.warn(" Use it for a demo only: remove DEMO_LOGIN and NEXT_PUBLIC_DEMO_LOGIN and redeploy to switch it off.\n");
+}
+
 // 3. A production target must carry every required variable (values come from the hosting platform's env).
 // CI sets SKIP_ENV_VALIDATION=1 (it only proves the dev-login backdoor is off); a real deploy check leaves it unset.
 if (appEnv === "production" && process.env.SKIP_ENV_VALIDATION !== "1") {

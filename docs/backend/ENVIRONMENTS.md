@@ -170,3 +170,12 @@ Nothing needs to be rewritten to start on email and move to WhatsApp later.
   A reply by email goes to the lead's real email address. If the lead has none, nothing is sent and the lead stays `new` with the SLA timer running; the editor says "No email on file for this lead".
 - **To switch to WhatsApp:** add `WHATSAPP_TOKEN` and `WHATSAPP_PHONE_ID` (and `WHATSAPP_TEMPLATES` once templates are approved) in Vercel and redeploy. Nothing else changes.
 
+## Demo mode on production (explicit exception)
+
+`ALLOW_DEV_LOGIN` stays forbidden in production (`scripts/check-env.mjs` fails the build). For a showing of the deployed
+site there is a separate, explicit **demo mode**: `DEMO_LOGIN=true` (server) plus `NEXT_PUBLIC_DEMO_LOGIN=true` (buttons)
+turn on four instant sign-in buttons that use `/api/auth/demo-login`. It signs in only the four quick demo accounts (no
+password exists; the server redeems a one-time link itself and nothing is emailed), is rate limited, audit-logged, and
+answers 404 when the variable is not exactly `true`. It has **no passcode**, so while it is on anyone with the link can
+sign in as admin: use it only for a demo and remove the variables afterwards. `pnpm check:env` prints a warning while it is
+on in production. Setup, checks and removal are in `docs/backend/PROD_DEMO.md`.
