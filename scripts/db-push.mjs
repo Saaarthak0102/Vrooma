@@ -40,10 +40,14 @@ import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 
 export const EXPECTED_DEV_PROJECT_REF = "eobtzcwinjmimzisypca";
-export const EXPECTED_PROD_PROJECT_REF = "ajumkjokagqfdikfguti";
+export const EXPECTED_PROD_PROJECT_REF = "zdasktnbdjkjtoncojsy";
 export const LEGACY_DELETED_PROJECT_REF = "gmyrehlrmifxckszrdje";
+/** The first production project, retired when the current one was created. It must never be targeted again. */
+export const RETIRED_PROD_PROJECT_REF = "ajumkjokagqfdikfguti";
+/** Refs that are never valid as a target in either mode: the deleted legacy DEV project and the retired production project. */
+export const RETIRED_PROJECT_REFS = new Set([LEGACY_DELETED_PROJECT_REF, RETIRED_PROD_PROJECT_REF]);
 /** Refs a DEV run must never touch (kept under its old name for existing imports). */
-export const FORBIDDEN_PROJECT_REFS = new Set([EXPECTED_PROD_PROJECT_REF, LEGACY_DELETED_PROJECT_REF]);
+export const FORBIDDEN_PROJECT_REFS = new Set([EXPECTED_PROD_PROJECT_REF, ...RETIRED_PROJECT_REFS]);
 
 export const PROD_PROJECT_URL = `https://${EXPECTED_PROD_PROJECT_REF}.supabase.co`;
 
@@ -294,7 +298,7 @@ function validateProd({ env, cwd, parsed, linkedRefOverride, fsImpl }) {
   if (providedRef === EXPECTED_DEV_PROJECT_REF) {
     return blocked(`SUPABASE_PROJECT_REF is the DEV project '${providedRef}'. A production run must name '${EXPECTED_PROD_PROJECT_REF}'.`);
   }
-  if (providedRef === LEGACY_DELETED_PROJECT_REF) {
+  if (RETIRED_PROJECT_REFS.has(providedRef)) {
     return blocked(`Project reference '${providedRef}' is a forbidden historical/deleted reference.`);
   }
   if (providedRef !== EXPECTED_PROD_PROJECT_REF) {
@@ -326,13 +330,17 @@ function validateProd({ env, cwd, parsed, linkedRefOverride, fsImpl }) {
   const envLocalPath = path.resolve(cwd, ".env.local");
   if (fsImpl.existsSync(envLocalPath)) {
     const content = String(fsImpl.readFileSync(envLocalPath, "utf-8"));
-    if (content.includes(EXPECTED_PROD_PROJECT_REF)) {
-      return blocked(".env.local mentions the production project ref. It must hold DEV values only (docs/backend/ENVIRONMENTS.md).");
-    }
     for (const line of content.split("\n")) {
-      const key = line.trim().split("=")[0];
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) continue;
+      const key = trimmed.split("=")[0].trim();
       if (PROD_CREDENTIAL_NAMES.includes(key)) {
         return blocked(`.env.local defines ${key}. Production credentials must come from the shell session only.`);
+      }
+      // SUPABASE_PROD_REF is the one documented, non-secret reference flag allowed in .env.local (same rule as
+      // scripts/check-env.mjs); the production ref anywhere else (a URL, a key) means production values leaked in.
+      if (key !== "SUPABASE_PROD_REF" && trimmed.includes(EXPECTED_PROD_PROJECT_REF)) {
+        return blocked(".env.local mentions the production project ref. It must hold DEV values only (docs/backend/ENVIRONMENTS.md).");
       }
     }
   }

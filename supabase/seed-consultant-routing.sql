@@ -3,7 +3,7 @@
 -- VROOMA — DEV CONSULTANT ROUTING RULES SEED SCRIPT
 -- =============================================================================
 -- Target Environment: DEV Supabase Project ONLY (eobtzcwinjmimzisypca)
--- Hard-Guards:        ajumkjokagqfdikfguti (PRODUCTION - FORBIDDEN)
+-- Hard-Guards:        zdasktnbdjkjtoncojsy (PRODUCTION - FORBIDDEN), ajumkjokagqfdikfguti (retired production - FORBIDDEN)
 --                     gmyrehlrmifxckszrdje (DELETED LEGACY - FORBIDDEN)
 -- Idempotency:        Safe to rerun repeatedly (ON CONFLICT DO UPDATE / DO NOTHING)
 -- Dependencies:       1. Geo & Catalog seed data (showrooms, models)
@@ -19,7 +19,8 @@ BEGIN;
 DO $$
 DECLARE
   v_expected_dev_ref     CONSTANT text := 'eobtzcwinjmimzisypca';
-  v_forbidden_prod_ref   CONSTANT text := 'ajumkjokagqfdikfguti';
+  v_forbidden_prod_ref   CONSTANT text := 'zdasktnbdjkjtoncojsy';
+  v_forbidden_old_prod_ref CONSTANT text := 'ajumkjokagqfdikfguti';
   v_forbidden_legacy_ref CONSTANT text := 'gmyrehlrmifxckszrdje';
 
   v_current_user  text := current_user;
@@ -32,6 +33,11 @@ BEGIN
   IF v_session_user ~* v_forbidden_prod_ref OR v_current_user ~* v_forbidden_prod_ref THEN
     RAISE EXCEPTION 'CRITICAL SECURITY BLOCK: Execution on PRODUCTION project ref (%) is strictly forbidden! (session_user: %)',
       v_forbidden_prod_ref, v_session_user;
+  END IF;
+
+  IF v_session_user ~* v_forbidden_old_prod_ref OR v_current_user ~* v_forbidden_old_prod_ref THEN
+    RAISE EXCEPTION 'CRITICAL SECURITY BLOCK: Execution on the retired production project ref (%) is strictly forbidden! (session_user: %)',
+      v_forbidden_old_prod_ref, v_session_user;
   END IF;
 
   IF v_session_user ~* v_forbidden_legacy_ref OR v_current_user ~* v_forbidden_legacy_ref THEN

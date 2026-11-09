@@ -32,7 +32,7 @@ import { chromium } from "playwright";
 import { createServerClient } from "@supabase/ssr";
 
 const DEV_REF = process.env.SUPABASE_DEV_REF || "eobtzcwinjmimzisypca";
-const PROD_REF = process.env.SUPABASE_PROD_REF || "ajumkjokagqfdikfguti";
+const PROD_REF = process.env.SUPABASE_PROD_REF || "zdasktnbdjkjtoncojsy";
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
 const DEV_PASSWORD = "VroomaDevPass2026!";
 export const PERSONAS = {
@@ -61,7 +61,7 @@ export function validateTarget({ baseUrl, supabaseUrl, args = [], env = process.
 
   const ref = extractRef(supabaseUrl);
   if (!ref) return { ok: false, error: "REFUSED: could not read the Supabase project ref from NEXT_PUBLIC_SUPABASE_URL." };
-  if (ref === PROD_REF || ref === "gmyrehlrmifxckszrdje") {
+  if (ref === PROD_REF || ref === "ajumkjokagqfdikfguti" || ref === "gmyrehlrmifxckszrdje") {
     return { ok: false, error: `REFUSED: NEXT_PUBLIC_SUPABASE_URL points at a forbidden project (${ref}).` };
   }
   if (ref !== DEV_REF) return { ok: false, error: `REFUSED: project ${ref} is not the DEV project (${DEV_REF}).` };

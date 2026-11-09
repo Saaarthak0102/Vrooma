@@ -11,7 +11,8 @@ describe("seed-consultant-routing.sql Static Integrity & Security Audit", () => 
   const masterSeedContent = fs.readFileSync(seedPath, "utf-8");
 
   const EXPECTED_DEV_REF = "eobtzcwinjmimzisypca";
-  const FORBIDDEN_PROD_REF = "ajumkjokagqfdikfguti";
+  const FORBIDDEN_PROD_REF = "zdasktnbdjkjtoncojsy";
+  const FORBIDDEN_OLD_PROD_REF = "ajumkjokagqfdikfguti";
   const FORBIDDEN_LEGACY_REF = "gmyrehlrmifxckszrdje";
 
   const CANONICAL_SHOWROOMS = {
@@ -48,10 +49,16 @@ describe("seed-consultant-routing.sql Static Integrity & Security Audit", () => 
       expect(sqlContent).toMatch(/v_expected_dev_ref\s+CONSTANT\s+text\s*:=\s*'eobtzcwinjmimzisypca'/i);
     });
 
-    it("hard-blocks production project ref ajumkjokagqfdikfguti", () => {
+    it("hard-blocks production project ref zdasktnbdjkjtoncojsy", () => {
       expect(sqlContent).toContain(FORBIDDEN_PROD_REF);
-      expect(sqlContent).toMatch(/v_forbidden_prod_ref\s+CONSTANT\s+text\s*:=\s*'ajumkjokagqfdikfguti'/i);
+      expect(sqlContent).toMatch(/v_forbidden_prod_ref\s+CONSTANT\s+text\s*:=\s*'zdasktnbdjkjtoncojsy'/i);
       expect(sqlContent).toMatch(/CRITICAL SECURITY BLOCK.*PRODUCTION/i);
+    });
+
+    it("hard-blocks the retired first production ref ajumkjokagqfdikfguti", () => {
+      expect(sqlContent).toContain(FORBIDDEN_OLD_PROD_REF);
+      expect(sqlContent).toMatch(/v_forbidden_old_prod_ref\s+CONSTANT\s+text\s*:=\s*'ajumkjokagqfdikfguti'/i);
+      expect(sqlContent).toMatch(/CRITICAL SECURITY BLOCK.*retired production/i);
     });
 
     it("hard-blocks deleted legacy project ref gmyrehlrmifxckszrdje", () => {

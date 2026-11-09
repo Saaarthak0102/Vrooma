@@ -9,7 +9,7 @@
  * features (reminders, escalations, stale leads, expiry chips) are live each time it runs; run it again to refresh them.
  *
  * SAFETY (same rules as seed-dev-users.ts): DEV project 'eobtzcwinjmimzisypca' only; the production ref
- * 'ajumkjokagqfdikfguti' and the old ref 'gmyrehlrmifxckszrdje' are rejected; APP_ENV / NODE_ENV production is rejected;
+ * 'zdasktnbdjkjtoncojsy' (production), 'ajumkjokagqfdikfguti' (retired production) and the old ref 'gmyrehlrmifxckszrdje' are rejected; APP_ENV / NODE_ENV production is rejected;
  * the Supabase URL must match the same ref. Secrets are never printed.
  *
  * Needs: dev users (scripts/seed-dev-users.ts) and migrations 0035-0041 applied.
@@ -24,7 +24,7 @@ import path from "node:path";
 import { createClient } from "@supabase/supabase-js";
 
 export const DEV_REF = "eobtzcwinjmimzisypca";
-export const FORBIDDEN_REFS = new Set(["ajumkjokagqfdikfguti", "gmyrehlrmifxckszrdje"]);
+export const FORBIDDEN_REFS = new Set(["zdasktnbdjkjtoncojsy", "ajumkjokagqfdikfguti", "gmyrehlrmifxckszrdje"]);
 
 export type GuardResult = { ok: true; url: string } | { ok: false; error: string };
 

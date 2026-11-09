@@ -11,9 +11,9 @@
 
 | Attribute | Development (DEV) | Production (PROD) |
 |---|---|---|
-| **Supabase Project Reference** | `eobtzcwinjmimzisypca` | `ajumkjokagqfdikfguti` |
-| **Supabase Project URL** | `https://eobtzcwinjmimzisypca.supabase.co` | `https://ajumkjokagqfdikfguti.supabase.co` |
-| **AWS Region** | `ap-south-1` (Mumbai) | `ap-south-1` (Mumbai) |
+| **Supabase Project Reference** | `eobtzcwinjmimzisypca` | `zdasktnbdjkjtoncojsy` |
+| **Supabase Project URL** | `https://eobtzcwinjmimzisypca.supabase.co` | `https://zdasktnbdjkjtoncojsy.supabase.co` |
+| **AWS Region** | `ap-northeast-1` (Tokyo) | `ap-northeast-2` (Seoul) |
 | **Host Environment** | Local machine / Vercel Preview Deployments | Vercel Production Deployment (`https://vrooma.in`) |
 | **`APP_ENV` Variable** | `development` | `production` |
 | **Dev Password Sign-in** | Allowed (`ALLOW_DEV_LOGIN=true`) | Strictly disabled (`ALLOW_DEV_LOGIN=false`, 404 on endpoint) |
@@ -25,11 +25,11 @@
 
 - **`.env.local`:**
   - Contains **DEV credentials ONLY**.
-  - Must never contain the production ref `ajumkjokagqfdikfguti` in any URL or secret key value.
+  - Must never contain the production ref `zdasktnbdjkjtoncojsy` in any URL or secret key value.
   - Contains non-secret reference flags:
     ```bash
     SUPABASE_DEV_REF=eobtzcwinjmimzisypca
-    SUPABASE_PROD_REF=ajumkjokagqfdikfguti
+    SUPABASE_PROD_REF=zdasktnbdjkjtoncojsy
     ```
 - **`.env.production*` files:**
   - **Strictly forbidden** on disk. Next.js automatically loads `.env.production` during local builds and starts, which risks cross-contaminating production state.
@@ -73,19 +73,19 @@
    - Take a production backup first (Supabase dashboard, Database, Backups).
    - Link the CLI to production, in the same shell session you will use for the push:
      ```bash
-     npx supabase link --project-ref ajumkjokagqfdikfguti
+     npx supabase link --project-ref zdasktnbdjkjtoncojsy
      ```
    - Export production values **in the shell session only**. Never put them in `.env.local`, `.env.prod`, or any file (the runner blocks if `.env.local` mentions the production ref or defines production credentials):
      ```powershell
      # PowerShell
-     $env:SUPABASE_PROJECT_REF = "ajumkjokagqfdikfguti"
-     $env:NEXT_PUBLIC_SUPABASE_URL = "https://ajumkjokagqfdikfguti.supabase.co"
+     $env:SUPABASE_PROJECT_REF = "zdasktnbdjkjtoncojsy"
+     $env:NEXT_PUBLIC_SUPABASE_URL = "https://zdasktnbdjkjtoncojsy.supabase.co"
      $env:SUPABASE_DB_PASSWORD = "<production database password>"
      ```
      ```bash
      # bash
-     export SUPABASE_PROJECT_REF=ajumkjokagqfdikfguti
-     export NEXT_PUBLIC_SUPABASE_URL=https://ajumkjokagqfdikfguti.supabase.co
+     export SUPABASE_PROJECT_REF=zdasktnbdjkjtoncojsy
+     export NEXT_PUBLIC_SUPABASE_URL=https://zdasktnbdjkjtoncojsy.supabase.co
      export SUPABASE_DB_PASSWORD='<production database password>'
      ```
    - **Dry run first.** It runs every production check and asks the CLI to list what it would apply, without applying anything:
@@ -95,14 +95,14 @@
      Read the list. It must be exactly the migrations you expect.
    - **Apply.** Type the production ref as a second, separate confirmation:
      ```bash
-     pnpm db:push --target prod --i-am-targeting-production --confirm-production=ajumkjokagqfdikfguti
+     pnpm db:push --target prod --i-am-targeting-production --confirm-production=zdasktnbdjkjtoncojsy
      ```
-     This runs `supabase db push --remote=ajumkjokagqfdikfguti --yes`. There is no `--include-all`, so a migration older than the remote history is stopped by the CLI's own history check instead of being forced through. The password reaches the CLI only through the process environment, never as an argument, and is never printed.
+     This runs `supabase db push --remote=zdasktnbdjkjtoncojsy --yes`. There is no `--include-all`, so a migration older than the remote history is stopped by the CLI's own history check instead of being forced through. The password reaches the CLI only through the process environment, never as an argument, and is never printed.
    - Re-link the CLI to DEV afterwards, otherwise DEV pushes stay blocked:
      ```bash
      npx supabase link --project-ref eobtzcwinjmimzisypca
      ```
-   - The production run is refused when any of these is true: a missing `--i-am-targeting-production` or typed ref (the typed ref is not needed for `--dry-run`); `SUPABASE_PROJECT_REF` is anything other than the production ref (the DEV ref and the deleted legacy ref are named in the error); `NEXT_PUBLIC_SUPABASE_URL` is not exactly `https://ajumkjokagqfdikfguti.supabase.co`; `SUPABASE_DB_PASSWORD` is empty; the CLI link (`project-ref`, and `linked-project.json` when present) is not production; `.env.local` mentions the production ref or defines `SUPABASE_DB_PASSWORD`/`SUPABASE_ACCESS_TOKEN`; any of `SUPABASE_DB_URL`, `DATABASE_URL`, `POSTGRES_URL`, `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`, `SUPABASE_PROJECT_ID` is set; or any flag outside the allowlist is given (`--remote`, `--project-ref`, `--db-url`, `--linked`, `--password`, `--include-all`, `--yes` and so on).
+   - The production run is refused when any of these is true: a missing `--i-am-targeting-production` or typed ref (the typed ref is not needed for `--dry-run`); `SUPABASE_PROJECT_REF` is anything other than the production ref (the DEV ref and the deleted legacy ref are named in the error); `NEXT_PUBLIC_SUPABASE_URL` is not exactly `https://zdasktnbdjkjtoncojsy.supabase.co`; `SUPABASE_DB_PASSWORD` is empty; the CLI link (`project-ref`, and `linked-project.json` when present) is not production; `.env.local` mentions the production ref or defines `SUPABASE_DB_PASSWORD`/`SUPABASE_ACCESS_TOKEN`; any of `SUPABASE_DB_URL`, `DATABASE_URL`, `POSTGRES_URL`, `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`, `SUPABASE_PROJECT_ID` is set; or any flag outside the allowlist is given (`--remote`, `--project-ref`, `--db-url`, `--linked`, `--password`, `--include-all`, `--yes` and so on).
    - Seed scripts, dev users, and test runners strictly refuse to execute against production.
 
 ---

@@ -4,7 +4,8 @@ import { validateTarget, analyzeCsp, judge, extractRef } from "../scripts/consol
 type Guard = { ok: boolean; error?: string };
 const validate = validateTarget as unknown as (a: Record<string, unknown>) => Guard;
 const DEV_URL = "https://eobtzcwinjmimzisypca.supabase.co";
-const PROD_URL = "https://ajumkjokagqfdikfguti.supabase.co";
+const PROD_URL = "https://zdasktnbdjkjtoncojsy.supabase.co";
+const RETIRED_PROD_URL = "https://ajumkjokagqfdikfguti.supabase.co";
 
 describe("console-check target guard", () => {
   it("accepts localhost + the DEV project", () => {
@@ -13,6 +14,7 @@ describe("console-check target guard", () => {
 
   it("refuses the PRODUCTION project and the deleted legacy project", () => {
     expect(validate({ baseUrl: "http://localhost:3009", supabaseUrl: PROD_URL }).ok).toBe(false);
+    expect(validate({ baseUrl: "http://localhost:3009", supabaseUrl: RETIRED_PROD_URL }).ok).toBe(false);
     expect(validate({ baseUrl: "http://localhost:3009", supabaseUrl: "https://gmyrehlrmifxckszrdje.supabase.co" }).ok).toBe(false);
   });
 

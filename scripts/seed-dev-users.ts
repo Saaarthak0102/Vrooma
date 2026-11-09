@@ -6,7 +6,7 @@
  *
  * DEV-ONLY SAFETY:
  *   - Strictly restricted to DEV project 'eobtzcwinjmimzisypca'.
- *   - Hard-rejects production ref 'ajumkjokagqfdikfguti'.
+ *   - Hard-rejects production refs 'zdasktnbdjkjtoncojsy' (current) and 'ajumkjokagqfdikfguti' (retired).
  *   - Hard-rejects deleted legacy ref 'gmyrehlrmifxckszrdje'.
  *   - Rejects execution if APP_ENV or NODE_ENV is 'production'.
  *   - Validates that NEXT_PUBLIC_SUPABASE_URL targets the same project ref.
@@ -29,7 +29,8 @@ import { createClient } from "@supabase/supabase-js";
 
 export const EXPECTED_DEV_PROJECT_REF = "eobtzcwinjmimzisypca";
 export const FORBIDDEN_PROJECT_REFS = new Set([
-  "ajumkjokagqfdikfguti", // Production
+  "zdasktnbdjkjtoncojsy", // Production
+  "ajumkjokagqfdikfguti", // Retired first production project
   "gmyrehlrmifxckszrdje", // Historical deleted ref
 ]);
 

@@ -3,15 +3,16 @@
  *
  * Centralized, fail-closed project and environment isolation guard for Vrooma.
  * Enforces strict separation between the DEV Supabase project ('eobtzcwinjmimzisypca')
- * and the PRODUCTION Supabase project ('ajumkjokagqfdikfguti').
+ * and the PRODUCTION Supabase project ('zdasktnbdjkjtoncojsy'). The first production project ('ajumkjokagqfdikfguti') is retired.
  */
 
 export const DEV_REF = process.env.SUPABASE_DEV_REF || "eobtzcwinjmimzisypca";
-export const PROD_REF = process.env.SUPABASE_PROD_REF || "ajumkjokagqfdikfguti";
+export const PROD_REF = process.env.SUPABASE_PROD_REF || "zdasktnbdjkjtoncojsy";
 
 export const KNOWN_FORBIDDEN_REFS = new Set([
   PROD_REF,
-  "ajumkjokagqfdikfguti",
+  "zdasktnbdjkjtoncojsy", // production (in case SUPABASE_PROD_REF is overridden)
+  "ajumkjokagqfdikfguti", // retired first production project
   "gmyrehlrmifxckszrdje", // historical deleted ref
 ]);
 

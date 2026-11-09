@@ -174,7 +174,7 @@ All `/api/cron/*` routes require `Authorization: Bearer <CRON_SECRET>`. In produ
 
 The three HTTP jobs are created only when **both** secrets exist. Until then the migration prints a NOTICE and the System page shows those jobs as "not scheduled (add Vault secrets)".
 
-1. Pick the project: DEV is `eobtzcwinjmimzisypca`, PROD is `ajumkjokagqfdikfguti`. Never paste PROD values into a DEV project or the reverse.
+1. Pick the project: DEV is `eobtzcwinjmimzisypca`, PROD is `zdasktnbdjkjtoncojsy`. Never paste PROD values into a DEV project or the reverse.
 2. Choose the values:
    - `app_url`: the public base URL of **that environment's** deployment, with no trailing slash. DEV needs a URL Supabase can reach, so use a Vercel Preview URL; **`http://localhost:3000` will not work** (see 6.3). PROD: `https://vrooma.in`.
    - `cron_secret`: a long random string (for example `openssl rand -hex 32`). It must be the **same value** as the `CRON_SECRET` environment variable of that deployment on Vercel.

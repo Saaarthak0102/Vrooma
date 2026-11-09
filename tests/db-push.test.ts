@@ -9,6 +9,7 @@ import {
   EXPECTED_DEV_PROJECT_REF,
   EXPECTED_PROD_PROJECT_REF,
   LEGACY_DELETED_PROJECT_REF,
+  RETIRED_PROD_PROJECT_REF,
   PROD_PROJECT_URL,
 } from "../scripts/db-push.mjs";
 
@@ -97,6 +98,7 @@ describe("DEV target (existing protections preserved)", () => {
   it("blocks the deleted legacy ref and the production ref", () => {
     expect(dev({ env: { ...devEnv, SUPABASE_PROJECT_REF: LEGACY_DELETED_PROJECT_REF } }).error).toContain("forbidden historical/deleted reference");
     expect(dev({ env: { ...devEnv, SUPABASE_PROJECT_REF: EXPECTED_PROD_PROJECT_REF } }).error).toContain("forbidden historical/deleted reference");
+    expect(dev({ env: { ...devEnv, SUPABASE_PROJECT_REF: RETIRED_PROD_PROJECT_REF } }).error).toContain("forbidden historical/deleted reference");
   });
 
   it("blocks an arbitrary unknown project ref", () => {
@@ -137,6 +139,12 @@ describe("DEV target (existing protections preserved)", () => {
 });
 
 describe("PRODUCTION target", () => {
+  it("targets the current production project, not the retired one", () => {
+    expect(EXPECTED_PROD_PROJECT_REF).toBe("zdasktnbdjkjtoncojsy");
+    expect(RETIRED_PROD_PROJECT_REF).toBe("ajumkjokagqfdikfguti");
+    expect(PROD_PROJECT_URL).toBe("https://zdasktnbdjkjtoncojsy.supabase.co");
+  });
+
   it("passes only when every check is satisfied", () => {
     const result = prod();
     expect(result.ok).toBe(true);
@@ -181,6 +189,7 @@ describe("PRODUCTION target", () => {
       expect(prod({ env: prodEnv({ SUPABASE_PROJECT_REF: "" }) }).error).toContain("SUPABASE_PROJECT_REF environment variable is not set");
       expect(prod({ env: prodEnv({ SUPABASE_PROJECT_REF: EXPECTED_DEV_PROJECT_REF }) }).error).toContain("is the DEV project");
       expect(prod({ env: prodEnv({ SUPABASE_PROJECT_REF: LEGACY_DELETED_PROJECT_REF }) }).error).toContain("forbidden historical/deleted reference");
+      expect(prod({ env: prodEnv({ SUPABASE_PROJECT_REF: RETIRED_PROD_PROJECT_REF }) }).error).toContain("forbidden historical/deleted reference");
       expect(prod({ env: prodEnv({ SUPABASE_PROJECT_REF: "randomprojectref12345" }) }).error).toContain("does not match the production reference");
     });
   });
@@ -225,6 +234,13 @@ describe("PRODUCTION target", () => {
       expect(result.error).toContain(".env.local mentions the production project ref");
     });
 
+    it("allows the documented SUPABASE_PROD_REF flag in .env.local, but nothing else that names production", () => {
+      const withFlag = `NEXT_PUBLIC_SUPABASE_URL=https://${EXPECTED_DEV_PROJECT_REF}.supabase.co\nSUPABASE_PROD_REF=${EXPECTED_PROD_PROJECT_REF}\n`;
+      expect(prod({ fsImpl: prodFs({ ".env.local": withFlag }) }).ok).toBe(true);
+      expect(prod({ fsImpl: prodFs({ ".env.local": `${withFlag}SOME_URL=https://${EXPECTED_PROD_PROJECT_REF}.supabase.co\n` }) }).ok).toBe(false);
+      expect(prod({ fsImpl: prodFs({ ".env.local": `${withFlag}# SUPABASE_DB_PASSWORD=commented\n` }) }).ok).toBe(true);
+    });
+
     it("never reads production values from .env.local: a missing .env.local is fine", () => {
       expect(prod({ fsImpl: memFs({ "supabase/.temp/project-ref": EXPECTED_PROD_PROJECT_REF }) }).ok).toBe(true);
     });
@@ -234,6 +250,8 @@ describe("PRODUCTION target", () => {
     it("blocks when linked to DEV, to something else, or not linked at all", () => {
       expect(prod({ fsImpl: prodFs({ "supabase/.temp/project-ref": EXPECTED_DEV_PROJECT_REF }) }).error).toContain(`linked to '${EXPECTED_DEV_PROJECT_REF}'`);
       expect(prod({ linkedRefOverride: LEGACY_DELETED_PROJECT_REF }).error).toContain("not the production project");
+      // a stale link to the first (retired) production project is refused too
+      expect(prod({ fsImpl: prodFs({ "supabase/.temp/project-ref": RETIRED_PROD_PROJECT_REF }) }).error).toContain(`linked to '${RETIRED_PROD_PROJECT_REF}'`);
       const none = prod({ fsImpl: memFs({}) });
       expect(none.ok).toBe(false);
       expect(none.error).toContain("linked project file");
@@ -299,7 +317,7 @@ describe("buildPushArgs", () => {
   });
 
   it("DEV: refuses production, legacy and arbitrary refs", () => {
-    for (const ref of [EXPECTED_PROD_PROJECT_REF, LEGACY_DELETED_PROJECT_REF, "random-external-project"]) {
+    for (const ref of [EXPECTED_PROD_PROJECT_REF, LEGACY_DELETED_PROJECT_REF, RETIRED_PROD_PROJECT_REF, "random-external-project"]) {
       expect(() => buildPushArgs(ref)).toThrow(new RegExp(`BLOCKED: Cannot construct push arguments for non-DEV project '${ref}'`));
     }
   });
@@ -316,7 +334,7 @@ describe("buildPushArgs", () => {
   });
 
   it("PRODUCTION: refuses the DEV ref, the legacy ref and arbitrary refs", () => {
-    for (const ref of [EXPECTED_DEV_PROJECT_REF, LEGACY_DELETED_PROJECT_REF, "random-external-project"]) {
+    for (const ref of [EXPECTED_DEV_PROJECT_REF, LEGACY_DELETED_PROJECT_REF, RETIRED_PROD_PROJECT_REF, "random-external-project"]) {
       expect(() => buildPushArgs(ref, { target: "prod" })).toThrow(/BLOCKED: Cannot construct production push arguments/);
     }
   });

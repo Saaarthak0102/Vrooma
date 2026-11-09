@@ -40,11 +40,13 @@ describe("the DEV-only guard", () => {
   });
 
   it.each([
-    ["the production ref", { ...ok, SUPABASE_PROJECT_REF: "ajumkjokagqfdikfguti" }],
+    ["the production ref", { ...ok, SUPABASE_PROJECT_REF: "zdasktnbdjkjtoncojsy" }],
+    ["the retired first production ref", { ...ok, SUPABASE_PROJECT_REF: "ajumkjokagqfdikfguti" }],
     ["the old deleted ref", { ...ok, SUPABASE_PROJECT_REF: "gmyrehlrmifxckszrdje" }],
     ["another project", { ...ok, SUPABASE_PROJECT_REF: "someotherprojectref" }],
     ["no project ref", { ...ok, SUPABASE_PROJECT_REF: "" }],
-    ["a production URL behind a DEV ref", { ...ok, NEXT_PUBLIC_SUPABASE_URL: "https://ajumkjokagqfdikfguti.supabase.co" }],
+    ["a production URL behind a DEV ref", { ...ok, NEXT_PUBLIC_SUPABASE_URL: "https://zdasktnbdjkjtoncojsy.supabase.co" }],
+    ["a retired production URL behind a DEV ref", { ...ok, NEXT_PUBLIC_SUPABASE_URL: "https://ajumkjokagqfdikfguti.supabase.co" }],
     ["a missing URL", { ...ok, NEXT_PUBLIC_SUPABASE_URL: "" }],
     ["APP_ENV=production", { ...ok, APP_ENV: "production" }],
     ["NODE_ENV=production", { ...ok, NODE_ENV: "production" }],

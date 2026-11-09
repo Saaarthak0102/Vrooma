@@ -7,7 +7,7 @@ Test accounts you need: email 1 (a new buyer), email 2 (a second buyer), your ad
 ## S. Setup sanity (5 min)
 | # | Step | Expected | Result |
 |---|---|---|---|
-| S1 | Open `.env.local`. The Supabase URL must contain `eobtzcwinjmimzisypca` (DEV). Check the tables exist in THAT project (Table Editor) | DEV ref. About 35 tables visible. `ajumkjokagqfdikfguti` (PROD) appears nowhere in `.env.local` | |
+| S1 | Open `.env.local`. The Supabase URL must contain `eobtzcwinjmimzisypca` (DEV). Check the tables exist in THAT project (Table Editor) | DEV ref. About 35 tables visible. `zdasktnbdjkjtoncojsy` (PROD) appears nowhere in `.env.local` | |
 | S1b | Open the PRODUCTION project (`ajum…`) in Supabase and run in its SQL editor: `select count(*) from auth.users;` and `select table_name from information_schema.tables where table_schema='public';` | Expect no users and no tables (or only what you pushed on purpose). If you see test users or test data, tell me before doing anything else. | |
 | S2 | `.env.local` has no `NEXT_PUBLIC_USE_MOCK`; `APP_ENV=development` | True | |
 | S3 | Supabase SQL editor: `select jobname, schedule, active from cron.job;` | Jobs listed and active (SLA, slots, purges, deletions) | |

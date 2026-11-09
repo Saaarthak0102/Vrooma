@@ -64,7 +64,17 @@ describe("1. DEV Project Validation & Security Guards", () => {
     expect(res.error).toContain("SUPABASE_PROJECT_REF environment variable is required");
   });
 
-  it("strictly rejects production project ref 'ajumkjokagqfdikfguti'", () => {
+  it("strictly rejects the current production project ref 'zdasktnbdjkjtoncojsy'", () => {
+    const res = validateDevEnvironment({ ...validDevEnv, SUPABASE_PROJECT_REF: "zdasktnbdjkjtoncojsy" });
+    expect(res.ok).toBe(false);
+  });
+
+  it("rejects a URL targeting the current production project", () => {
+    const res = validateDevEnvironment({ ...validDevEnv, NEXT_PUBLIC_SUPABASE_URL: "https://zdasktnbdjkjtoncojsy.supabase.co" });
+    expect(res.ok).toBe(false);
+  });
+
+  it("strictly rejects the retired production project ref 'ajumkjokagqfdikfguti'", () => {
     const res = validateDevEnvironment({
       ...validDevEnv,
       SUPABASE_PROJECT_REF: "ajumkjokagqfdikfguti",

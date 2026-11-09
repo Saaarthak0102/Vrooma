@@ -10,12 +10,12 @@ import {
 describe("Project Guard (DEV vs PROD Safety)", () => {
   it("has correct canonical DEV and PROD refs", () => {
     expect(DEV_REF).toBe("eobtzcwinjmimzisypca");
-    expect(PROD_REF).toBe("ajumkjokagqfdikfguti");
+    expect(PROD_REF).toBe("zdasktnbdjkjtoncojsy");
   });
 
   it("extracts project ref from full Supabase URLs and raw strings", () => {
     expect(extractProjectRef("https://eobtzcwinjmimzisypca.supabase.co")).toBe("eobtzcwinjmimzisypca");
-    expect(extractProjectRef("https://ajumkjokagqfdikfguti.supabase.co")).toBe("ajumkjokagqfdikfguti");
+    expect(extractProjectRef("https://zdasktnbdjkjtoncojsy.supabase.co")).toBe("zdasktnbdjkjtoncojsy");
     expect(extractProjectRef("eobtzcwinjmimzisypca")).toBe("eobtzcwinjmimzisypca");
     expect(extractProjectRef("")).toBeNull();
     expect(extractProjectRef(undefined)).toBeNull();
@@ -29,7 +29,7 @@ describe("Project Guard (DEV vs PROD Safety)", () => {
 
   it("strictly throws when dev assertions encounter production ref", () => {
     expect(() => {
-      assertSafeDevEnvironment("unit-test", "https://ajumkjokagqfdikfguti.supabase.co");
+      assertSafeDevEnvironment("unit-test", "https://zdasktnbdjkjtoncojsy.supabase.co");
     }).toThrow(/strictly forbidden from running against the PRODUCTION project ref/);
   });
 
@@ -43,7 +43,7 @@ describe("Project Guard (DEV vs PROD Safety)", () => {
     const res = validateEnvironmentSafety({
       scriptName: "seed-dev-users",
       allowProd: false,
-      url: "https://ajumkjokagqfdikfguti.supabase.co",
+      url: "https://zdasktnbdjkjtoncojsy.supabase.co",
       args: ["--i-am-targeting-production"],
     });
 
@@ -55,7 +55,7 @@ describe("Project Guard (DEV vs PROD Safety)", () => {
     const res = validateEnvironmentSafety({
       scriptName: "db-push",
       allowProd: true,
-      url: "https://ajumkjokagqfdikfguti.supabase.co",
+      url: "https://zdasktnbdjkjtoncojsy.supabase.co",
       args: [],
     });
 
@@ -67,7 +67,7 @@ describe("Project Guard (DEV vs PROD Safety)", () => {
     const res = validateEnvironmentSafety({
       scriptName: "db-push",
       allowProd: true,
-      url: "https://ajumkjokagqfdikfguti.supabase.co",
+      url: "https://zdasktnbdjkjtoncojsy.supabase.co",
       args: ["--i-am-targeting-production"],
       confirmedRef: "wrong_ref",
     });
@@ -80,14 +80,14 @@ describe("Project Guard (DEV vs PROD Safety)", () => {
     const res = validateEnvironmentSafety({
       scriptName: "db-push",
       allowProd: true,
-      url: "https://ajumkjokagqfdikfguti.supabase.co",
+      url: "https://zdasktnbdjkjtoncojsy.supabase.co",
       args: ["--i-am-targeting-production"],
-      confirmedRef: "ajumkjokagqfdikfguti",
+      confirmedRef: "zdasktnbdjkjtoncojsy",
     });
 
     expect(res.ok).toBe(true);
     expect(res.target).toBe("prod");
-    expect(res.resolvedRef).toBe("ajumkjokagqfdikfguti");
+    expect(res.resolvedRef).toBe("zdasktnbdjkjtoncojsy");
   });
 });
 

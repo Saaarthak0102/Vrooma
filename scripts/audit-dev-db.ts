@@ -4,7 +4,7 @@
  *
  * Comprehensive READ-ONLY Verification and Audit Runner for Vrooma DEV Database.
  * Target Project: eobtzcwinjmimzisypca ONLY.
- * Hard-Blocks:    ajumkjokagqfdikfguti (PRODUCTION)
+ * Hard-Blocks:    zdasktnbdjkjtoncojsy (PRODUCTION), ajumkjokagqfdikfguti (retired production)
  *                 gmyrehlrmifxckszrdje (DELETED LEGACY)
  *
  * Checks:
@@ -30,7 +30,8 @@ import { DEV_TEST_USERS } from "./seed-dev-users";
 
 export const EXPECTED_DEV_PROJECT_REF = "eobtzcwinjmimzisypca";
 export const FORBIDDEN_PROJECT_REFS = new Set([
-  "ajumkjokagqfdikfguti", // Production
+  "zdasktnbdjkjtoncojsy", // Production
+  "ajumkjokagqfdikfguti", // Retired first production project
   "gmyrehlrmifxckszrdje", // Deleted legacy DEV
 ]);
 
@@ -738,7 +739,7 @@ export async function runAudit(): Promise<{
   console.log("[Check 10] Verifying target isolation and zero production contamination...");
   const check10Details: string[] = [
     `PASS: Target URL strictly verified as https://${EXPECTED_DEV_PROJECT_REF}.supabase.co`,
-    `PASS: Production ref 'ajumkjokagqfdikfguti' was hard-blocked and untouched.`,
+    `PASS: Production refs 'zdasktnbdjkjtoncojsy' and 'ajumkjokagqfdikfguti' were hard-blocked and untouched.`,
     `PASS: Legacy deleted ref 'gmyrehlrmifxckszrdje' was hard-blocked and untouched.`,
     `PASS: All queries executed in this audit used read-only operations (SELECT / HEAD / listUsers / listBuckets).`,
     `PASS: Zero INSERT, UPDATE, DELETE, ALTER, DROP, or write transactions dispatched.`,

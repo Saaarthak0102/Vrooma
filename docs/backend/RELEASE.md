@@ -20,11 +20,11 @@
 ## 2. Supabase Cloud Production Environment
 
 - [x] **Isolated Production Project:**  
-  *Evidence:* Separate Supabase project (`ajumkjokagqfdikfguti`) designated as PRODUCTION in AWS Mumbai region (`ap-south-1`) with independent project keys, distinct from development sandbox (`eobtzcwinjmimzisypca`).
+  *Evidence:* Separate Supabase project (`zdasktnbdjkjtoncojsy`) designated as PRODUCTION in AWS Mumbai region (`ap-south-1`) with independent project keys, distinct from development sandbox (`eobtzcwinjmimzisypca`).
 - [x] **Service Role & Publishable Key Isolation:**  
   *Evidence:* `SUPABASE_SERVICE_ROLE_KEY` is marked `import "server-only";` in `src/lib/supabase/admin.ts`. Verified absent from production client bundles (`.next/static/**/*.js`).
 - [ ] **Site URL & Redirect Whitelist (OPEN — Awaiting Owner Configuration):**  
-  *Status:* OPEN. In Supabase Dashboard for PROD (`ajumkjokagqfdikfguti`), the owner must set:
+  *Status:* OPEN. In Supabase Dashboard for PROD (`zdasktnbdjkjtoncojsy`), the owner must set:
   - Site URL: `https://vrooma.in`
   - Allowed Redirects: `https://vrooma.in/auth/callback`, `https://vrooma.in/api/auth/callback` (Zero wildcard URLs allowed in production).
 
@@ -94,7 +94,7 @@
 - [x] **Automated Backup Scripts:**  
   *Evidence:* [`scripts/backup-schema.sh`](file:///d:/Vrooma/scripts/backup-schema.sh) and [`scripts/backup-schema.bat`](file:///d:/Vrooma/scripts/backup-schema.bat) operational.
 - [ ] **Database Tier Decision (OPEN — Awaiting Owner Decision):**  
-  *Status:* OPEN. Owner decision required to upgrade production Supabase project (`ajumkjokagqfdikfguti`) to Pro Tier (\$25/mo) to unlock automated daily PITR backups and disable the 7-day inactivity pause. Currently prepared scripts provide manual schema/data backups.
+  *Status:* OPEN. Owner decision required to upgrade production Supabase project (`zdasktnbdjkjtoncojsy`) to Pro Tier (\$25/mo) to unlock automated daily PITR backups and disable the 7-day inactivity pause. Currently prepared scripts provide manual schema/data backups.
 - [x] **Observability Dashboard:**  
   *Evidence:* `/admin/system` dashboard operational with real-time outbox queues, dead letters, recent cron runs, and DPDP pending requests.
 - [x] **Health Endpoint:**  

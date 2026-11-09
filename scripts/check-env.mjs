@@ -12,7 +12,9 @@
 import fs from "node:fs";
 import path from "node:path";
 
-const PROD_REF = process.env.SUPABASE_PROD_REF || "ajumkjokagqfdikfguti";
+const PROD_REF = process.env.SUPABASE_PROD_REF || "zdasktnbdjkjtoncojsy";
+// The first production project (retired) is just as forbidden in .env.local.
+const PROD_REFS = [PROD_REF, "ajumkjokagqfdikfguti"];
 
 // 1. Check for forbidden .env.production* files
 const filesInRoot = fs.readdirSync(process.cwd());
@@ -33,7 +35,7 @@ if (fs.existsSync(envLocalPath)) {
     if (!trimmed || trimmed.startsWith("#")) continue;
     const [key, ...rest] = trimmed.split("=");
     const val = rest.join("=").trim().replace(/["']/g, "");
-    if (key !== "SUPABASE_PROD_REF" && val.includes(PROD_REF)) {
+    if (key !== "SUPABASE_PROD_REF" && PROD_REFS.some((r) => val.includes(r))) {
       console.error("\n❌ FATAL SECURITY VIOLATION: .env.local contains production project reference!");
       console.error(` Key '${key}' references production ref '${PROD_REF}'.`);
       console.error(" .env.local must strictly contain DEV credentials only.\n");
