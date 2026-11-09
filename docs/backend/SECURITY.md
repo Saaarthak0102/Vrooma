@@ -1,18 +1,26 @@
-# VROOMA BACKEND: COMPREHENSIVE SECURITY AUDIT & HARDENING REPORT
+# VROOMA BACKEND: SECURITY MODEL
 
 **Document:** `docs/backend/SECURITY.md`  
-**Date:** 2026-11-05  
-**Auditor:** Senior Security & Reliability Engineering Review  
-**Project:** Vrooma (Company A, Lucknow)  
-**Status:** **PASSED / PRODUCTION HARDENED**
+**Updated:** 2026-11-09  
 
----
+How the platform is protected today, with the original hardening findings (section 7) kept as the record of what was fixed. The role-by-role matrix is in `ROLE_MATRIX.md`; privacy is in `docs/DPDP.md`.
 
-## 1. Executive Summary
+## 1. Layers at a glance
 
-This security audit verifies that the Vrooma automotive platform enforces enterprise-grade security boundaries across authentication, database access, network protocols, data privacy (DPDP Act 2023), and browser execution. All automated secret scans, client bundle inspections, and RLS privilege verifications passed with zero high-severity findings.
+| Layer | Control |
+|---|---|
+| Database | RLS on every table; column privileges (`reg_no_private` not readable by public roles); RPCs run `SECURITY DEFINER` with explicit role checks; `tests/rls-matrix.test.ts` |
+| Server | `requireRole` / `requireUser` in layouts, pages and actions; `server-only` on the admin client; `zod` validation on every input; origin check on mutating routes (`verifyRequestOrigin`) |
+| Secrets | Service role key, `CRON_SECRET`, AI and mail keys only in server environment; the project guard (`src/lib/project-guard.ts`) refuses the wrong Supabase project; production credentials never in `.env.local` |
+| Rate limits | Database-backed `check_rate_limit` per IP / user / action; AI calls also limited by `AI_MAX_RPM` and `AI_DAILY_CALL_CAP` |
+| Cron and webhooks | Bearer `CRON_SECRET` (503 if unset in production), `CALLS_WEBHOOK_SECRET`; heartbeats prove delivery |
+| Migrations | Guarded runner, fail-closed, hard-coded project refs (`ENVIRONMENTS.md`) |
+| AI | Redacted prompts, discount and price-promise guard, grounding of every rupee figure, prompt-injection short-circuit, staff-only and manager-only features, no tool calls, audit log with 90-day retention (`docs/AI.md`) |
+| Browser | CSP, HSTS, frame denial, nosniff, strict referrer and permissions policies (`next.config.ts`, section 4) |
+| Output | `jsonLdString` escapes `<`, U+2028, U+2029; CSV export neutralises formula characters |
 
----
+## Demo-mode risk (read before enabling)
+`DEMO_LOGIN=true` lets anyone with the link sign in as any demo persona, including admin, with no passcode. It exists only for short, announced demos on a project that holds fictional data. Turn it off (and remove the demo data) before real customers arrive. `ALLOW_DEV_LOGIN` must never be set in production; `scripts/check-env.mjs` warns about both.
 
 ## 2. Secrets Scan & Key Segregation
 
@@ -95,7 +103,7 @@ const securityHeaders = [
 1. **Origin Verification (`src/lib/security.ts`):**
    - API endpoints verify `Sec-Fetch-Site` (rejecting `cross-site`) and cross-check `Origin` against request `Host`.
 2. **Open Redirect Immunity (`src/server/auth/actions.ts`):**
-   - `safeNext(rawNext, locale)` enforces strict allow-lists. Any parameter starting with `//`, `/\`, `\\`, external schemes (`https:`, `javascript:`), or encoded bypasses (`%2F%2F`) defaults safely to `/dashboard` or `/`.
+   - `safeNext(rawNext)` enforces strict allow-lists. Any parameter starting with `//`, `/\`, `\\`, external schemes (`https:`, `javascript:`), or encoded bypasses (`%2F%2F`) defaults safely to `/dashboard` or `/`.
 3. **CSV Formula Injection Sanitization (`src/app/api/export/daily-csv/route.ts`):**
    - In accordance with CWE-1236, all cells in exported CSVs starting with `=`, `+`, `-`, `@`, `\t`, or `\r` are prefixed with an apostrophe (`'`), preventing Excel/Sheets remote code execution.
 4. **Input Sanitization (`src/lib/security.ts`):**
@@ -120,7 +128,7 @@ const securityHeaders = [
 
 ---
 
-## 7. Security Audit Findings Matrix
+## 7. Hardening findings (resolved)
 
 | Finding ID | Component | Vulnerability / Check | Severity | Status | Mitigation Applied |
 |:---:|---|---|:---:|:---:|---|
@@ -132,4 +140,3 @@ const securityHeaders = [
 | **SEC-06** | `src/app/api/newsletter` | Email Enumeration | Low | **RESOLVED** | Generic success messages returned on existing/duplicate subscriptions. |
 | **SEC-07** | `src/server/privacy/consent.ts` | Unsubscribe Token Forgery | High | **RESOLVED** | Implemented HMAC-SHA256 signature verification on tokens. |
 | **SEC-08** | `/api/export/daily-csv` | CSV Formula Injection | High | **RESOLVED** | Single-quote escaping on all formula characters (`=`, `+`, `-`, `@`). |
-

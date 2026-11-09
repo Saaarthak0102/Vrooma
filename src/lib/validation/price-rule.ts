@@ -6,7 +6,7 @@ export const priceRuleSchema = z.object({
   variant_id: z.string().optional().nullable(),
   fuel: z.enum(["petrol", "diesel", "cng", "ev", "hybrid"]).optional().nullable(),
   road_tax_pct: z.coerce.number().min(0).max(30),
-  // Money is stored as whole rupees (context.md: integer rupees convention).
+  // Money is stored as whole rupees (CLAUDE.md: integer rupees convention).
   registration: z.coerce.number().int("Whole rupees only").min(0).max(10_000_000),
   insurance: z.coerce.number().int("Whole rupees only").min(0).max(10_000_000),
   handling: z.coerce.number().int("Whole rupees only").min(0).max(10_000_000),

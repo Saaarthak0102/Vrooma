@@ -1,75 +1,40 @@
-# VROOMA — TESTING STRATEGY & SUITE OVERVIEW
+# VROOMA — TESTING
 
-## 1. Testing Philosophy
+## 1. Philosophy
+Money, dates, privacy and AI-safety rules live in pure functions with unit tests. Everything else is tested against hermetic fakes (in-memory file system, mock spawner, mocked Supabase) so `pnpm test` needs no network and never touches a real project.
 
-Automotive retail applications fail when financial calculations drift or regulatory compliance (DPDP) is compromised. Vrooma isolates pure domain logic into zero-dependency pure functions and enforces 100% test coverage on all mathematical and compliance routines.
+## 2. Tiers
+1. **`pnpm test`** (Vitest 3): 90 files, 1,033 tests, a few seconds. This is the gate before every commit and in CI.
+2. **Quality gate scripts**: `pnpm typecheck`, `pnpm lint`, `pnpm db:lint` (migrations start `BEGIN;` and end `COMMIT;`), `pnpm check:wiring`, `pnpm check:buttons`, `pnpm check:env`, `pnpm build` (63 pages).
+3. **Browser and database checks against the DEV project only** (they refuse to run unless the target is localhost and `.env.local` holds DEV values): `pnpm e2e:console`, `pnpm charts:console`, `pnpm layout:console`, `pnpm smoke` (against a running production build), `pnpm rls:test`.
+4. **Live AI check**: `pnpm ai:smoke` tries models and prints a verdict (needs a key).
 
----
+Production is never a test target.
 
-## 2. Test Runner: Vitest
+## 3. What the unit tests cover (by area)
+| Area | Files (in `tests/`) | Invariants |
+|---|---|---|
+| Money, price, EMI | `money`, `price-engine`, `pricing-scope`, `emi` | Indian grouping; full on-road breakup, TCS above ₹10 lakh, validity date; EMI formula and amortisation sums to principal, 0% case |
+| Privacy | `masking`, `privacy-dpdp`, `retention` | `UP32 ** **** 1234`; consent ledger, export, erasure; retention periods |
+| SLA, bookings, leads | `sla`, `booking-ref`, `booking-engine`, `leads-lifecycle`, `lead-deduplication`, `csv-import` | 5-minute states; no double booking; routing; CSV formula-injection safe |
+| Discount and AI safety | `discount-rules`, AI guard/chat/agent/digest tests | Discount and price-promise wording blocked (executable twin of `docs/backend/DISCOUNT_RULES.md`) |
+| Channels and automations | `reply-channel`, outbox, automation tests | Email default, WhatsApp by switch, demo addresses skipped, consent at send time |
+| Console | `grid`, `analytics`, `price-band`, `inspection-score`, `console-structure`, `post-sign-in` | Grid sort/filter/export; chart aggregation by IST day; at most 3 screens per role; where each role lands |
+| Schema and tooling | `types-match-schema`, `trade-in-columns`, `db-push` (67), `demo-migration`, `demo-login`, `demo-personas`, `docs-links` | Types match columns; runner is fail-closed; demo migration is idempotent; demo login 404 unless enabled; every doc path referenced exists |
+| Security | `rls-matrix` | RLS on every table, column privileges |
 
-We use **Vitest 3** for ultra-fast, native ESM execution with zero compile overhead.
-
-### Running Tests
-```bash
-# Run all unit test suites
-pnpm test
-
-# Run tests in watch mode
-pnpm vitest
-
-# Generate test coverage report
-pnpm vitest run --coverage
-```
-
----
-
-## 3. Core Test Suites
-
-### A. Money Formatting & Parsing (`tests/money.test.ts`)
-- Tests Indian numbering grouping: `formatINR(1245000)` produces `₹12,45,000`.
-- Tests lakh notation: `formatLakh(1245000)` produces `₹12.45 L`.
-- Verifies edge cases: zero, negative amounts, and string parsing.
-
-### B. Dynamic On-Road Price Engine (`tests/price-engine.test.ts`)
-- Verifies complete itemized calculation against Lucknow RTO rules.
-- Tests TCS condition: 1% tax collected at source on vehicles with ex-showroom $\ge ₹10,00,000$, and ₹0 TCS below ₹10 Lakh.
-- Tests date validity enforcement (rejects expired pricing rules).
-- Tests optional accessories package toggling.
-
-### C. Loan EMI & Amortisation Math (`tests/emi.test.ts`)
-- Standard automotive reducing-balance EMI formula: $E = P \cdot r \cdot \frac{(1+r)^n}{(1+r)^n - 1}$.
-- Tests 0% promotional interest scheme edge case (straight division without division by zero).
-- Verifies that the sum of principal payments in the amortisation schedule exactly equals the original loan amount.
-
-### D. DPDP Data Masking (`tests/masking.test.ts`)
-- Verifies registration number masking across variations: `UP32 AB 1234` → `UP32 ** **** 1234`.
-- Tests phone number privacy masking: `+91 98765 43210` → `+91 98765 *****`.
-
-### E. SLA Countdown & State Machine (`tests/sla.test.ts`)
-- Evaluates lead response time countdowns against the 5-minute target.
-- Tests state transitions: `ok` ($\ge 2$ min remaining), `warning` ($< 2$ min remaining), `breached` ($< 0$ min remaining), and `met` (contacted before deadline).
-
-
----
-
-## 4. Console suites
-
-### Unit and structure tests (`pnpm test`)
-- `tests/grid.test.ts`: DataGrid sorting, filtering and CSV export (formula-injection safe).
-- `tests/analytics.test.ts`: the pure aggregation behind the console charts (IST day buckets, cumulative funnel, bands, top-N).
-- `tests/price-band.test.ts`: price band from past sales (null with no comparable sale, confidence by sample size).
-- `tests/inspection-score.test.ts`: scorecard to 0-100, never a made-up score.
-- `tests/console-structure.test.ts`: at most 3 screens per role, nav matches middleware, price band role-guarded, real dev persona switch.
-- `tests/post-sign-in.test.ts`: where each role lands after sign-in; console chrome hidden only on `/staff` and `/admin`; scroll isolation attributes.
-- `tests/trade-in-columns.test.ts` and `tests/types-match-schema.test.ts`: code and types only use real columns.
-
-### Browser tests against the DEV Supabase project (never production)
+## 4. Browser checks (DEV only)
 ```bash
 pnpm dev                 # terminal 1
 pnpm e2e:console         # 42 checks: each action in a browser, asserted in the database, then cleaned up
-pnpm charts:console      # clicks KPI/funnel/donut chart elements; grid row counts must equal direct Supabase counts
-node scripts/console-snap.mjs --out=DIR [--viewport=390x844]   # full-page screenshots of the charts, for eyeballing
-pnpm layout:console      # every console screen at 8 viewports: overflow, drawers/dialogs, scroll isolation, 40px touch targets
+pnpm charts:console      # chart clicks must equal direct Supabase counts
+pnpm layout:console      # every console screen at 8 viewports: overflow, drawers, scroll, 40px targets
+node scripts/console-snap.mjs --out=DIR [--viewport=390x844]
 ```
-Both refuse to run unless the target is localhost and `.env.local` points at the DEV project. They sign in with the seeded dev users (`scripts/seed-dev-users.ts`). Not covered: attended / no-show, reassign, rule-based routing of a new lead, inviting a brand-new email (sends real email), WhatsApp/SMS delivery (simulated).
+They sign in with the seeded dev users (`scripts/seed-dev-users.ts`). Not covered: attended/no-show, reassign, brand-new invite emails (sends real email), WhatsApp delivery (simulated).
+
+## 5. Frontend verification (every UI change)
+Check 360×740, 390×844, 768×1024, 1024×768, 1280×720, 1536×864, 1920×1080, landscape phone 667×375, touch (no hover), `prefers-reduced-motion`, 200% zoom. Hover effects use `@media (hover:hover) and (pointer:fine)`.
+
+## 6. CI (`.github/workflows/ci.yml`)
+Stage 1 on every push and PR: typecheck, lint, `check:buttons`, `check:wiring`, `vitest run`, `next build`. Stage 2 on `main` or manual: integration against the DEV project with `SUPABASE_DEV_*` secrets.

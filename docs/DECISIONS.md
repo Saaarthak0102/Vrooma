@@ -93,7 +93,7 @@
 
 - **Date:** 2026-11-06
 - **Decision:** The app is English only. Removed: `/[locale]` routing, the language switcher, `messages/hi.json`, the Devanagari font, hreflang/Hindi open-graph SEO, per-user language preference, and the `useLocale`/`@/i18n/navigation` plumbing.
-- **Supersedes:** the client brief and `context.md` rule 3 ("Hindi and English"). That requirement was dropped on the owner's instruction; do not reintroduce it by following the old brief.
+- **Supersedes:** the client brief and `CLAUDE.md` rule 3 ("Hindi and English"). That requirement was dropped on the owner's instruction; do not reintroduce it by following the old brief.
 - **Kept:** `messages/en.json` as the one text catalogue (read through `next-intl` with a fixed `en`); the Hindi words in `src/lib/validation/discount.ts` (a staff-safety filter); the `profiles.locale` and `*_hi` database columns (never read or written by the app, no migration).
 - **Compatibility:** `/en/...` and `/hi/...` permanently redirect to the unprefixed URL (`next.config.ts`); `safeNext` strips a legacy prefix.
 
@@ -152,4 +152,43 @@
 - **Date:** 2026-11-08
 - **Context:** the first real smoke tests on the free key showed Gemini 2.5 retired for new keys, Gemini 3 flash models overloaded or very slow, Pro models without free quota, and Gemini 3 tool calls failing with a missing thought_signature error under the AI library version in use.
 - **Decision:** the chatbot and the Lead Desk Agent make **one** request each; the server gathers the facts (catalog, prices, server-computed EMI, open slots, workload) first. The tool-calling code was removed, not kept as a dead path. Models are chosen by trying them (`pnpm ai:smoke`), and a circuit breaker pauses calls after two failures in a row. Model-driven tool calling is recorded as future scope in `docs/AI.md`.
+
+---
+
+## ADR: Colour tokens use `color-mix` so opacity shades render
+
+- **Date:** 2026-11-09
+- **Context:** Tailwind v3 colours defined as bare CSS variables ignore `/NN` opacity shades, so `bg-ink/5` rendered nothing.
+- **Decision:** theme colours are `color-mix(in srgb, var(--x) calc(<alpha-value> * 100%), transparent)`. Shades now render everywhere.
+
+## ADR: Guarded migration runner with two targets
+
+- **Date:** 2026-11-09
+- **Decision:** `scripts/db-push.mjs` pushes to DEV (default) or PRODUCTION (`--target prod`, with `--dry-run`). Project refs are hard-coded, arguments are allow-listed, the linked project must match the target, `.env.local` must hold DEV values only, and anything unexpected blocks (fail-closed). Production passwords exist only in the operator's shell. Production moved to a fresh project (`zdasktnbdjkjtoncojsy`); the earlier prod (`ajumkjokagqfdikfguti`) and a deleted legacy project are on the forbidden list.
+
+## ADR: Email first, WhatsApp by switch
+
+- **Date:** 2026-11-08
+- **Context:** WhatsApp Cloud API keys were not obtainable yet.
+- **Decision:** `NOTIFY_CHANNEL` (default `email`) chooses the channel for replies and reminders. The WhatsApp adapter, templates and webhook code stay unchanged; setting `NOTIFY_CHANNEL=whatsapp` with keys switches over with no code change. SMS was removed.
+
+## ADR: Demo data is one generated migration; demo login has no passcode
+
+- **Date:** 2026-11-09
+- **Decision:** `scripts/build-demo-migration.ts` generates `0042_demo_data.sql` (catalogue, nine demo accounts, activity, slots, and `private.refresh_demo_activity()`). `supabase/remove-demo-data.sql` undoes it. Demo mode (`DEMO_LOGIN` plus `NEXT_PUBLIC_DEMO_LOGIN`) shows one-click persona sign-in with no passcode, by the owner's explicit choice for a short demo; it is off by default, and `ALLOW_DEV_LOGIN` stays forbidden in production. Demo addresses (`isDemoAddress`) are never emailed: the outbox skips them.
+
+## ADR: Business dates use the Indian calendar
+
+- **Date:** 2026-11-09
+- **Decision:** day-based rules (digests, reminders, "today" in bookings) use `istDateString` (Asia/Kolkata), not UTC, so evening events do not land on the wrong day.
+
+## ADR: Retention for chats, AI logs and tasks
+
+- **Date:** 2026-11-09
+- **Decision:** a daily job (`/api/cron/data-retention`, 02:00 IST) deletes data past its retention period. Periods are in `docs/DATA_MODEL.md`. Chat transcripts, `ai_logs` and `lead_tasks` are included so personal data does not outlive its purpose.
+
+## ADR: Free-tier AI limits and price-promise guard
+
+- **Date:** 2026-11-09
+- **Decision:** limits per feature: `AI_MAX_RPM=8`, `AI_DAILY_CALL_CAP=100`, fast calls time out at `AI_TIMEOUT_FAST_MS=30000` (routes allow 60 s). Past the cap or timeout the rule-based fallback answers. Beyond the discount word list, `findPriceConcessionPhrase` blocks promises such as "best price", "negotiable" or "I can reduce the price" in drafts, chat and staff replies.
 

@@ -78,7 +78,7 @@ export function computeOnRoad({
   const handling = Math.round(rule.handling);
   const accessories = includeAccessories ? Math.round(rule.accessories) : 0;
   
-  // TCS applies only above ₹10,00,000 ex-showroom (context.md §3.1); matches the get_onroad_* SQL functions.
+  // TCS applies only above ₹10,00,000 ex-showroom (CLAUDE.md section 3); matches the get_onroad_* SQL functions.
   const tcsPct = rule.tcs_pct ?? 0;
   const tcs = tcsPct > 0 && exShowroom > TCS_THRESHOLD ? Math.round(exShowroom * (tcsPct / 100)) : 0;
 

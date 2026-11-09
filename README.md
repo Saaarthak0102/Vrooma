@@ -7,7 +7,7 @@ Vrooma transforms the traditional car buying and servicing experience by replaci
 
 **Stack:** Next.js 15 (App Router) · React 19 · TypeScript (strict) · Tailwind CSS · Radix UI · Supabase (Postgres, Auth, Storage, Realtime, `pg_cron`) · `next-intl` (English text catalogue only) · Vitest.
 
-**Status:** Frontend Phases 1–2 and backend Phases 0–6 are complete (auth, schema, data layer, bookings & leads, account privacy, hardening). Live LLM streaming in the lead copilot and WhatsApp account setup are still to come. See [`docs/backend/STATUS.md`](./docs/backend/STATUS.md).
+**Status:** Feature complete: public site, buyer dashboard, staff and admin consoles, the AI layer (Gemini free key; rule-based fallbacks), automations, daily digests, email-first messaging with a WhatsApp switch, and a one-click demo mode. Open owner steps (production migration, Vercel env, SMTP, WhatsApp keys) are listed in [`CLAUDE.md`](./CLAUDE.md) section 8.
 
 ---
 
@@ -82,13 +82,13 @@ Supabase cannot call `localhost`, so the HTTP cron jobs (outbox, retention, dele
 
 ## 🗄️ Backend (Supabase)
 
-- **Migrations:** `supabase/migrations/0001`–`0019` are the single source of truth. Never edit an applied migration; add a new one. Seed data lives in `supabase/seed.sql`; email templates in `supabase/templates/`.
-- **Schema:** 38 objects in `public` (catalog, pricing, used cars, slots & bookings, leads & assignment, consents, data requests, outbox, audit) plus a `private` schema for helpers that PostgREST does not expose.
+- **Migrations:** `supabase/migrations/0001`–`0042` are the single source of truth. Never edit an applied migration; add a new one. Seed data lives in `supabase/seed.sql`; email templates in `supabase/templates/`.
+- **Schema:** about 45 tables in `public` (catalogue, pricing, used cars, slots and bookings, leads and tasks, chats, garage, consents, data requests, outbox, AI logs, audit; map in [`docs/DATA_MODEL.md`](./docs/DATA_MODEL.md)) plus a `private` schema for helpers that PostgREST does not expose.
 - **Security:** RLS enabled on every `public` table, default deny. All `SECURITY DEFINER` functions set `search_path = ''` and have explicit grants. Role matrix in [`docs/backend/ROLE_MATRIX.md`](./docs/backend/ROLE_MATRIX.md).
 - **Key RPCs:** `create_lead`, `book_slot`, `cancel_booking`, `reassign_lead`, `set_lead_status`, `get_onroad_breakup`, `get_onroad_teaser`, `get_used_car_reg`, `get_leak_metrics`, `request_account_deletion`, `admin_set_role`. Call paths: [`docs/backend/RPC_CALL_PATHS.md`](./docs/backend/RPC_CALL_PATHS.md).
-- **Scheduled jobs:** created by `private.ensure_cron_jobs()`. SQL jobs (SLA evaluation, slot generation, idempotency and rate-limit purges) run in-database. HTTP jobs (outbox, data retention, finalize deletions) need the Vault secrets `app_url` and `cron_secret`; after adding them run `select private.ensure_cron_jobs();`. Check status with `public.get_cron_status()`.
-- **Outbox:** customer messages are queued in `messages_outbox` and delivered by `/api/cron/outbox` with backoff and stale-claim recovery. Email (Resend) and WhatsApp (Meta Cloud API) are real when keys are set, otherwise rows are `skipped`. SMS was removed.
-- **Environments:** DEV (`vrooma-dev`) and PROD are separate projects. Promote migrations DEV → PROD only after DEV verification ([`ENVIRONMENTS.md`](./docs/backend/ENVIRONMENTS.md), [`OPERATIONS.md`](./docs/backend/OPERATIONS.md)).
+- **Scheduled jobs:** created by `private.ensure_cron_jobs()`. SQL jobs (SLA evaluation, slot generation, idempotency and rate-limit purges) run in-database. HTTP jobs (outbox, automations, digests, data retention, finalize deletions, DMS export) need the Vault secrets `app_url` and `cron_secret`; after adding them run `select private.ensure_cron_jobs();`. Check status with `public.get_cron_status()`.
+- **Outbox:** customer messages are queued in `messages_outbox` and delivered by `/api/cron/outbox` with backoff and stale-claim recovery. Email (Resend) is the default channel (`NOTIFY_CHANNEL=email`); WhatsApp (Meta Cloud API) takes over with `NOTIFY_CHANNEL=whatsapp` and keys. Rows without a provider are `skipped`. Demo addresses are never emailed. SMS was removed.
+- **Environments:** DEV (`eobtzcwinjmimzisypca`) and PROD (`zdasktnbdjkjtoncojsy`) are separate projects; `pnpm db:push` is a guarded runner for both. Promote migrations DEV → PROD only after DEV verification ([`ENVIRONMENTS.md`](./docs/backend/ENVIRONMENTS.md), [`OPERATIONS.md`](./docs/backend/OPERATIONS.md)).
 
 ### API routes (`src/app/api`)
 
@@ -108,8 +108,9 @@ Supabase cannot call `localhost`, so the HTTP cron jobs (outbox, retention, dele
 | `POST /api/consent`, `/api/newsletter` | DPDP consent, newsletter opt-in | Public |
 | `GET/PUT /api/me/profile`, `POST /api/me/delete` | Profile, DPDP erasure request | Signed-in buyer |
 | `GET /api/export/daily-csv` | Daily DMS CSV export | Admin / manager or `CRON_SECRET` |
-| `POST /api/outbox/send` | Manual outbox send | Admin or `CRON_SECRET` |
-| `/api/cron/{sla,outbox,data-retention,finalize-deletions}` | Scheduled jobs | `CRON_SECRET` |
+| `/api/cron/{sla,outbox,automations,digests,data-retention,finalize-deletions,dms-export}` | Scheduled jobs | `CRON_SECRET` |
+| `POST /api/webhooks/calls` | Telephony call events | `CALLS_WEBHOOK_SECRET` |
+| `POST /api/auth/demo-login` | One-click demo persona | `DEMO_LOGIN=true`, 404 otherwise |
 | `POST /api/auth/dev-login` | One-click dev sign-in | `development` only, 404 otherwise |
 
 ---
@@ -150,7 +151,7 @@ Staff sign-ins always land in their console (no public header or footer there). 
 
 ## 📐 Architecture & Standards
 
-- **Source of Truth:** Full architectural specification and golden rules are in [`context.md`](./context.md).
+- **Source of Truth:** The brief, golden rules, tokens and status are in [`CLAUDE.md`](./CLAUDE.md); reasons for decisions in [`docs/DECISIONS.md`](./docs/DECISIONS.md).
 - **Zero Dead Buttons:** Enforced via `notWired()` and audited in [`docs/WIRING.md`](./docs/WIRING.md).
 - **DPDP Act 2023 Compliance:** Registration numbers masked publicly (full value only via `get_used_car_reg` for authorised staff), explicit unticked consent boxes, self-serve data download and erasure (`/api/me/delete`, 7-day cooling-off, then anonymisation).
 - **English only:** one text catalogue (`messages/en.json`) read through `next-intl`; no language switcher.
@@ -162,22 +163,13 @@ Staff sign-ins always land in their console (no public header or footer there). 
 
 ## 📄 Documentation Directory
 
-**Product & frontend**
-- [`docs/BRIEF.md`](./docs/BRIEF.md) — Verbatim client brief
-- [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) — System layers
-- [`docs/ROUTES.md`](./docs/ROUTES.md) — Application route table
-- [`docs/DATA_MODEL.md`](./docs/DATA_MODEL.md) — Schema, enums and tables
-- [`docs/DESIGN_SYSTEM.md`](./docs/DESIGN_SYSTEM.md), [`BUTTON_SYSTEM.md`](./docs/BUTTON_SYSTEM.md), [`MOTION.md`](./docs/MOTION.md), [`ASSETS.md`](./docs/ASSETS.md) — Tokens, buttons, motion, imagery
-- [`docs/LANDING.md`](./docs/LANDING.md), [`LISTING_CARDS.md`](./docs/LISTING_CARDS.md), [`LISTING_CARDS_V2.md`](./docs/LISTING_CARDS_V2.md), [`DASHBOARD.md`](./docs/DASHBOARD.md), [`LAYOUT_FIXES.md`](./docs/LAYOUT_FIXES.md) — Landing scenes, catalog cards, buyer dashboard
-- [`docs/GATING.md`](./docs/GATING.md), [`AI.md`](./docs/AI.md), [`DPDP.md`](./docs/DPDP.md), [`SEO.md`](./docs/SEO.md), [`PERFORMANCE.md`](./docs/PERFORMANCE.md) — Gating, AI guardrails, privacy, SEO, budgets
-- [`docs/TESTING.md`](./docs/TESTING.md), [`WIRING.md`](./docs/WIRING.md), [`DECISIONS.md`](./docs/DECISIONS.md), [`ROADMAP.md`](./docs/ROADMAP.md) — Tests, button registry, ADRs, roadmap
-
-**Backend (`docs/backend/`)**
-- [`STATUS.md`](./docs/backend/STATUS.md) — Phase progress and what is deferred
-- [`ENVIRONMENTS.md`](./docs/backend/ENVIRONMENTS.md), [`OPERATIONS.md`](./docs/backend/OPERATIONS.md), [`RELEASE.md`](./docs/backend/RELEASE.md) — Environments, runbook, release checklist
-- [`SECURITY.md`](./docs/backend/SECURITY.md), [`ROLE_MATRIX.md`](./docs/backend/ROLE_MATRIX.md), [`DISCOUNT_RULES.md`](./docs/backend/DISCOUNT_RULES.md) — Security review, roles, discount guard
-- [`RPC_CALL_PATHS.md`](./docs/backend/RPC_CALL_PATHS.md), [`EXPORT.md`](./docs/backend/EXPORT.md), [`TESTING.md`](./docs/backend/TESTING.md), [`VERIFY_REPORT.md`](./docs/backend/VERIFY_REPORT.md) — RPC map, DMS export, backend tests, verification
-- [`00 readme.md`](./docs/backend/00%20readme.md) — Phase runbook (phases 0–6 specs: audit, auth, schema, data layer, booking & leads, privacy, hardening)
+- [`CLAUDE.md`](./CLAUDE.md): brief, rules, status, open items, commands and the full doc index (read this first)
+- [`docs/DECISIONS.md`](./docs/DECISIONS.md): why things are the way they are
+- [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md), [`DATA_MODEL.md`](./docs/DATA_MODEL.md), [`ROUTES.md`](./docs/ROUTES.md) (with access matrix): structure
+- [`docs/AI.md`](./docs/AI.md): AI features, guards, limits, audit
+- [`docs/FRONTEND.md`](./docs/FRONTEND.md): design system, motion, landing, cards, dashboard, performance, SEO, assets
+- [`docs/DPDP.md`](./docs/DPDP.md), [`TESTING.md`](./docs/TESTING.md), [`WIRING.md`](./docs/WIRING.md)
+- Backend (`docs/backend/`): [`ENVIRONMENTS.md`](./docs/backend/ENVIRONMENTS.md) (DEV/PROD, migrations, promotion), [`OPERATIONS.md`](./docs/backend/OPERATIONS.md) (cron, backups, runbook, export), [`PROD_DEMO.md`](./docs/backend/PROD_DEMO.md), [`SECURITY.md`](./docs/backend/SECURITY.md), [`ROLE_MATRIX.md`](./docs/backend/ROLE_MATRIX.md) (roles, sign-up), [`RPC_CALL_PATHS.md`](./docs/backend/RPC_CALL_PATHS.md), [`DISCOUNT_RULES.md`](./docs/backend/DISCOUNT_RULES.md), [`RELEASE.md`](./docs/backend/RELEASE.md) (go-live and manual checks)
 
 ---
 

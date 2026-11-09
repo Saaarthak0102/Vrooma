@@ -18,7 +18,7 @@
  * NOT automatable: email code delivery to a real inbox. See the MANUAL list printed at the end.
  *
  * Usage:
- *   pnpm build && pnpm start -p 3009          # production build, as in VERIFY_REPORT
+ *   pnpm build && pnpm start -p 3009          # production build, as in docs/TESTING.md
  *   TEST_URL=http://localhost:3009 node scripts/console-check.mjs
  *   node scripts/console-check.mjs --public-only      # skip Phase B
  *   node scripts/console-check.mjs --skip-public --personas=consultant,manager   # re-run a subset

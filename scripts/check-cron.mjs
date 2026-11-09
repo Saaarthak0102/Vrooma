@@ -89,13 +89,13 @@ Heartbeats unavailable (apply migration 0038): ${hb.error.message}`);
       console.error(`
 Scheduled, but the app is NOT receiving: ${heart.notReceiving.join(", ")}`);
       console.error("Likely causes: CRON_SECRET differs from the Vault cron_secret, app_url is wrong or has a trailing slash,");
-      console.error("or Vercel deployment protection blocks the call. See docs/backend/CRON_SETUP.md.");
+      console.error("or Vercel deployment protection blocks the call. See docs/backend/OPERATIONS.md.");
     }
   }
   if (result.missing.length) {
     console.error(`\nMissing jobs: ${result.missing.join(", ")}`);
     console.error("Add the Vault secrets app_url and cron_secret, then run: select private.ensure_cron_jobs();");
-    console.error("Steps: docs/backend/CRON_SETUP.md");
+    console.error("Steps: docs/backend/OPERATIONS.md");
   }
   if (result.inactive.length) console.error(`Inactive jobs: ${result.inactive.join(", ")}`);
   if (result.failing.length) console.error(`Last run failed: ${result.failing.join(", ")}`);

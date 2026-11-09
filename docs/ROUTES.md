@@ -47,3 +47,26 @@ The app is English only. Old `/en/...` and `/hi/...` URLs permanently redirect t
 Each console screen starts with an interactive Overview (charts that filter the table below; see `docs/WIRING.md`).
 
 Console routes render no public header, footer, chat widget or smooth-scroll; the console bar (`ConsoleShell`) is the only navigation.
+
+## Also: restore-account and demo
+`/restore-account` cancels a pending account deletion. `/api/auth/demo-login` (404 unless `DEMO_LOGIN=true`) signs in a demo persona with one click.
+
+## API and cron routes
+Public/buyer: `/api/leads`, `/api/bookings`, `/api/slots`, `/api/price`, `/api/cars`, `/api/trade-in`, `/api/chat`, `/api/consent`, `/api/newsletter`, `/api/me/delete`, `/api/me/profile`, `/api/export`, `/api/health`. Staff: `/api/ai/lead-copilot`. Webhook: `/api/webhooks/calls`. Cron (all require `CRON_SECRET`; schedule in `docs/backend/OPERATIONS.md`): `/api/cron/outbox`, `sla`, `automations`, `digests`, `data-retention`, `finalize-deletions`, `dms-export`.
+
+## Access philosophy (gating)
+Value before capture: anyone can browse models, specs, ex-showroom prices, masked used cars, and use the EMI calculator. The on-road price breakup and the line-by-line 140-point inspection ask for name and mobile (with DPDP consent). Test-drive and service booking never need an account: the form creates a guest lead and shows the confirmation.
+
+| Resource | Anonymous | Buyer | Consultant | Manager | Admin |
+|---|---|---|---|---|---|
+| Catalogue, specs, ex-showroom price, EMI | yes | yes | yes | yes | yes |
+| On-road breakup, inspection report | lead gate | yes | yes | yes | yes |
+| Used cars | masked reg | masked reg | masked reg | full reg (audited reveal) | full reg (audited reveal) |
+| Book test drive / service | auto guest | yes | assisted | assisted | assisted |
+| `/dashboard/*` | sign-in | yes | redirect to console | redirect | redirect |
+| `/staff`, `/staff/bookings`, `/staff/chats` | 403 | 403 | own leads | all | all |
+| `/staff/stock` and the AI price band | 403 | 403 | 403 | yes | yes |
+| `/admin/*` | 403 | 403 | 403 | 403 | yes |
+
+In code: server pages call `requireRole(...)`; middleware and layouts redirect unauthorised sessions; client gates use `AuthGate`. RLS is the last line of defence (`docs/backend/ROLE_MATRIX.md`).
+

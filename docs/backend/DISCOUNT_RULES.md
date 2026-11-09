@@ -95,3 +95,8 @@ Hindi (Devanagari-aware boundaries, so a Devanagari letter on either side stops 
 | 3 | Best deal, lowest price guaranteed | allowed |  |
 
 These are price-reduction phrasings without the hard-blocked words. Adding them (`कमी`, `reduce the price`, `lowest price`) is a one-line change in `discount.ts` plus a table row, but each addition also raises the false-positive rate, so they are listed rather than silently added.
+
+## Price-promise check (added 2026-11-09)
+
+Besides the word list, `findPriceConcessionPhrase` (same file, `src/lib/validation/discount.ts`) blocks phrases that promise a better price without using a listed word, such as "I can reduce the price", "price can come down", "best price", "special deal", "negotiable", "cheaper", "lower than the quoted price", "match any competitor price", or the word "discount" with letters spread out. It applies to AI drafts (through `guardAiText`), the buyer chatbot, and consultant replies in the Lead Desk and the Chats screen. The rule-based fallback text is written to pass both checks.
+

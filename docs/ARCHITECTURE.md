@@ -1,125 +1,36 @@
 # VROOMA — SYSTEM ARCHITECTURE
 
-## 1. High-Level Architecture
-
-Vrooma is designed as a modular, high-performance automotive dealership platform built on Next.js 15 App Router, TypeScript, and a repository-based persistence abstraction that supports zero-code-change switching between in-memory mock storage and Supabase PostgreSQL.
+Next.js 15 App Router (React 19, TypeScript strict) on Vercel, Supabase (Postgres with RLS, Auth, Storage, Realtime, pg_cron) as the only backend, Resend for email, Google Gemini (free key) for AI. The in-memory mock store and `NEXT_PUBLIC_USE_MOCK` no longer exist; the mock data in `src/data/mock/` only seeds `supabase/seed.sql` and unit tests.
 
 ```mermaid
 flowchart TD
-  subgraph Presentation ["Presentation Layer (Next.js App Router)"]
-    PublicUI["Public Catalog & Gated Breakup (SSR + CSR)"]
-    BuyerUI["Buyer Dashboard & Booking Steppers (CSR)"]
-    StaffUI["Staff Lead Desk & SLA Clocks (CSR)"]
-    AdminUI["Dealer Principal CMS & Leakage Monitor (CSR)"]
-  end
-
-  subgraph API ["Next.js API & Route Handlers (/api/*)"]
-    LeadAPI["/api/leads & import"]
-    BookingAPI["/api/bookings & slots"]
-    PriceAPI["/api/price & cars/search"]
-    AIAgentAPI["/api/ai/lead-copilot"]
-    DPDPAPI["/api/me/delete & consent"]
-  end
-
-  subgraph Domain ["Domain Core & Services"]
-    PriceEngine["Pure Price Engine (RTO, TCS, Ins.)"]
-    EMIEngine["Pure EMI & Amortisation Engine"]
-    SLAService["SLA State Machine (<5m, Breached)"]
-    AssignService["Showroom Auto-Assignment Service"]
-    AIGuardrail["AI Discount Guardrail Sanitizer"]
-  end
-
-  subgraph Repositories ["Repository Abstraction Layer (src/server/repositories/*)"]
-    ModelRepo["models.ts"]
-    UsedCarRepo["used-cars.ts"]
-    PricingRepo["pricing.ts"]
-    LeadRepo["leads.ts"]
-    BookingRepo["bookings.ts"]
-  end
-
-  subgraph Storage ["Storage Adapter"]
-    MockStore["In-Memory Store (NEXT_PUBLIC_USE_MOCK=true)"]
-    SupabaseDB["Supabase PostgreSQL + RLS (NEXT_PUBLIC_USE_MOCK=false)"]
-  end
-
-  Presentation --> API
-  Presentation --> Domain
-  API --> Domain
-  API --> Repositories
-  Repositories --> MockStore
-  Repositories --> SupabaseDB
+  UI["Pages and components (src/app, src/components)"] --> ACT["Server actions and route handlers (src/server/actions, src/app/api)"]
+  ACT --> SVC["Services (src/server/services): outbox, channels, slot engine, lead assignment, CSV, DMS export"]
+  ACT --> REPO["Repositories (src/server/repositories): the only code that talks to Supabase"]
+  ACT --> AI["AI layer (src/server/ai): runner, guards, logs, prompts"]
+  CRON["Cron routes (/api/cron/*)"] --> AUTO["Automations (src/server/automations)"]
+  AUTO --> SVC
+  AUTO --> AI
+  REPO --> DB[("Supabase Postgres + RLS + RPCs")]
+  SVC --> MAIL["Resend email / WhatsApp adapter"]
+  AI --> GEM["Gemini (or Claude)"]
+  PG["pg_cron + pg_net"] --> CRON
 ```
 
----
+## Layers
+- **Pure domain code in `src/lib/`**: price engine, EMI, SLA, masking, money, phone, dates (`istDateString`), analytics, discount validation. No I/O, fully unit tested.
+- **Repositories** return typed data; pages and actions never import the Supabase client directly. Types come from `src/types/database.types.ts` (generated).
+- **Server actions** validate with `zod`, check the role (`requireRole`), call repositories/services, and return typed results. Destructive or sensitive actions write `audit_log`.
+- **Services**: `outbox` (queue, retry, dead-letter), `channels` (`NOTIFY_CHANNEL` picks email or WhatsApp), `slot-engine`, `lead-assignment`, `csv-import`, `dms-export`, `chat-handoff`, `garage`.
+- **Automations** (`src/server/automations`): reminders, outcomes, escalations, follow-ups, nudges, expiry alerts, garage reminders, digests. Each run writes a heartbeat; consent is checked at send time (`consent-gate`).
+- **AI layer** (`src/server/ai`): everything goes through `runAi` (rate gate per minute, daily cap per feature, timeout, circuit breaker, redacted `ai_logs`). Output passes `guardAiText` (discount and price-promise filter, link and grounding checks). Without a key every feature falls back to rule-based text. See `docs/AI.md`.
+- **Demo mode** (`src/lib/demo-mode.ts`, `demo-personas.ts`, `/api/auth/demo-login`): off unless `DEMO_LOGIN=true`.
 
-## 2. Mock-to-Supabase Swap Pattern
+## Lead lifecycle
+Buyer submits (consent captured) → `create_lead` RPC routes by showroom and model, starts the 5-minute SLA → acknowledgement queued in the outbox → consultant opens the Lead Desk, sees the AI briefing, edits a guarded draft, replies → status moves, SLA met. A cron breach check flags leads past SLA and escalates (`automations/escalations`).
 
-The entire data access layer is abstracted behind pure TypeScript interfaces in `src/server/repositories/`. No frontend page or API route communicates directly with a database driver.
+## Data and scheduling
+Schema, retention and tables: `docs/DATA_MODEL.md`. Cron jobs (pg_cron calling the HTTP routes with `CRON_SECRET`): `docs/backend/OPERATIONS.md`. Environments and migrations: `docs/backend/ENVIRONMENTS.md`.
 
-### Persistence Switch Flag
-The active adapter is controlled by a single environment variable:
-```env
-NEXT_PUBLIC_USE_MOCK=true # or false for live Supabase
-```
-
-### Repository Implementation Architecture
-```typescript
-// Example: src/server/repositories/leads.ts
-import { env } from "@/lib/env";
-import { getMockStore } from "@/server/store";
-import { createServerClient } from "@/lib/supabase/server";
-
-export async function getLeads(): Promise<Lead[]> {
-  if (env.NEXT_PUBLIC_USE_MOCK) {
-    return getMockStore().getLeads();
-  }
-  const supabase = await createServerClient();
-  const { data, error } = await supabase.from("leads").select("*");
-  if (error) throw error;
-  return data;
-}
-```
-
-This guarantees:
-1. Complete offline capability and immediate boot time during frontend development and automated unit testing.
-2. 100% decoupling between UI state machines and database schemas.
-3. Clean zero-regression migration to production Supabase by configuring connection credentials in `.env.local`.
-
----
-
-## 3. Data Flow & Lead SLA Lifecycle
-
-```mermaid
-sequenceDiagram
-  autonumber
-  actor Customer as Car Buyer
-  participant Web as Vrooma Web App
-  participant API as /api/leads
-  participant SLA as SLA Clock Engine
-  actor Staff as Sales Consultant
-
-  Customer->>Web: Submits on-road price enquiry / test drive
-  Web->>API: POST /api/leads (with DPDP consent)
-  API->>SLA: Starts 5-minute countdown clock
-  API-->>Web: Confirmation + consultant name assigned
-  Web-->>Customer: WhatsApp/SMS acknowledgement queued
-  Staff->>Web: Opens Staff Lead Inbox
-  Web->>Staff: Displays color-coded lead (Active: 4m 58s remaining)
-  Staff->>Web: Generates AI First-Reply draft
-  Note over Web: AI Guardrail strips any discount words
-  Staff->>Customer: Calls customer & sends verified reply
-  Staff->>Web: Marks lead as "Contacted" (SLA Met)
-```
-
----
-
-## 4. Security & DPDP Isolation
-
-1. **Personal Data Masking:** Registration plates on pre-owned cars are permanently masked in public repository queries (`src/lib/masking.ts`).
-2. **Consent & Erasure:** All customer forms capture explicit consent metadata (IP address, timestamp, terms version). Deletion requests immediately wipe lead records and dissociate past bookings via `/api/me/delete`.
-3. **Role-Based Row Level Security (RLS):**
-   - Public: Read-only access to published models, active price rules, and public stock.
-   - Buyer: Read/write only on their own user ID.
-   - Staff: Read/write on leads assigned to their designated showroom.
-   - Admin / Used-Car Manager: Full access across catalogs and AI price recommendations.
-
+## Security and privacy
+Registration numbers masked in public queries (`src/lib/masking.ts`); RLS on every table; role checks in layouts, actions and RLS; consent and erasure flows (`docs/DPDP.md`); security model (`docs/backend/SECURITY.md`).

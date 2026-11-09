@@ -1,2 +1,1 @@
-Read context.md before doing anything.
-
+Read CLAUDE.md before doing anything.

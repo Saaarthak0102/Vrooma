@@ -42,3 +42,20 @@ Under Indian privacy principles, vehicle registration numbers can be linked to i
      - Active test-drive bookings are cancelled.
      - A confirmation receipt is presented with a DPDP reference token.
 
+---
+
+## 5. Retention
+
+Personal data is deleted or anonymised when its purpose ends. Periods (leads 24 months, chats 12 months, AI logs 90 days, outbox 90 days, and others) are listed in `docs/DATA_MODEL.md` and run daily by `/api/cron/data-retention`. Buyers can also delete their account; it can be cancelled until it is finalised.
+
+## 6. AI and personal data
+
+- Prompts and stored `ai_logs` are redacted: phone numbers and registration numbers are never stored.
+- The AI never sees data the viewing role cannot see. The chatbot gets facts built on the server for that buyer.
+- Garage and service-due reminders and saved-car emails are opt-in, with an unticked checkbox and a send-time consent check.
+- The buyer data export includes garage vehicles and service records.
+
+## 7. Demo accounts
+
+Demo accounts (`*@demo.vrooma.in`, migration `0042`) hold fictional people only. The outbox never emails demo addresses. Remove them with `supabase/remove-demo-data.sql` before real launch (`docs/backend/PROD_DEMO.md`).
+

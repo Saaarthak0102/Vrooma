@@ -132,3 +132,12 @@ The authorisation boundaries are verified in CI/CD through dedicated test suites
 - **`tests/leads-lifecycle.test.ts`**: Verifies lead status mutations, forbidden discount word blocking, and manager reassignment barriers.
 - **`tests/privacy-dpdp.test.ts`**: Verifies consent immutability, data export assembly, and 7-day cooling-off erasure states.
 
+## 6. Sign-up and sign-in flows
+
+- **Sign-in** is email plus a 6-digit code (no passwords, no Google). Staff always land in their console afterwards (`postSignInPath`).
+- **Sign-up** collects name, email, phone, city and consent boxes (a gate only; nothing is stored from that page). `requestSignupLink` sends a **Confirm Account** link. The link opens `/auth/confirm`, which only forwards to `/verify-email`; verification needs a click on **Confirm my email**, because mail scanners open every link and the token is single-use. Destination after verifying comes from `resolvePostVerifyDestination` (onboarding for a new account, the role's home for a finished one).
+- **Onboarding** opens prefilled with every consent box unticked; ticking them records consent through `complete_profile`. `user_metadata` only prefills fields; it never sets a role or a consent.
+- **Supabase dashboard setup per project:** Authentication, Email Templates, Confirm signup: paste `supabase/templates/confirmation.html` (the button keeps `{{ .RedirectTo }}&token_hash={{ .TokenHash }}&type=signup`). URL Configuration: Site URL = the app URL; Redirect URLs include `<app url>/auth/confirm**` and `<app url>/auth/callback**`. Keep **Confirm email** on (link lifetime = OTP expiry, 1 hour).
+- **Demo and dev sign-in:** `/api/auth/dev-login` (needs `ALLOW_DEV_LOGIN=true`, never in production) and `/api/auth/demo-login` (needs `DEMO_LOGIN=true`; production demos only, `docs/backend/PROD_DEMO.md`).
+- Proof: `tests/signup-link.test.ts`, `tests/post-sign-in.test.ts`, `tests/demo-login.test.ts`, `scripts/e2e-signup-link.mjs` (DEV only).
+

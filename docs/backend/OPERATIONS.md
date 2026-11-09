@@ -89,10 +89,10 @@ When restoring a database from backup or spinning up a warm standby, follow this
 
 | Environment Attribute | DEV Project | PROD Project |
 |---|---|---|
-| **Supabase Project Ref** | `eobtzcwinjmimzisypca` | Unique production ref (e.g. `vrooma-prod-xyz`) |
-| **AWS Region** | `ap-south-1` (Mumbai) | `ap-south-1` (Mumbai) |
-| **Site URL** | `http://localhost:3000` / Preview URLs | `https://vrooma.in` (Strict - no wildcards) |
-| **SMTP Delivery** | Resend Test API Key / Sandbox domain | Resend Verified Domain (`mailer.vrooma.in`) with DKIM/SPF/DMARC |
+| **Supabase Project Ref** | `eobtzcwinjmimzisypca` | `zdasktnbdjkjtoncojsy` (`vrooma-prod`) |
+| **Region** | per project | Seoul (`ap-northeast-2`); Mumbai preferred if the project is ever recreated |
+| **Site URL** | `http://localhost:3000` / Preview URLs | `https://vroomacars.vercel.app` (no wildcards) |
+| **SMTP Delivery** | Resend Test API Key / Sandbox domain | Resend verified domain with DKIM/SPF/DMARC (custom SMTP in Supabase Auth) |
 | **CRON_SECRET** | Random local string | 64-character high-entropy secret in Vercel & Supabase Vault |
 | **Dev Bypass Login** | Allowed (`ALLOW_DEV_LOGIN=true`, `APP_ENV=development`) | **Strictly Forbidden** (`APP_ENV=production` forces 404 & build guard) |
 
@@ -100,9 +100,9 @@ When restoring a database from backup or spinning up a warm standby, follow this
 1. All schema modifications MUST be written as forward migrations in `supabase/migrations/NNNN_name.sql`.
 2. **Never modify or edit an applied migration.** Always author a new incremental migration file.
 3. Run `npm run db:lint` to verify no breaking syntax or missing down-migrations.
-4. Apply and test on DEV first via `node scripts/db-push.mjs`.
-5. Run the full regression test suite (`npm run test`).
-6. Once merged to `main`, apply to PROD using the deployment pipeline with `DATABASE_URL` pointing to the PROD database pooler (Port 6543 / 5432).
+4. Apply and test on DEV first with `pnpm db:push`.
+5. Run `pnpm test`.
+6. Promote to PROD with `pnpm db:push --target prod --dry-run`, then without `--dry-run`, in your own terminal. Steps and guards: `docs/backend/ENVIRONMENTS.md`.
 
 ---
 
@@ -154,17 +154,22 @@ When restoring a database from backup or spinning up a warm standby, follow this
 
 Source of truth: migration `0018_create_lead_actor_and_cron_jobs.sql`, which defines `private.ensure_cron_jobs()`. The function is idempotent (it unschedules and recreates the named jobs), so it is safe to re-run.
 
-### 6.1 The seven jobs
+### 6.1 The jobs
+
+Source of truth: `private.ensure_cron_jobs()` (latest definition in migration `0041`). Idempotent; safe to re-run.
 
 | Job (`cron.job.jobname`) | Schedule (UTC) | What runs | Needs Vault secrets |
 |---|---|---|---|
-| `eval_lead_sla_breaches` | every minute | `SELECT public.flag_sla_breaches()` **in the database** | no |
-| `process_outbox_queue` | every minute | `pg_net` POST to `/api/cron/outbox` | yes |
-| `daily_data_retention` | 20:30 daily (02:00 IST) | `pg_net` POST to `/api/cron/data-retention` | yes |
-| `daily_finalize_deletions` | 21:30 daily (03:00 IST) | `pg_net` POST to `/api/cron/finalize-deletions` | yes |
-| `daily_slot_generation` | 20:30 daily | `SELECT public.generate_slots(CURRENT_DATE, 14)` | no |
-| `purge_expired_idempotency` | 21:30 daily | delete idempotency keys older than 24 h | no |
-| `purge_stale_rate_limits` | 21:45 daily | delete rate limits older than 2 days | no |
+| `eval_lead_sla_breaches` | every minute | `SELECT public.flag_sla_breaches()` in the database | no |
+| `process_outbox_queue` | every minute | POST `/api/cron/outbox` | yes |
+| `process_automations` | every 5 minutes | POST `/api/cron/automations` (reminders, outcomes, escalations, expiry alerts, follow-ups) | yes |
+| `daily_digests` | 03:00 (08:30 IST) | POST `/api/cron/digests` | yes |
+| `daily_data_retention` | 20:30 (02:00 IST) | POST `/api/cron/data-retention` | yes |
+| `daily_finalize_deletions` | 21:30 (03:00 IST) | POST `/api/cron/finalize-deletions` | yes |
+| `daily_dms_export` | 18:45 (00:15 IST) | POST `/api/cron/dms-export` | yes |
+| `daily_slot_generation` | 20:30 | `SELECT public.generate_slots(CURRENT_DATE, 14)` | no |
+| `purge_expired_idempotency` | 21:30 | delete idempotency keys older than 24 h | no |
+| `purge_stale_rate_limits` | 21:45 | delete rate limits older than 2 days | no |
 
 **SLA runs in one place only:** the `eval_lead_sla_breaches` pg_cron job. `flag_sla_breaches()` is idempotent (it only touches leads whose `sla_breached_at` is still NULL), so `/api/cron/sla` is kept purely as a manual / diagnostic trigger and is **not** scheduled anywhere in production. Do not add it to Vercel Cron.
 
@@ -172,21 +177,21 @@ All `/api/cron/*` routes require `Authorization: Bearer <CRON_SECRET>`. In produ
 
 ### 6.2 Owner steps: add the Vault secrets (DEV, then PROD)
 
-The three HTTP jobs are created only when **both** secrets exist. Until then the migration prints a NOTICE and the System page shows those jobs as "not scheduled (add Vault secrets)".
+The HTTP jobs are created only when **both** secrets exist. Until then the migration prints a NOTICE and the System page shows those jobs as "not scheduled (add Vault secrets)".
 
 1. Pick the project: DEV is `eobtzcwinjmimzisypca`, PROD is `zdasktnbdjkjtoncojsy`. Never paste PROD values into a DEV project or the reverse.
 2. Choose the values:
-   - `app_url`: the public base URL of **that environment's** deployment, with no trailing slash. DEV needs a URL Supabase can reach, so use a Vercel Preview URL; **`http://localhost:3000` will not work** (see 6.3). PROD: `https://vrooma.in`.
+   - `app_url`: the public base URL of **that environment's** deployment, with no trailing slash. DEV needs a URL Supabase can reach, so use a Vercel Preview URL; **`http://localhost:3000` will not work** (see 6.3). PROD: `https://vroomacars.vercel.app`.
    - `cron_secret`: a long random string (for example `openssl rand -hex 32`). It must be the **same value** as the `CRON_SECRET` environment variable of that deployment on Vercel.
 3. Open Supabase Dashboard > the project > SQL Editor and run (replace the placeholders):
    ```sql
    select vault.create_secret('https://<your-deployment-host>', 'app_url');
    select vault.create_secret('<the-same-value-as-CRON_SECRET-on-Vercel>', 'cron_secret');
-   select private.ensure_cron_jobs();   -- creates the three HTTP jobs
+   select private.ensure_cron_jobs();   -- creates the HTTP jobs
    ```
 4. Verify:
    ```sql
-   select jobname, schedule, active from cron.job order by jobname;           -- expect 7 rows
+   select jobname, schedule, active from cron.job order by jobname;           -- expect 10 rows
    select * from public.get_cron_status();                                    -- last run per job
    ```
    Then open **Admin > System Health**: every job should show a last-run time (the daily ones show "never" until their first run).
@@ -284,4 +289,34 @@ are marked `skipped`, never sent.
   Only `externalId` and `outcome` are required. A repeated `externalId` is ignored (safe vendor retries). Numbers are stored
   masked plus a salted hash; call logs are purged after 12 months by the retention job.
 - The admin Overview shows "service calls unanswered" (missed + voicemail, inbound) against the 5% target.
+
+---
+
+## 8. Is the app actually receiving the HTTP jobs?
+
+pg_cron marks an HTTP job `succeeded` as soon as pg_net has *sent* the request; the app can still answer 401 or 404. Since migration `0038` every call that reaches `/api/cron/outbox` or `/api/cron/automations` (after the secret check) records a row in `cron_heartbeats`. The admin System page and `pnpm check:cron` report "scheduled, but the app has never received it" when there is none. Check `select created, status_code, left(content::text,200) from net._http_response order by created desc limit 20;`:
+
+| What you see | Cause | Fix |
+|---|---|---|
+| 401, short JSON | `CRON_SECRET` on the deployment differs from Vault `cron_secret` | make them identical |
+| 401/403 HTML page or redirect to Vercel login | deployment protection on a Preview URL | use an unprotected URL for the DEV `app_url` |
+| 307/308/404 | `app_url` has a trailing slash or points at an old deployment | exact public origin, no trailing slash |
+| no rows | `pg_net` or the Vault secrets are missing | `select private.ensure_cron_jobs();` and read the notice |
+
+Manual trigger: `curl -H "Authorization: Bearer $CRON_SECRET" https://YOUR-APP-DOMAIN/api/cron/outbox`
+
+## 9. Outbox safety rules (all environments)
+
+- Time-sensitive messages (acknowledgements, SLA and escalation alerts, reminders, outcome prompts) older than 24 hours are marked `skipped` (stale) instead of being sent late. Confirmations, cancellations, data-rights notices and consultant replies are always sent.
+- Outside production, `OUTBOX_ALLOWLIST` (addresses or `@domains`) restricts who can be contacted; others are `skipped`. Production ignores it. Set it on DEV and Preview.
+- Demo addresses (`*@demo.vrooma.in`, `isDemoAddress`) are never emailed in any environment.
+- `NOTIFY_CHANNEL` (default `email`) decides whether replies and reminders go by email or WhatsApp. WhatsApp rows with no keys are `skipped`, never `sent`.
+
+## 10. Daily DMS export
+
+`/api/cron/dms-export` writes `vrooma-dms-YYYY-MM-DD.csv` for the day that just ended into the private `dms-exports` Storage bucket. Managers and admins can also download any day with `GET /api/export/daily-csv?date=YYYY-MM-DD` while signed in (or with `Authorization: Bearer CRON_SECRET`).
+- Covers one IST calendar day (`Asia/Kolkata`: from previous-day 18:30 UTC to 18:29:59.999 UTC).
+- `Cache-Control: no-store`; every export writes an `audit_log` entry (actor, time, target date).
+- Text fields starting with `= + - @ tab CR` are prefixed with `'` and quoted (CSV formula injection).
+- Two sections: `LEAD` rows (`lead_ref`, `customer_name`, `phone` E.164, `email`, `showroom`, `model_interest`, `source`, `status`, `assigned_consultant`, `created_at_ist`) and `BOOKING` rows (`booking_ref`, `kind`, `customer_name`, `phone`, `facility`, `vehicle_info` with masked registration, `slot_time_ist`, `status`, `created_at_ist`).
 

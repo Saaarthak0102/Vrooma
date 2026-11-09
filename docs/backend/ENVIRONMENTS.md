@@ -1,8 +1,7 @@
-# VROOMA: ENVIRONMENT SPECIFICATION & PROMOTION POLICY
+# VROOMA: ENVIRONMENTS, MIGRATIONS & PROMOTION
 
 **Document:** `docs/backend/ENVIRONMENTS.md`  
-**Date:** 2026-11-05  
-**Version:** 2026.1  
+**Updated:** 2026-11-09  
 **Status:** **ACTIVE / VERIFIED**
 
 ---
@@ -14,10 +13,10 @@
 | **Supabase Project Reference** | `eobtzcwinjmimzisypca` | `zdasktnbdjkjtoncojsy` |
 | **Supabase Project URL** | `https://eobtzcwinjmimzisypca.supabase.co` | `https://zdasktnbdjkjtoncojsy.supabase.co` |
 | **AWS Region** | `ap-northeast-1` (Tokyo) | `ap-northeast-2` (Seoul) |
-| **Host Environment** | Local machine / Vercel Preview Deployments | Vercel Production Deployment (`https://vrooma.in`) |
+| **Host Environment** | Local machine / Vercel Preview Deployments | Vercel Production Deployment (`https://vroomacars.vercel.app`) |
 | **`APP_ENV` Variable** | `development` | `production` |
 | **Dev Password Sign-in** | Allowed (`ALLOW_DEV_LOGIN=true`) | Strictly disabled (`ALLOW_DEV_LOGIN=false`, 404 on endpoint) |
-| **Dev Seed Users** | 9 canonical dev personas present | Never seeded; real staff only |
+| **Dev Seed Users** | 9 canonical dev personas present | Real staff only, plus the nine demo personas while demo mode is on (`PROD_DEMO.md`) |
 
 ---
 
@@ -179,3 +178,18 @@ password exists; the server redeems a one-time link itself and nothing is emaile
 answers 404 when the variable is not exactly `true`. It has **no passcode**, so while it is on anyone with the link can
 sign in as admin: use it only for a demo and remove the variables afterwards. `pnpm check:env` prints a warning while it is
 on in production. Setup, checks and removal are in `docs/backend/PROD_DEMO.md`.
+
+## Production promotion checklist (owner only)
+
+Everything here is done by the owner in their own shell; no agent runs it. Procedure and guards are in section 3.
+
+**Before:** DEV is green (`pnpm typecheck`, `pnpm test`, `pnpm db:lint`, `pnpm e2e:console`); the same migrations are applied on DEV; production backup taken (Dashboard, Database, Backups; `docs/backend/OPERATIONS.md` section 2).
+
+**Apply:** link the CLI to PROD, run `pnpm db:push --target prod --i-am-targeting-production --dry-run` and read the list (it must show exactly the migrations you expect), then apply with `--confirm-production=zdasktnbdjkjtoncojsy` instead of `--dry-run`. Re-link the CLI to DEV afterwards: `supabase link --project-ref eobtzcwinjmimzisypca`.
+
+**Verify on PROD (SQL editor):** `select count(*) from supabase_migrations.schema_migrations;` equals the number of files; `select jobname from cron.job;` lists the 10 jobs after the Vault secrets are added (`docs/backend/OPERATIONS.md` section 6); then open `/admin?tab=system` and expect no red rows. Sign in as a test buyer, request deletion, confirm **Restore my account** works.
+
+**Rollback:** migrations are forward-only. Restore the backup, or write a new corrective migration; never edit an applied one. Additive migrations leave the previous app version working.
+
+**After:** `pnpm check:cron` with PROD credentials exported in the shell only (never in `.env.local`).
+
